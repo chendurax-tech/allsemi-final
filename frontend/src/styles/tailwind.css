@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @theme {
+    --color-accent-muted: #1f1330;
+  --color-accent-muted-2: #2a1a45;
   --color-bg: #07070b;
   --color-bg-raised: #0d0b14;
   --color-line: rgba(237,239,240,0.09);
@@ -69,8 +71,6 @@
 }
 .reactive-title .rspace { width: .25em; }
 
-/* The accent color word in the statement */
-.reactive-title .rchar:nth-last-child(-n+8) { color: #a78bfa; }
 
 /* Prefers-reduced-motion overrides */
 @media (prefers-reduced-motion: reduce) {
@@ -176,4 +176,247 @@
 }
 .scrollbar-hide {
   scrollbar-width: none;
+}/* Page fade-in — prevents black flash while React mounts */
+/* Carousel nav buttons — subtle idle pulse */
+#exp-prev:not(:hover),
+#exp-next:not(:hover) {
+  animation: navPulse 4s ease-in-out infinite;
+}
+
+@keyframes navPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.0); }
+  50%      { box-shadow: 0 0 0 6px rgba(167,139,250,0.05); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #exp-prev, #exp-next { animation: none; }
+}
+/* ============================================================
+   ENQUIRY — signal packet + datacenter
+   ============================================================ */
+
+.signal-panel {
+  position: relative;
+  border: 1px solid var(--line, rgba(237,239,240,0.09));
+  background: transparent;
+}
+
+/* Corner tick marks on the form panel */
+.corner-mark {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: rgba(167,139,250,.7);
+  pointer-events: none;
+}
+.corner-tl { top: 10px; left: 10px; border-top: 1px solid; border-left: 1px solid; border-color: inherit; }
+.corner-br { bottom: 10px; right: 10px; border-bottom: 1px solid; border-right: 1px solid; border-color: inherit; }
+
+/* Circuit-node step indicators */
+.node-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: #a78bfa;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(167,139,250,.9);
+}
+.node-indicator {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border: 1px solid rgba(0,0,0,.25);
+  border-radius: 50%;
+  transition: background-color .35s ease, border-color .35s ease, box-shadow .35s ease;
+}
+.node-indicator.active {
+  background: #7c3aed;
+  border-color: #7c3aed;
+}
+.node-indicator.current {
+  box-shadow: 0 0 0 4px rgba(124,58,237,.18);
+}
+.trace-line {
+  display: inline-block;
+  height: 1px;
+  background: rgba(0,0,0,.12);
+  transition: background-color .5s ease;
+}
+.trace-line.charged {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+
+/* Typewriter cursor */
+.type-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: cursorBlink 1s step-end infinite;
+}
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Form panel step transition (kept from before) */
+.step-slide { animation-fill-mode: both; }
+.slide-in-right { animation: slideInRight .42s cubic-bezier(.16,1,.3,1); }
+.slide-in-left  { animation: slideInLeft  .42s cubic-bezier(.16,1,.3,1); }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes slideInLeft  { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: translateX(0); } }
+
+/* Path option cards */
+.path-option {
+  transition: transform .35s cubic-bezier(.16,1,.3,1),
+              border-color .25s ease,
+              background-color .25s ease;
+}
+.path-option:hover { transform: translateX(4px); border-color: #7c3aed; background: rgba(124,58,237,.05); }
+
+/* Buttons */
+.press-scale { transition: transform .15s cubic-bezier(.16,1,.3,1), background-color .2s ease, color .2s ease; }
+.press-scale:active { transform: scale(.96); }
+
+/* Success pop */
+.success-pop { animation: successPop .5s cubic-bezier(.16,1.4,.3,1) both; }
+@keyframes successPop {
+  0% { transform: scale(.4); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Shimmer on "innovation." */
+.shimmer-text {
+  display: inline-block;
+  color: #a78bfa;
+  background: linear-gradient(100deg, #a78bfa 20%, #c084fc 40%, #edeff0 50%, #c084fc 60%, #a78bfa 80%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% center; } 100% { background-position: -200% center; } }
+
+/* Scroll reveal */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
+}
+.scroll-reveal.in { opacity: 1; transform: none; }
+
+/* ============================================================
+   DATACENTER PANEL
+   ============================================================ */
+
+.datacenter-panel {
+  background:
+    radial-gradient(ellipse 60% 55% at 60% 50%, rgba(124,58,237,.10), transparent 65%),
+    #0b0818;
+}
+
+.dc-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(167,139,250,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(167,139,250,.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 90%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 90%);
+}
+
+/* Slow scan line — like an instrument sweep */
+.dc-scan {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(167,139,250,.65), transparent);
+  box-shadow: 0 0 14px rgba(167,139,250,.5);
+  animation: dcScan 7s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes dcScan {
+  0%   { top: 0%;   opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* Status pulse dot */
+.status-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #a78bfa;
+  box-shadow: 0 0 8px rgba(167,139,250,.9);
+  animation: statusPulse 2.4s ease-in-out infinite;
+}
+@keyframes statusPulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.4); opacity: .6; }
+}
+
+/* Social buttons in datacenter style */
+.dc-social {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px; height: 30px;
+  border: 1px solid rgba(167,139,250,.28);
+  color: rgba(237,239,240,.55);
+  transition: color .2s ease, border-color .2s ease, background-color .2s ease, transform .2s ease;
+}
+.dc-social:hover {
+  color: #0b0714;
+  background: #a78bfa;
+  border-color: #a78bfa;
+  transform: translateY(-2px);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .dc-scan { animation: none; display: none; }
+  .status-dot { animation: none; }
+  .shimmer-text { animation: none; background: none; color: #a78bfa; -webkit-text-fill-color: currentColor; }
+  .type-cursor { animation: none; }
+  .step-slide, .success-pop { animation-duration: 0.01s; }
+}/* ============================================================
+   CHIP DUOTONE — blends the frame sequence into the page palette
+   ============================================================ */
+
+.chip-duotone {
+  /* Strip original color, tint toward violet, tune brightness */
+  filter: grayscale(1) brightness(0.92) contrast(1.08);
+  mix-blend-mode: luminosity;
+  opacity: 0.92;
+}
+
+/* The canvas sits on a violet-tinted backdrop so luminosity blending
+   pushes the chip toward the site's accent color */
+.chip-canvas-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 60% at 50% 50%, rgba(167,139,250,.18), transparent 75%);
+  pointer-events: none;
+  z-index: -1;
+}/* ============================================================
+   CHIP — fog + duotone
+   ============================================================ */
+
+/* ============================================================
+   CHIP — fog + duotone
+   ============================================================ */
+.chip-duotone {
+  filter: grayscale(1) brightness(0.92) contrast(1.08);
+  mix-blend-mode: luminosity;
+  opacity: 0.92;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip-duotone {
+    filter: none;
+    mix-blend-mode: normal;
+    opacity: 1;
+  }
 }

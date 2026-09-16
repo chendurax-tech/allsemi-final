@@ -10,10 +10,14 @@ export default function Contact() {
             Prefer to reach us directly?
           </h2>
         </div>
-        <p className="text-text-dim text-base leading-relaxed max-w-md md:max-w-sm">
-          Use the enquiry form above and a member of the Allsemi team will get
-          back to you. Direct contact details will be added here.
-        </p>
+        <div className="max-w-md">
+          <p className="text-text-dim text-base leading-relaxed mb-4">
+            Use the enquiry form above and a member of the Allsemi team will get back to you within one business day.
+          </p>
+          <p className="text-text-dim text-base leading-relaxed">
+            For urgent hiring needs, mention it in the form and we will prioritise your request.
+          </p>
+        </div>
       </div>
     </section>
   );

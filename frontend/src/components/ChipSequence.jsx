@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 
 const TOTAL_FRAMES = 50;
 const FRAME_BASE = '/chip-frames/';
@@ -6,47 +6,138 @@ const framePath = n => `${FRAME_BASE}frame_${String(n).padStart(3, '0')}.png`;
 
 export default function ChipSequence() {
   const trackRef = useRef(null);
-  const canvasRef = useRef(null);
+  const chipRef = useRef(null);   // chip canvas
+  const fogRef = useRef(null);    // fog canvas
   const barRef = useRef(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const [frameIdx, setFrameIdx] = useState(1);
+  const [stage, setStage] = useState('assembled');
+
+  // Lazy load trigger
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const io = new IntersectionObserver(
+      entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) { setShouldLoad(true); io.disconnect(); }
+        });
+      },
+      { rootMargin: '400px 0px' }
+    );
+    io.observe(track);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
+    if (!shouldLoad) return;
+    const chip = chipRef.current;
+    const fog = fogRef.current;
     const track = trackRef.current;
-    if (!canvas || !track) return;
+    if (!chip || !fog || !track) return;
 
-    const ctx = canvas.getContext('2d', { alpha: true });
+    const chipCtx = chip.getContext('2d', { alpha: true });
+    const fogCtx = fog.getContext('2d', { alpha: true });
     const images = new Array(TOTAL_FRAMES);
     let firstReady = false;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let progressValue = 0;
+    let fogParticles = [];
+
+    function makeFog(w, h) {
+      const count = 30;
+      const arr = [];
+      for (let i = 0; i < count; i++) {
+        arr.push({
+          bx: (Math.random() - 0.5) * w * 0.75,
+          by: (Math.random() - 0.5) * h * 0.6,
+          r: 50 + Math.random() * 110,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.5 + Math.random() * 0.9,
+          driftX: (Math.random() - 0.5) * 40,
+          driftY: -30 - Math.random() * 50,
+          hue: Math.random() > 0.7 ? 'a' : 'b',  // 'a' = light violet, 'b' = deep violet
+        });
+      }
+      return arr;
+    }
 
     function resize() {
-      const w = Math.max(1, canvas.clientWidth);
-      const h = Math.max(1, canvas.clientHeight);
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
+      const w = Math.max(1, chip.clientWidth);
+      const h = Math.max(1, chip.clientHeight);
+      for (const cv of [chip, fog]) {
+        cv.width = w * dpr;
+        cv.height = h * dpr;
+      }
+      if (fogParticles.length === 0) fogParticles = makeFog(w, h);
     }
 
     function drawFallback() {
       resize();
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
+      const w = chip.clientWidth;
+      const h = chip.clientHeight;
+      chipCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      chipCtx.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2;
+      const size = Math.min(w, h) * 0.5;
+      chipCtx.strokeStyle = 'rgba(167,139,250,0.35)';
+      chipCtx.lineWidth = 1;
+      chipCtx.strokeRect(cx - size / 2, cy - size / 2, size, size);
+    }
+
+    // Fog presence curve: 0 → 1 → 0 across the scroll
+    function fogIntensity(p) {
+      if (p < 0.10) return 0;
+      if (p < 0.50) return (p - 0.10) / 0.40;
+      if (p < 0.85) return 1;
+      if (p < 1.00) return 1 - (p - 0.85) / 0.15;
+      return 0;
+    }
+
+    function drawFog(w, h, t) {
+      const intensity = fogIntensity(progressValue);
+      fogCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      fogCtx.clearRect(0, 0, w, h);
+      if (intensity <= 0.01) return;
 
       const cx = w / 2;
       const cy = h / 2;
-      const size = Math.min(w, h) * 0.55;
 
-      ctx.strokeStyle = 'rgba(167,139,250,0.4)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(cx - size / 2, cy - size / 2, size, size);
-      ctx.strokeStyle = 'rgba(167,139,250,0.2)';
-      ctx.strokeRect(cx - size * 0.4, cy - size * 0.4, size * 0.8, size * 0.8);
-      ctx.fillStyle = 'rgba(167,139,250,0.15)';
-      ctx.fillRect(cx - size * 0.3, cy - size * 0.3, size * 0.6, size * 0.6);
+      fogCtx.save();
+      fogCtx.globalCompositeOperation = 'screen'; // additive glow blend
+
+     for (let i = 0; i < fogParticles.length; i++) {
+  const f = fogParticles[i];
+  const local = 0.7 + Math.sin(t * 0.001 * f.speed + f.phase) * 0.3;
+
+  // Much lower alpha — fog should hint at depth, not paint the chip over
+  const a = intensity * local * 0.08;
+
+  // Keep particles well outside the chip — push them outward from centre
+  const radialDist = 0.35 + Math.random() * 0.15; // used only for positioning
+  const px = cx + f.bx * 1.15 + f.driftX * intensity * 0.4 * Math.sin(t * 0.0004 + f.phase);
+  const py = cy + f.by * 1.1 + f.driftY * intensity * 0.4 + Math.sin(t * 0.0006 + f.phase) * 6;
+
+  const grad = fogCtx.createRadialGradient(px, py, 0, px, py, f.r);
+  if (f.hue === 'a') {
+    grad.addColorStop(0, `rgba(199,178,255,${a})`);
+    grad.addColorStop(0.55, `rgba(167,139,250,${a * 0.5})`);
+    grad.addColorStop(1, 'rgba(124,58,237,0)');
+  } else {
+    grad.addColorStop(0, `rgba(167,139,250,${a})`);
+    grad.addColorStop(0.6, `rgba(124,58,237,${a * 0.4})`);
+    grad.addColorStop(1, 'rgba(76,29,149,0)');
+  }
+  fogCtx.fillStyle = grad;
+  fogCtx.beginPath();
+  fogCtx.arc(px, py, f.r, 0, Math.PI * 2);
+  fogCtx.fill();
+}
+
+      fogCtx.restore();
     }
 
-    function draw(frameNum) {
+    function drawChip(frameNum) {
       let idx = Math.max(1, Math.min(TOTAL_FRAMES, frameNum));
       while (idx > 1) {
         const im = images[idx - 1];
@@ -54,149 +145,197 @@ export default function ChipSequence() {
         idx--;
       }
       const img = images[idx - 1];
+
+      resize();
+      const w = chip.clientWidth;
+      const h = chip.clientHeight;
+      chipCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      chipCtx.clearRect(0, 0, w, h);
+
       if (!img || !img.complete || !img.naturalWidth) {
         drawFallback();
         return;
       }
-      resize();
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
       const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight) * 0.98;
       const dw = img.naturalWidth * scale;
       const dh = img.naturalHeight * scale;
-      ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      chipCtx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    }
+
+    function updateStage(p) {
+      if (p < 0.15) setStage('assembled');
+      else if (p < 0.55) setStage('exploding');
+      else if (p < 0.9) setStage('die revealed');
+      else setStage('reassembled');
+    }
+
+    let raf = null;
+    function tickLoop(t) {
+      raf = requestAnimationFrame(tickLoop);
+      const w = fog.clientWidth;
+      const h = fog.clientHeight;
+      drawFog(w, h, t);
+      // chip is drawn only when frameIdx changes (below); fog every frame
+      if (!firstReady) drawChip(1);
     }
 
     function progress() {
       const r = track.getBoundingClientRect();
       const travel = Math.max(1, r.height - window.innerHeight);
       const p = Math.max(0, Math.min(1, -r.top / travel));
+      progressValue = p;
       if (barRef.current) barRef.current.style.width = `${p * 100}%`;
-      if (firstReady) draw(Math.round(p * (TOTAL_FRAMES - 1)) + 1);
-      else drawFallback();
+      const idx = Math.round(p * (TOTAL_FRAMES - 1)) + 1;
+      setFrameIdx(idx);
+      updateStage(p);
+      if (firstReady) drawChip(idx);
     }
 
     const first = new Image();
     first.onload = () => {
       images[0] = first;
       firstReady = true;
-      draw(1);
       progress();
+      if (!raf) raf = requestAnimationFrame(tickLoop);
+      for (let i = 2; i <= TOTAL_FRAMES; i++) {
+        const img = new Image();
+        img.onload = (n => () => { images[n - 1] = img; })(i);
+        img.src = framePath(i);
+        images[i - 1] = img;
+      }
     };
-    first.onerror = () => drawFallback();
+    first.onerror = () => {
+      drawFallback();
+      if (!raf) raf = requestAnimationFrame(tickLoop);
+    };
     first.src = framePath(1);
     images[0] = first;
 
-    for (let i = 2; i <= TOTAL_FRAMES; i++) {
-      const img = new Image();
-      img.onload = (n => () => {
-        images[n - 1] = img;
-      })(i);
-      img.src = framePath(i);
-      images[i - 1] = img;
-    }
-
-    let tick = false;
+    let ticking = false;
     const onScroll = () => {
-      if (tick) return;
-      tick = true;
-      requestAnimationFrame(() => {
-        progress();
-        tick = false;
-      });
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => { progress(); ticking = false; });
+    };
+    const onResize = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      fogParticles = makeFog(chip.clientWidth, chip.clientHeight);
+      resize();
+      progress();
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener(
-      'resize',
-      () => {
-        dpr = Math.min(window.devicePixelRatio || 1, 2);
-        resize();
-        progress();
-      },
-      { passive: true }
-    );
+    window.addEventListener('resize', onResize, { passive: true });
     progress();
 
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [shouldLoad]);
 
   return (
     <div
       ref={trackRef}
-      className="relative h-[140vh] md:h-[170vh] lg:h-[190vh] mt-20 md:mt-28"
+      className="relative h-[160vh] md:h-[190vh] lg:h-[220vh] mt-16 md:mt-24"
     >
-      <div className="sticky top-0 h-[85vh] md:h-[80vh] lg:h-[78vh] flex items-center overflow-hidden">
-        <div className="max-w-7xl mx-auto w-full px-5 md:px-10 grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-10 lg:gap-16 items-center">
-          {/* Left copy */}
-          <div className="relative">
+      <div className="sticky top-0 h-screen flex items-center overflow-hidden">
+        <div className="max-w-7xl mx-auto w-full px-5 md:px-10 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10 lg:gap-20 items-center">
+
+          {/* LEFT — copy + live status readout */}
+          <div>
             <span className="block font-mono text-[0.7rem] uppercase tracking-[0.22em] text-accent mb-4">
               Assembled to die revealed
             </span>
-            <p className="text-text-dim leading-relaxed max-w-xs">
+            <p className="text-text-dim leading-relaxed max-w-xs mb-8">
               The same chip carries the engineering complexity behind every
               Allsemi placement. Scroll to see it come apart.
             </p>
-            <span className="block mt-6 h-px w-16 bg-gradient-to-r from-accent to-transparent" />
+
+            <div className="border-l border-accent/40 pl-5">
+              <span className="block font-mono text-[0.62rem] uppercase tracking-[0.24em] text-accent mb-2">
+                Status
+              </span>
+              <div className="flex items-baseline gap-3">
+                <span className="font-display font-semibold text-xl text-text">
+                  {stage}
+                </span>
+                <span className="font-mono text-xs text-text-faint">
+                  {String(frameIdx).padStart(2, '0')} / {TOTAL_FRAMES}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Chip panel */}
+          {/* RIGHT — layered canvases */}
           <div className="relative">
-            {/* Halo behind */}
+            {/* Halo */}
             <div
-              className="absolute inset-0 -z-10 blur-3xl"
+              className="absolute inset-0 -z-10 blur-3xl pointer-events-none"
               style={{
                 background:
-                  'radial-gradient(ellipse 55% 50% at 50% 55%, rgba(167,139,250,.35), transparent 70%), radial-gradient(ellipse 40% 40% at 50% 60%, rgba(124,58,237,.28), transparent 75%)',
+                  'radial-gradient(ellipse 55% 55% at 50% 55%, rgba(167,139,250,.30), transparent 72%)',
               }}
               aria-hidden="true"
             />
 
-            {/* Framed panel */}
-            <div className="relative border border-line/60 rounded-sm bg-gradient-to-b from-white/[0.02] to-transparent overflow-hidden">
-              {/* Grid background */}
-              <div
-                className="absolute inset-0 opacity-40 pointer-events-none"
-                style={{
-                  backgroundImage:
-                    'linear-gradient(rgba(167,139,250,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(167,139,250,0.08) 1px, transparent 1px)',
-                  backgroundSize: '48px 48px',
-                  maskImage:
-                    'radial-gradient(ellipse 60% 60% at 50% 50%, black 30%, transparent 80%)',
-                  WebkitMaskImage:
-                    'radial-gradient(ellipse 60% 60% at 50% 50%, black 30%, transparent 80%)',
-                }}
+            <div
+              className="relative w-full"
+              style={{
+                aspectRatio: '16/10',
+                maskImage:
+                  'radial-gradient(ellipse 72% 68% at 50% 50%, black 52%, transparent 100%)',
+                WebkitMaskImage:
+                  'radial-gradient(ellipse 72% 68% at 50% 50%, black 52%, transparent 100%)',
+              }}
+            >
+              {/* Fog canvas — BEHIND the chip. NOT duotoned, so it stays violet */}
+              <canvas
+                ref={fogRef}
+                className="absolute inset-0 w-full h-full block"
                 aria-hidden="true"
               />
 
-              {/* Corner traces */}
-              <span className="absolute top-0 left-0 w-8 h-8 border-l-2 border-t-2 border-accent/60" />
-              <span className="absolute top-0 right-0 w-8 h-8 border-r-2 border-t-2 border-accent/60" />
-              <span className="absolute bottom-0 left-0 w-8 h-8 border-l-2 border-b-2 border-accent/60" />
-              <span className="absolute bottom-0 right-0 w-8 h-8 border-r-2 border-b-2 border-accent/60" />
-
-              {/* Animated scan line */}
-              <span className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent top-0 animate-scan" />
-
-              {/* Canvas */}
-              <div className="relative aspect-[16/10]">
-                <canvas
-                  ref={canvasRef}
-                  className="w-full h-full block"
-                />
-              </div>
-
-              {/* Progress bar */}
-              <div className="relative h-px bg-line">
-                <i
-                  ref={barRef}
-                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-accent to-accent-2"
-                  style={{ width: 0 }}
-                />
-              </div>
+              {/* Chip canvas — with duotone filter */}
+              <canvas
+                ref={chipRef}
+                className="relative w-full h-full block chip-duotone"
+              />
             </div>
+
+            {/* Baseline trace */}
+            <div className="relative h-px mt-4">
+              <div
+                className="absolute inset-x-0 h-px"
+                style={{
+                  background:
+                    'linear-gradient(90deg, transparent, rgba(167,139,250,.4) 20%, rgba(167,139,250,.4) 80%, transparent)',
+                }}
+              />
+              <i
+                ref={barRef}
+                className="absolute left-0 top-0 h-full"
+                style={{
+                  background:
+                    'linear-gradient(90deg, var(--accent, #a78bfa), var(--accent-2, #c084fc))',
+                  boxShadow: '0 0 12px rgba(167,139,250,.6)',
+                  width: 0,
+                }}
+              />
+            </div>
+
+            <span
+              className="absolute left-0 -bottom-1 w-1.5 h-1.5 rounded-full bg-accent"
+              style={{ boxShadow: '0 0 8px rgba(167,139,250,.9)' }}
+              aria-hidden="true"
+            />
+            <span
+              className="absolute right-0 -bottom-1 w-1.5 h-1.5 rounded-full bg-accent"
+              style={{ boxShadow: '0 0 8px rgba(167,139,250,.9)' }}
+              aria-hidden="true"
+            />
           </div>
+
         </div>
       </div>
     </div>

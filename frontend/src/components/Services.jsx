@@ -1,9 +1,21 @@
 ﻿import React from 'react';
 
 const SERVICES = [
-  { num: '01', title: 'Permanent Staffing', body: 'Full-time semiconductor, chip design, automotive, and aerospace engineers, sourced, screened, and placed to stay and grow with the team.' },
-  { num: '02', title: 'Project Staffing', body: 'Scale on demand with contract engineers for defined programs. VLSI design, verification, and embedded systems, placed exactly when the project needs them.' },
-  { num: '03', title: 'RPO Solution', body: 'A dedicated hiring engine, embedded with your team. Full recruitment process outsourcing tuned to your talent acquisition needs.' },
+  {
+    num: '01',
+    title: 'Permanent Staffing',
+    body: 'Find the right full-time talent for your semiconductor, chip design, automotive, or aerospace teams. We source, screen, and place top engineers who stay and grow with your organization.',
+  },
+  {
+    num: '02',
+    title: 'Project Staffing',
+    body: 'Scale your team on-demand with highly skilled contract engineers for specific projects. From VLSI design to embedded systems, we provide experts exactly when you need them.',
+  },
+  {
+    num: '03',
+    title: 'RPO Solution',
+    body: 'Outsource your entire recruitment process to Allsemi. Our Recruitment Process Outsourcing (RPO) solution delivers a dedicated hiring engine tailored to your talent acquisition needs.',
+  },
 ];
 
 export default function Services() {

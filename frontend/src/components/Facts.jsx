@@ -1,11 +1,31 @@
 ﻿import React from 'react';
 
 const REASONS = [
-  { num: '01', title: 'Deep network', body: 'Semiconductor and VLSI chip design engineers across every major node.' },
-  { num: '02', title: 'Domain depth', body: 'Chip design, automotive, and aerospace. We speak your engineers\u2019 language.' },
-  { num: '03', title: 'Safety-critical hiring', body: 'Proven placements for specialized and mission-critical engineering roles.' },
-  { num: '04', title: '48-hour shortlists', body: 'Pre-screened, interview-ready candidates delivered within 48 to 72 hours.' },
-  { num: '05', title: 'End-to-end managed', body: 'Dedicated account managers from first brief to signed offer.' },
+  {
+    num: '01',
+    title: 'Deep network',
+    body: 'A deep network of semiconductor and VLSI chip design engineers.',
+  },
+  {
+    num: '02',
+    title: 'Domain expertise',
+    body: 'Strong domain expertise across chip design, automotive, and aerospace.',
+  },
+  {
+    num: '03',
+    title: 'Safety-critical hiring',
+    body: 'Proven hiring for safety-critical and specialized engineering roles.',
+  },
+  {
+    num: '04',
+    title: 'Rapid turnaround',
+    body: 'Shortlists delivered within 48 to 72 hours.',
+  },
+  {
+    num: '05',
+    title: 'End-to-end managed',
+    body: 'End-to-end managed staffing with dedicated account managers.',
+  },
 ];
 
 const STATS = [
@@ -26,16 +46,16 @@ export default function Facts() {
           Why Allsemi
         </p>
         <h2 className="font-display font-semibold text-4xl md:text-5xl lg:text-6xl tracking-tight leading-tight">
-          Built for the people who build silicon.
+          Your trusted staffing partner.
         </h2>
         <span className="block mt-6 w-20 h-0.5 bg-gradient-to-r from-accent to-accent-2 shadow-[0_0_12px_rgba(167,139,250,0.5)]" />
       </div>
 
       <p className="max-w-3xl mx-auto px-5 md:px-10 text-base md:text-lg text-text-dim leading-relaxed mb-12 text-center">
         With deep domain expertise in semiconductor and advanced engineering
-        sectors, we go beyond traditional recruiting. Our consultants
-        understand the technology, which makes us uniquely effective at
-        placing the right people faster.
+        sectors, we go beyond traditional recruiting. Our talent consultants
+        understand the technology, making us uniquely effective at placing
+        the right people faster.
       </p>
 
       <div className="max-w-7xl mx-auto px-5 md:px-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
