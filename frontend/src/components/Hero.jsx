@@ -36,8 +36,8 @@ export default function Hero() {
       className="relative min-h-[85svh] md:min-h-screen flex flex-col justify-center px-5 md:px-10 pt-24 md:pt-32 pb-10 md:pb-14 overflow-hidden"
     >
       {/* Masked title — poster shows instantly, video fades in */}
-      <div className="relative w-full max-w-6xl mx-auto">
-        <div className="relative w-full" style={{ aspectRatio: '1400 / 400' }}>
+      <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 md:px-0">
+        <div className="relative w-full overflow-hidden" style={{ aspectRatio: '1400 / 400' }}>
           {/* Poster sits beneath — visible until the video is ready */}
           <img
             src="/allsemi-mask.svg"
