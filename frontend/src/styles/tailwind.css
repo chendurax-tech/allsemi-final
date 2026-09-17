@@ -353,3 +353,18 @@
     opacity: 1;
   }
 }
+
+/* ============================================================
+   HERO — mobile-only hard clip of the video to the ALLSEMI
+   letterforms. Belt-and-suspenders on top of the existing
+   raster mask overlay: a geometric clip-path can't leak a
+   sliver of video at the letter edges the way a compositor
+   seam between separately-scaled layers could. Scoped to
+   below the md breakpoint only — desktop/tablet untouched.
+   ============================================================ */
+@media (max-width: 767px) {
+  .hero-video-letters-clip {
+    clip-path: url(#allsemiLettersClip);
+    -webkit-clip-path: url(#allsemiLettersClip);
+  }
+}
