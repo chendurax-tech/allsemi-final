@@ -114,7 +114,6 @@ export default function ChipSequence() {
   const a = intensity * local * 0.08;
 
   // Keep particles well outside the chip — push them outward from centre
-  const radialDist = 0.35 + Math.random() * 0.15; // used only for positioning
   const px = cx + f.bx * 1.15 + f.driftX * intensity * 0.4 * Math.sin(t * 0.0004 + f.phase);
   const py = cy + f.by * 1.1 + f.driftY * intensity * 0.4 + Math.sin(t * 0.0006 + f.phase) * 6;
 
@@ -237,9 +236,9 @@ export default function ChipSequence() {
   return (
     <div
       ref={trackRef}
-      className="relative h-[160vh] md:h-[190vh] lg:h-[220vh] mt-16 md:mt-24"
+      className="relative h-[145vh] md:h-[170vh] lg:h-[195vh] mt-16 md:mt-24 lg:mt-12"
     >
-      <div className="sticky top-0 h-screen flex items-center overflow-hidden">
+      <div className="sticky top-0 h-[78vh] md:h-[80vh] lg:h-[75vh] flex items-center overflow-hidden">
         <div className="max-w-7xl mx-auto w-full px-5 md:px-10 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10 lg:gap-20 items-center">
 
           {/* LEFT — copy + live status readout */}

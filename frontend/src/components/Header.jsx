@@ -22,11 +22,11 @@ export default function Header() {
           </a>
 
           <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
-            <a href="#stories" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Hire Talent</a>
-            <a href="#stories" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Search Jobs</a>
+            <a href="#enquiry" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Hire Talent</a>
+            <a href="#enquiry" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Search Jobs</a>
             <a href="#expertise" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Specialisms</a>
             <a href="#insights" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Insights</a>
-            <a href="#contact" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Contact</a>
+            <a href="#enquiry" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Contact</a>
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
@@ -46,12 +46,12 @@ export default function Header() {
         </div>
       </header>
 
-      <div className={`fixed top-16 inset-x-0 bottom-0 z-40 bg-bg border-t border-line px-5 py-4 flex-col gap-1 overflow-y-auto ${open ? 'flex lg:hidden' : 'hidden'}`}>
-        <a href="#stories" onClick={close} className="py-3 border-b border-line text-base">Hire Talent</a>
-        <a href="#stories" onClick={close} className="py-3 border-b border-line text-base">Search Jobs</a>
+      <div className={`fixed top-16 md:top-20 inset-x-0 bottom-0 z-40 bg-bg border-t border-line px-5 py-4 flex-col gap-1 overflow-y-auto ${open ? 'flex lg:hidden' : 'hidden'}`}>
+        <a href="#enquiry" onClick={close} className="py-3 border-b border-line text-base">Hire Talent</a>
+        <a href="#enquiry" onClick={close} className="py-3 border-b border-line text-base">Search Jobs</a>
         <a href="#expertise" onClick={close} className="py-3 border-b border-line text-base">Specialisms</a>
         <a href="#insights" onClick={close} className="py-3 border-b border-line text-base">Insights</a>
-        <a href="#contact" onClick={close} className="py-3 border-b border-line text-base">Contact</a>
+        <a href="#enquiry" onClick={close} className="py-3 border-b border-line text-base">Contact</a>
         <a href="#enquiry" onClick={close} className="mt-4 text-center text-sm font-semibold py-3 bg-text text-bg">Hire Talent</a>
       </div>
     </>

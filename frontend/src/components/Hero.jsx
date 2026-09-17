@@ -40,7 +40,7 @@ export default function Hero() {
         <div className="relative w-full" style={{ aspectRatio: '1400 / 400' }}>
           {/* Poster sits beneath — visible until the video is ready */}
           <img
-            src="/allsemi-mask.png"
+            src="/allsemi-mask.svg"
             alt=""
             aria-hidden="true"
             className="absolute inset-0 w-full h-full block pointer-events-none z-10"
@@ -53,7 +53,7 @@ export default function Hero() {
             muted
             playsInline
             preload="auto"
-            poster="/allsemi-mask.png"
+            poster="/allsemi-mask.svg"
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
               videoReady ? 'opacity-100' : 'opacity-0'
             }`}
@@ -63,7 +63,7 @@ export default function Hero() {
 
           {/* Mask on top of video, letters are the cutout */}
           <img
-            src="/allsemi-mask.png"
+            src="/allsemi-mask.svg"
             alt=""
             aria-hidden="true"
             className="absolute inset-0 w-full h-full block pointer-events-none z-20"

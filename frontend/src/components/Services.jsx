@@ -23,7 +23,7 @@ export default function Services() {
     <section id="services" className="border-t border-line py-16 md:py-24 lg:py-32">
       <div className="max-w-7xl mx-auto px-5 md:px-10 mb-10 md:mb-14">
         <span className="block font-mono text-xs uppercase tracking-[0.22em] text-accent mb-4">
-          02 / SERVICES
+          01 / SERVICES
         </span>
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent mb-3">
           What we do

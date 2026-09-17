@@ -102,7 +102,7 @@ export default function Expertise() {
       {/* Head */}
       <div className="max-w-7xl mx-auto px-5 md:px-10 mb-10 md:mb-14">
         <span className="block font-mono text-xs uppercase tracking-[0.22em] text-accent mb-4">
-          01 / EXPERTISE
+          02 / EXPERTISE
         </span>
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent mb-3">
           Where we work

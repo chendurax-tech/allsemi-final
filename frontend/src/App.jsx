@@ -7,7 +7,7 @@ import Stories from './components/Stories.jsx';
 import Insights from './components/Insights.jsx';
 import Facts from './components/Facts.jsx';
 import Enquiry from './components/Enquiry.jsx';
-import React, { useEffect } from 'react';
+import React from 'react';
 import Footer from './components/Footer.jsx';
 import { useReveal, useReactiveLetters } from './lib/useReveal.js';
 
@@ -27,7 +27,6 @@ export default function App() {
         <Insights />
         <Facts />
         <Enquiry />
-      
       </main>
       <Footer />
     </div>

@@ -153,7 +153,7 @@ export default function Enquiry() {
         <div className="flex items-center gap-3 mb-4">
           <span className="node-dot" />
           <span className="font-mono text-[0.68rem] uppercase tracking-[0.24em] text-accent">
-            GET IN TOUCH · 04
+            GET IN TOUCH · 06
           </span>
         </div>
         <h2 className="font-display font-bold text-3xl md:text-5xl lg:text-6xl tracking-tight leading-tight max-w-4xl">

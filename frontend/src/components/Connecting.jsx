@@ -33,7 +33,7 @@ function ReactiveWords({ text, highlight }) {
 
 export default function Connecting() {
   return (
-    <section className="relative border-t border-line pt-10 md:pt-12 lg:pt-14 pb-16 md:pb-24 lg:pb-32">
+    <section className="relative border-t border-line pt-10 md:pt-12 lg:pt-14 pb-16 md:pb-24 lg:pb-16">
       <div className="max-w-4xl mx-auto px-5 md:px-10 text-center">
         <ReactiveWords
           text="Connecting the minds behind modern silicon."
