@@ -35,7 +35,7 @@ export default function Hero() {
       id="heroSection"
       className="relative min-h-[85svh] md:min-h-screen flex flex-col justify-center px-5 md:px-10 pt-24 md:pt-32 pb-10 md:pb-14 overflow-hidden"
     >
-      {/* Masked title — poster shows instantly, video fades in */}
+      {/* Masked title - poster shows instantly, video fades in */}
       <div className="relative w-full max-w-6xl mx-auto">
         {/* Hidden clip-path defs: exact letterform geometry (derived from allsemi-mask.svg,
             background rect excluded) used to hard-clip the video on mobile so it can never
@@ -50,7 +50,7 @@ export default function Hero() {
         </svg>
 
         <div className="relative w-[72%] mx-auto md:w-full overflow-hidden" style={{ aspectRatio: '1400 / 400' }}>
-          {/* Poster sits beneath — visible until the video is ready */}
+          {/* Poster sits beneath - visible until the video is ready */}
           <img
             src="/allsemi-mask.svg"
             alt=""

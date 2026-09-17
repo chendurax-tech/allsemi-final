@@ -24,7 +24,7 @@ export default function App() {
         <Services />
         <Expertise />
         <Stories />
-        <Insights />
+       
         <Facts />
         <Enquiry />
       </main>

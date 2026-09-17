@@ -25,7 +25,7 @@ export default function Header() {
             <a href="#enquiry" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Hire Talent</a>
             <a href="#enquiry" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Search Jobs</a>
             <a href="#expertise" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Specialisms</a>
-            <a href="#insights" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Insights</a>
+           {/* <a href="#insights" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Insights</a> */}
             <a href="#enquiry" className="font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors">Contact</a>
           </nav>
 
@@ -50,8 +50,8 @@ export default function Header() {
         <a href="#enquiry" onClick={close} className="py-3 border-b border-line text-base">Hire Talent</a>
         <a href="#enquiry" onClick={close} className="py-3 border-b border-line text-base">Search Jobs</a>
         <a href="#expertise" onClick={close} className="py-3 border-b border-line text-base">Specialisms</a>
-        <a href="#insights" onClick={close} className="py-3 border-b border-line text-base">Insights</a>
-        <a href="#enquiry" onClick={close} className="py-3 border-b border-line text-base">Contact</a>
+        {/* <a href="#insights" onClick={close} className="py-3 border-b border-line text-base">Insights</a>*/}
+        <a href="#enquiry" onClick={close} className="py-3 border-b border-line text-base">Contact</a> 
         <a href="#enquiry" onClick={close} className="mt-4 text-center text-sm font-semibold py-3 bg-text text-bg">Hire Talent</a>
       </div>
     </>

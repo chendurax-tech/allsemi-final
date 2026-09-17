@@ -166,7 +166,7 @@ export default function Enquiry() {
         <div className="signal-panel grid grid-cols-1 md:grid-cols-[1.4fr_1fr] overflow-hidden">
 
           {/* ==============================
-              LEFT — the form, framed as a signal packet
+              LEFT - the form, framed as a signal packet
               ============================== */}
           <div className="relative p-6 md:p-10 lg:p-12 bg-text text-bg overflow-hidden">
             {/* Trace marker top-left corner */}
@@ -360,7 +360,7 @@ export default function Enquiry() {
           </div>
 
           {/* ==============================
-              RIGHT — mono datacenter readout
+              RIGHT - mono datacenter readout
               ============================== */}
           <div className="relative bg-[#0b0818] text-text p-6 md:p-10 lg:p-12 flex flex-col justify-between min-h-[560px] overflow-hidden datacenter-panel">
 

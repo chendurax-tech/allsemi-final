@@ -110,10 +110,10 @@ export default function ChipSequence() {
   const f = fogParticles[i];
   const local = 0.7 + Math.sin(t * 0.001 * f.speed + f.phase) * 0.3;
 
-  // Much lower alpha — fog should hint at depth, not paint the chip over
+  // Much lower alpha - fog should hint at depth, not paint the chip over
   const a = intensity * local * 0.08;
 
-  // Keep particles well outside the chip — push them outward from centre
+  // Keep particles well outside the chip - push them outward from centre
   const px = cx + f.bx * 1.15 + f.driftX * intensity * 0.4 * Math.sin(t * 0.0004 + f.phase);
   const py = cy + f.by * 1.1 + f.driftY * intensity * 0.4 + Math.sin(t * 0.0006 + f.phase) * 6;
 
@@ -241,7 +241,7 @@ export default function ChipSequence() {
       <div className="sticky top-0 h-[78vh] md:h-[80vh] lg:h-[75vh] flex items-center overflow-hidden">
         <div className="max-w-7xl mx-auto w-full px-5 md:px-10 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10 lg:gap-20 items-center">
 
-          {/* LEFT — copy + live status readout */}
+          {/* LEFT - copy + live status readout */}
           <div>
             <span className="block font-mono text-[0.7rem] uppercase tracking-[0.22em] text-accent mb-4">
               Assembled to die revealed
@@ -266,7 +266,7 @@ export default function ChipSequence() {
             </div>
           </div>
 
-          {/* RIGHT — layered canvases */}
+          {/* RIGHT - layered canvases */}
           <div className="relative">
             {/* Halo */}
             <div
@@ -288,14 +288,14 @@ export default function ChipSequence() {
                   'radial-gradient(ellipse 72% 68% at 50% 50%, black 52%, transparent 100%)',
               }}
             >
-              {/* Fog canvas — BEHIND the chip. NOT duotoned, so it stays violet */}
+              {/* Fog canvas - BEHIND the chip. NOT duotoned, so it stays violet */}
               <canvas
                 ref={fogRef}
                 className="absolute inset-0 w-full h-full block"
                 aria-hidden="true"
               />
 
-              {/* Chip canvas — with duotone filter */}
+              {/* Chip canvas - with duotone filter */}
               <canvas
                 ref={chipRef}
                 className="relative w-full h-full block chip-duotone"

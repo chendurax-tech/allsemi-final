@@ -26,13 +26,13 @@
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { scrollbar-width: none; }
 
-/* Kinetic title — words lift up as they enter view */
+/* Kinetic title - words lift up as they enter view */
 .kinetic-title .kword,
 .kinetic-title > span {
   display: inline-block;
 }
 
-/* Reactive title — per-character cursor effect */
+/* Reactive title - per-character cursor effect */
 .reactive-title {
   display: flex;
   flex-wrap: wrap;
@@ -120,8 +120,8 @@
     display: none;
   }
 }
-/* Page fade-in — prevents black flash while React mounts */
-/* Carousel nav buttons — subtle idle pulse */
+/* Page fade-in - prevents black flash while React mounts */
+/* Carousel nav buttons - subtle idle pulse */
 #exp-prev:not(:hover),
 #exp-next:not(:hover) {
   animation: navPulse 4s ease-in-out infinite;
@@ -136,7 +136,7 @@
   #exp-prev, #exp-next { animation: none; }
 }
 /* ============================================================
-   ENQUIRY — signal packet + datacenter
+   ENQUIRY - signal packet + datacenter
    ============================================================ */
 
 .signal-panel {
@@ -269,7 +269,7 @@
   -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 90%);
 }
 
-/* Slow scan line — like an instrument sweep */
+/* Slow scan line - like an instrument sweep */
 .dc-scan {
   position: absolute;
   left: 0; right: 0;
@@ -325,7 +325,7 @@
   .type-cursor { animation: none; }
   .step-slide, .success-pop { animation-duration: 0.01s; }
 }/* ============================================================
-   CHIP DUOTONE — blends the frame sequence into the page palette
+   CHIP DUOTONE - blends the frame sequence into the page palette
    ============================================================ */
 
 .chip-duotone {
@@ -355,12 +355,12 @@
 }
 
 /* ============================================================
-   HERO — mobile-only hard clip of the video to the ALLSEMI
+   HERO - mobile-only hard clip of the video to the ALLSEMI
    letterforms. Belt-and-suspenders on top of the existing
    raster mask overlay: a geometric clip-path can't leak a
    sliver of video at the letter edges the way a compositor
    seam between separately-scaled layers could. Scoped to
-   below the md breakpoint only — desktop/tablet untouched.
+   below the md breakpoint only - desktop/tablet untouched.
    ============================================================ */
 @media (max-width: 767px) {
   .hero-video-letters-clip {
