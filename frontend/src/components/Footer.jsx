@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -6,7 +7,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-line py-16 md:py-24">
       <div className="max-w-7xl mx-auto px-5 md:px-10 flex flex-col items-center gap-8">
-        <a href="#top" className="flex items-center gap-3 font-display font-bold text-xl tracking-wider text-accent">
+        <Link to="/" className="flex items-center gap-3 font-display font-bold text-xl tracking-wider text-accent">
           <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
             <rect x="7" y="7" width="10" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6"/>
             <g stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -17,19 +18,19 @@ export default function Footer() {
             </g>
           </svg>
           <span className="text-text">ALLSEMI</span>
-        </a>
+        </Link>
 
         <nav className="flex flex-wrap justify-center gap-x-8 gap-y-3">
           {[
-            { label: 'Hire Talent.', href: '#enquiry' },
-            { label: 'Search Jobs.', href: '#enquiry' },
-            { label: 'Specialisms.', href: '#expertise' },
-            { label: 'Insights.', href: '#insights' },
-            { label: 'Contact Us.', href: '#enquiry' },
+            { label: 'Hire Talent.', to: '/employers' },
+            { label: 'Search Jobs.', to: '/talent' },
+            { label: 'Specialisms.', to: '/expertise' },
+            { label: 'Insights.', to: '/insights' },
+            { label: 'Contact Us.', to: '/#enquiry' },
           ].map(l => (
-            <a key={l.label} href={l.href} className="text-text-dim text-sm hover:text-accent transition-colors">
+            <Link key={l.label} to={l.to} className="text-text-dim text-sm hover:text-accent transition-colors">
               {l.label}
-            </a>
+            </Link>
           ))}
         </nav>
 

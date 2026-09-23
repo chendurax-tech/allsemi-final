@@ -1,105 +1,160 @@
-﻿import React, { useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-const CARDS = [
-  { num: '01', title: 'Semiconductor Design', body: 'Architecture through tape-out, across advanced process nodes.',
-    img: 'https://images.pexels.com/photos/6755086/pexels-photo-6755086.jpeg?auto=compress&dpr=1&h=750&w=1260',
-    alt: 'Microchip and circuit board' },
-  { num: '02', title: 'VLSI and Chip Design', body: 'The engineers who take a design from concept to working silicon.',
-    img: 'https://images.pexels.com/photos/6477199/pexels-photo-6477199.jpeg?auto=compress&dpr=1&h=750&w=1260',
-    alt: 'Microchip circuit board close-up' },
-  { num: '03', title: 'Automotive', body: 'Engineering talent for the electronics inside modern vehicles.',
-    img: 'https://images.pexels.com/photos/29475974/pexels-photo-29475974/free-photo-of-futuristic-car-dashboard-with-electronic-gadgets.jpeg?auto=compress&dpr=1&h=750&w=1260',
-    alt: 'Automotive dashboard electronics' },
-  { num: '04', title: 'Aerospace', body: 'Specialized hiring for aerospace engineering programs.',
-    img: 'https://images.pexels.com/photos/35425768/pexels-photo-35425768/free-photo-of-close-up-of-aircraft-jet-engine-on-tarmac.jpeg?auto=compress&dpr=1&h=750&w=1260',
-    alt: 'Aircraft jet engine' },
-  { num: '05', title: 'Industrial Engineering', body: 'Talent for the industrial systems built on custom silicon.',
-    img: 'https://images.pexels.com/photos/32845679/pexels-photo-32845679/free-photo-of-industrial-engineers-operating-cnc-machinery.jpeg?auto=compress&dpr=1&h=750&w=1260',
-    alt: 'Industrial CNC machinery' },
+/*
+  Expertise - editorial exploration system for the 8 sectors ALLSEMI
+  covers. Desktop: an index rail (numbers + names) beside one large
+  active image panel; hovering a rail row previews that sector in the
+  panel (grayscale -> color, subtle zoom), clicking commits it. Mobile:
+  a horizontal snap tab strip above the same panel, tap commits.
+
+  Images are real color photographs; the default grayscale look is a
+  CSS filter (Tailwind's `grayscale`), not a pre-desaturated source, so
+  the same file smoothly transitions to full color on activation.
+
+  NOTE: these image URLs are placeholders for evaluating the layout and
+  interaction, not final licensed assets - see SECTORS below. Each
+  sector's `image` field is the only thing that needs to change to swap
+  in real photography later.
+*/
+
+export const SECTORS = [
+  {
+    id: 'semiconductor',
+    num: '01',
+    name: 'Semiconductor & Chip Engineering',
+    shortName: 'Semiconductor',
+    desc: 'RTL to tape-out - the engineers who design and verify modern silicon.',
+    image: 'https://images.pexels.com/photos/6636463/pexels-photo-6636463.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Close-up of a microprocessor on a motherboard',
+  },
+  {
+    id: 'ai-infrastructure',
+    num: '02',
+    name: 'AI Infrastructure & Cloud',
+    shortName: 'AI & Cloud',
+    desc: 'The infrastructure and systems engineering behind large-scale compute.',
+    image: 'https://images.pexels.com/photos/4508751/pexels-photo-4508751.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Modern data center corridor with server racks',
+  },
+  {
+    id: 'automotive',
+    num: '03',
+    name: 'Automotive & Mobility',
+    shortName: 'Automotive',
+    desc: 'Electronics and embedded engineering for the vehicles being built today.',
+    image: 'https://images.pexels.com/photos/6870298/pexels-photo-6870298.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Mechanic examining a car engine under an open hood',
+  },
+  {
+    id: 'aerospace',
+    num: '04',
+    name: 'Aerospace & Communications',
+    shortName: 'Aerospace',
+    desc: 'Precision hardware and systems engineering for aerospace and comms.',
+    image: 'https://images.pexels.com/photos/6325002/pexels-photo-6325002.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Satellite antenna structure',
+  },
+  {
+    id: 'business-finance',
+    num: '05',
+    name: 'Business, Finance & Consumer',
+    shortName: 'Business',
+    desc: 'Commercial and operational talent across consumer-facing technology.',
+    image: 'https://images.pexels.com/photos/260929/pexels-photo-260929.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Modern boardroom conference table',
+  },
+  {
+    id: 'banking-fintech',
+    num: '06',
+    name: 'Banking, Finance & FinTech',
+    shortName: 'Banking',
+    desc: 'Engineering talent behind modern payment and financial infrastructure.',
+    image: 'https://images.pexels.com/photos/2988232/pexels-photo-2988232.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Close-up of a card payment being processed at a terminal',
+  },
+  {
+    id: 'consumer-retail',
+    num: '07',
+    name: 'Consumer Goods & Retail',
+    shortName: 'Retail',
+    desc: 'Precision manufacturing and engineering talent for consumer products.',
+    image: 'https://images.pexels.com/photos/5554948/pexels-photo-5554948.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Organized electronic circuit boards in a production setting',
+  },
+  {
+    id: 'healthcare',
+    num: '08',
+    name: 'Healthcare & Medical Technology',
+    shortName: 'Healthcare',
+    desc: 'Engineering talent for medical devices and diagnostic technology.',
+    image: 'https://images.pexels.com/photos/35444722/pexels-photo-35444722.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Laboratory technician handling cell culture equipment',
+  },
 ];
 
-export default function Expertise() {
-  const trackRef = useRef(null);
-  const timerRef = useRef(null);
-  const resumeRef = useRef(null);
+function ExploreArrow({ className = '' }) {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M5 12h13M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+export default function Expertise({ activeSector, setActiveSector, pulseKey }) {
+  const [hovered, setHovered] = useState(null);
+  const [pulsingId, setPulsingId] = useState(null);
+  const panelRef = useRef(null);
+  const imgLayerRef = useRef(null);
+  const pulseTimeout = useRef(null);
+  const railRefs = useRef({});
+
+  const shownId = hovered || activeSector;
+  const shownSector = SECTORS.find(s => s.id === shownId) || SECTORS[0];
+
+  const commit = (id) => {
+    setActiveSector(id);
+    setHovered(null);
+  };
 
   useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
+    if (pulseKey === undefined || pulseKey === null) return;
+    setPulsingId(activeSector);
+    const el = railRefs.current[activeSector];
+    if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    clearTimeout(pulseTimeout.current);
+    pulseTimeout.current = setTimeout(() => setPulsingId(null), 1100);
+    return () => clearTimeout(pulseTimeout.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pulseKey]);
 
+  useEffect(() => {
+    const panel = panelRef.current;
+    const layer = imgLayerRef.current;
+    if (!panel || !layer) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
+    const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+    if (reduce || !isDesktop) return;
 
-    function step() {
-      const card = track.querySelector('article');
-      if (!card) return 300;
-      const style = getComputedStyle(track);
-      const gap = parseFloat(style.columnGap || style.gap || '20');
-      return card.getBoundingClientRect().width + gap;
+    function onMove(e) {
+      const r = panel.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      layer.style.transform = `translate3d(${px * -6}px, ${py * -6}px, 0) scale(1.06)`;
     }
-
-    function advance(dir) {
-      const s = step() * (dir || 1);
-      const max = track.scrollWidth - track.clientWidth;
-      if (track.scrollLeft >= max - 4 && dir > 0) {
-        track.scrollTo({ left: 0, behavior: 'smooth' });
-      } else if (track.scrollLeft <= 4 && dir < 0) {
-        track.scrollTo({ left: max, behavior: 'smooth' });
-      } else {
-        track.scrollBy({ left: s, behavior: 'smooth' });
-      }
+    function onLeave() {
+      layer.style.transform = '';
     }
-
-    function start() {
-      stop();
-      timerRef.current = setInterval(() => advance(1), 3500);
-    }
-    function stop() {
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    function pauseThenResume() {
-      stop();
-      clearTimeout(resumeRef.current);
-      resumeRef.current = setTimeout(start, 5000);
-    }
-
-    // Buttons
-    const prevBtn = document.getElementById('exp-prev');
-    const nextBtn = document.getElementById('exp-next');
-    const onPrev = () => { advance(-1); pauseThenResume(); };
-    const onNext = () => { advance(1); pauseThenResume(); };
-    if (prevBtn) prevBtn.addEventListener('click', onPrev);
-    if (nextBtn) nextBtn.addEventListener('click', onNext);
-
-    // Pause on interaction
-    const onTouch = () => pauseThenResume();
-    const onWheel = () => pauseThenResume();
-    const onEnter = () => stop();
-    const onLeave = () => start();
-
-    track.addEventListener('touchstart', onTouch, { passive: true });
-    track.addEventListener('wheel', onWheel, { passive: true });
-    track.addEventListener('mouseenter', onEnter);
-    track.addEventListener('mouseleave', onLeave);
-
-    start();
-
+    panel.addEventListener('mousemove', onMove);
+    panel.addEventListener('mouseleave', onLeave);
     return () => {
-      stop();
-      clearTimeout(resumeRef.current);
-      if (prevBtn) prevBtn.removeEventListener('click', onPrev);
-      if (nextBtn) nextBtn.removeEventListener('click', onNext);
-      track.removeEventListener('touchstart', onTouch);
-      track.removeEventListener('wheel', onWheel);
-      track.removeEventListener('mouseenter', onEnter);
-      track.removeEventListener('mouseleave', onLeave);
+      panel.removeEventListener('mousemove', onMove);
+      panel.removeEventListener('mouseleave', onLeave);
     };
   }, []);
 
   return (
     <section id="expertise" className="border-t border-line py-16 md:py-24 lg:py-32">
-      {/* Head */}
       <div className="max-w-7xl mx-auto px-5 md:px-10 mb-10 md:mb-14">
         <span className="block font-mono text-xs uppercase tracking-[0.22em] text-accent mb-4">
           02 / EXPERTISE
@@ -113,66 +168,86 @@ export default function Expertise() {
         <span className="block mt-6 w-20 h-0.5 bg-gradient-to-r from-accent to-accent-2 shadow-[0_0_12px_rgba(167,139,250,0.5)]" />
       </div>
 
-      {/* Carousel + custom nav buttons */}
-      <div className="relative max-w-7xl mx-auto">
-        {/* Prev button */}
-        <button
-          id="exp-prev"
-          aria-label="Previous"
-          className="group hidden md:flex absolute left-2 lg:left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 lg:w-14 lg:h-14 items-center justify-center rounded-full border border-accent/30 bg-bg/80 backdrop-blur-md text-accent transition-all duration-300 hover:border-accent hover:bg-accent/10 hover:scale-110"
-        >
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          {/* corner accents */}
-          <span className="pointer-events-none absolute -top-px -left-px w-2 h-2 border-l border-t border-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <span className="pointer-events-none absolute -bottom-px -right-px w-2 h-2 border-r border-b border-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
+      <div className="max-w-7xl mx-auto px-5 md:px-10">
+        <div className="lg:hidden -mx-5 px-5 flex gap-2 overflow-x-auto scrollbar-hide pb-4 mb-5 snap-x snap-mandatory">
+          {SECTORS.map(s => (
+            <button
+              key={s.id}
+              onClick={() => commit(s.id)}
+              aria-pressed={activeSector === s.id}
+              className={`shrink-0 snap-start px-4 py-2.5 border text-xs font-mono whitespace-nowrap transition-colors ${
+                activeSector === s.id
+                  ? 'border-accent text-text bg-accent/10'
+                  : 'border-line text-text-dim'
+              }`}
+            >
+              <span className="text-accent mr-1.5">{s.num}</span>{s.shortName}
+            </button>
+          ))}
+        </div>
 
-        {/* Next button */}
-        <button
-          id="exp-next"
-          aria-label="Next"
-          className="group hidden md:flex absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 lg:w-14 lg:h-14 items-center justify-center rounded-full border border-accent/30 bg-bg/80 backdrop-blur-md text-accent transition-all duration-300 hover:border-accent hover:bg-accent/10 hover:scale-110"
-        >
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-          <span className="pointer-events-none absolute -top-px -right-px w-2 h-2 border-r border-t border-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <span className="pointer-events-none absolute -bottom-px -left-px w-2 h-2 border-l border-b border-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
+        <div className="grid lg:grid-cols-[300px_1fr] gap-8 lg:gap-12 items-start">
+          <div className="hidden lg:flex flex-col" onMouseLeave={() => setHovered(null)}>
+            {SECTORS.map(s => {
+              const isActive = activeSector === s.id;
+              const isPulsing = pulsingId === s.id;
+              return (
+                <button
+                  key={s.id}
+                  ref={el => { railRefs.current[s.id] = el; }}
+                  onMouseEnter={() => setHovered(s.id)}
+                  onFocus={() => setHovered(s.id)}
+                  onClick={() => commit(s.id)}
+                  className={`text-left py-4 border-b border-line pl-4 -ml-px border-l-2 transition-colors duration-300 ${
+                    isActive ? 'border-l-accent' : 'border-l-transparent hover:border-l-accent/40'
+                  } ${isPulsing ? 'expertise-rail-pulse' : ''}`}
+                >
+                  <span className="font-mono text-xs text-accent">{s.num}</span>
+                  <div className={`font-display font-semibold leading-snug mt-1 transition-colors duration-300 ${
+                    isActive ? 'text-text' : 'text-text-dim'
+                  }`}>
+                    {s.name}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
-        {/* Track */}
-        <div className="max-w-7xl mx-auto px-5 md:px-10">
           <div
-            ref={trackRef}
-            className="flex gap-5 snap-x snap-mandatory overflow-x-auto scrollbar-hide scroll-smooth"
+            ref={panelRef}
+            className="group relative w-full aspect-[4/3] lg:aspect-[16/10] overflow-hidden border border-line"
           >
-            {CARDS.map(c => (
-              <article
-                key={c.num}
-                className="relative shrink-0 w-[78vw] sm:w-[56vw] md:w-[46vw] lg:w-[calc((100%-40px)/3)] aspect-[3/4] snap-start border border-line overflow-hidden group"
-              >
+            <div ref={imgLayerRef} className="absolute inset-0 transition-transform duration-500 ease-out">
+              {SECTORS.map(s => (
                 <img
-                  src={c.img}
-                  alt={c.alt}
-                  className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.55] group-hover:scale-105 group-hover:brightness-[0.7] transition-all duration-700"
+                  key={s.id}
+                  src={s.image}
+                  alt={s.alt}
+                  loading={s.num <= '02' ? 'eager' : 'lazy'}
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out ${
+                    shownId === s.id
+                      ? 'opacity-100 grayscale-0 scale-105'
+                      : 'opacity-0 grayscale scale-100 pointer-events-none'
+                  }`}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/20 to-transparent" />
+              ))}
+            </div>
 
-                {/* Scan line on hover */}
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/15 to-transparent" />
 
-                <div className="absolute inset-x-0 bottom-0 p-6 z-10">
-                  <span className="font-mono text-xs text-accent tracking-widest">{c.num}</span>
-                  <h4 className="font-display font-semibold text-xl mt-2 mb-2">{c.title}</h4>
-                  <p className="text-text-dim text-sm leading-snug">{c.body}</p>
-                </div>
-
-                {/* Bottom accent line grows on hover */}
-                <div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-accent to-accent-2 w-0 group-hover:w-full transition-all duration-500 z-20" />
-              </article>
-            ))}
+            <div className="absolute inset-x-0 bottom-0 p-6 md:p-8 lg:p-10 z-10">
+              <span className="font-mono text-xs text-accent tracking-widest">{shownSector.num}</span>
+              <h3 className="font-display font-bold text-2xl md:text-3xl mt-2 mb-2">{shownSector.name}</h3>
+              <p className="text-text-dim text-sm md:text-base max-w-lg leading-relaxed">{shownSector.desc}</p>
+              <span className="inline-flex items-center gap-1.5 mt-4 text-accent text-xs font-mono uppercase tracking-widest">
+                Explore
+                <ExploreArrow className="transition-transform duration-300 group-hover:translate-x-1" />
+              </span>
+              <span
+                key={shownId}
+                className="block mt-3 h-0.5 w-20 bg-gradient-to-r from-accent to-accent-2 expertise-rule-draw"
+              />
+            </div>
           </div>
         </div>
       </div>

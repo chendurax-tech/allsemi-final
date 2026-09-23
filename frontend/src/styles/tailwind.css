@@ -145,16 +145,24 @@
   background: transparent;
 }
 
-/* Corner tick marks on the form panel */
+/* Alignment / registration marks on the form panel corners,
+   in the style of photomask fiducials */
 .corner-mark {
   position: absolute;
   width: 14px;
   height: 14px;
-  border-color: rgba(167,139,250,.7);
   pointer-events: none;
 }
-.corner-tl { top: 10px; left: 10px; border-top: 1px solid; border-left: 1px solid; border-color: inherit; }
-.corner-br { bottom: 10px; right: 10px; border-bottom: 1px solid; border-right: 1px solid; border-color: inherit; }
+.corner-mark::before,
+.corner-mark::after {
+  content: '';
+  position: absolute;
+  background: rgba(167,139,250,.5);
+}
+.corner-mark::before { top: 50%; left: 0; width: 100%; height: 1px; transform: translateY(-50%); }
+.corner-mark::after { left: 50%; top: 0; height: 100%; width: 1px; transform: translateX(-50%); }
+.corner-tl { top: 12px; left: 12px; }
+.corner-br { bottom: 12px; right: 12px; }
 
 /* Circuit-node step indicators */
 .node-dot {
@@ -257,47 +265,13 @@
     #0b0818;
 }
 
-.dc-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(167,139,250,.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(167,139,250,.06) 1px, transparent 1px);
-  background-size: 36px 36px;
-  pointer-events: none;
-  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 90%);
-  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 90%);
-}
-
-/* Slow scan line - like an instrument sweep */
-.dc-scan {
-  position: absolute;
-  left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(167,139,250,.65), transparent);
-  box-shadow: 0 0 14px rgba(167,139,250,.5);
-  animation: dcScan 7s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes dcScan {
-  0%   { top: 0%;   opacity: 0; }
-  15%  { opacity: 1; }
-  85%  { opacity: 1; }
-  100% { top: 100%; opacity: 0; }
-}
-
-/* Status pulse dot */
+/* Status mark */
 .status-dot {
   display: inline-block;
   width: 6px; height: 6px;
   border-radius: 50%;
   background: #a78bfa;
-  box-shadow: 0 0 8px rgba(167,139,250,.9);
-  animation: statusPulse 2.4s ease-in-out infinite;
-}
-@keyframes statusPulse {
-  0%, 100% { transform: scale(1);   opacity: 1; }
-  50%      { transform: scale(1.4); opacity: .6; }
+  box-shadow: 0 0 4px rgba(167,139,250,.55);
 }
 
 /* Social buttons in datacenter style */
@@ -319,8 +293,6 @@
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .dc-scan { animation: none; display: none; }
-  .status-dot { animation: none; }
   .shimmer-text { animation: none; background: none; color: #a78bfa; -webkit-text-fill-color: currentColor; }
   .type-cursor { animation: none; }
   .step-slide, .success-pop { animation-duration: 0.01s; }
@@ -367,4 +339,126 @@
     clip-path: url(#allsemiLettersClip);
     -webkit-clip-path: url(#allsemiLettersClip);
   }
+}
+
+/* ============================================================
+   EXPERTISE - index rail + active panel
+   ============================================================ */
+
+/* One-shot width draw for the accent rule under the active
+   panel's caption, replayed via a React `key` remount whenever
+   the shown sector changes. */
+@keyframes expertiseRuleDraw {
+  from { width: 0; }
+  to   { width: 5rem; }
+}
+.expertise-rule-draw {
+  animation: expertiseRuleDraw 0.5s ease-out both;
+}
+
+/* Brief highlight when a sector is selected from the header
+   dropdown, so the destination rail row is unmistakable. */
+@keyframes expertiseRailPulse {
+  0%, 100% { background-color: transparent; }
+  30%      { background-color: rgba(167, 139, 250, 0.12); }
+}
+.expertise-rail-pulse {
+  animation: expertiseRailPulse 1.1s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expertise-rule-draw { animation: none; width: 5rem; }
+  .expertise-rail-pulse { animation: none; }
+}
+
+/* ============================================================
+   EXPERTISE BANDS - prototype (Concept B), unwired. Purely
+   additive, uniquely-named classes; does not affect the shipped
+   Expertise.jsx (rail + panel) fallback in any way.
+   ============================================================ */
+@keyframes expertiseBandRuleIn {
+  from { width: 0; }
+}
+.expertise-band-rule-in {
+  animation: expertiseBandRuleIn 0.5s ease-out both;
+  animation-delay: 0.15s;
+}
+
+@keyframes expertiseBandDetailIn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+.expertise-band-detail-in {
+  animation: expertiseBandDetailIn 0.6s ease-out 0.35s both;
+}
+
+@keyframes expertiseBandPulse {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(167, 139, 250, 0); }
+  30%      { box-shadow: inset 0 0 0 2px rgba(167, 139, 250, 0.5); }
+}
+.expertise-band-pulse {
+  animation: expertiseBandPulse 1.1s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expertise-band-rule-in { animation: none; }
+  .expertise-band-detail-in { animation: none; opacity: 1; }
+  .expertise-band-pulse { animation: none; }
+}
+
+/* ============================================================
+   PHASE 4 - shared motion primitives (motionPrimitives.jsx)
+   ============================================================ */
+@keyframes scanLinePlay {
+  0%   { top: 0%;   opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+.scan-line-play {
+  animation: scanLinePlay 1.8s ease-in-out 1 both;
+}
+
+@keyframes signalPulsePlay {
+  0%   { left: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+.signal-pulse-play {
+  animation: signalPulsePlay 1.6s ease-in-out 1 both;
+}
+
+/* Cursor-reactive radial highlight, driven by --mx/--my/--mo set via
+   useRadialHighlight(). Fully inert (no listeners attached) under
+   prefers-reduced-motion or on touch devices - see the hook itself. */
+.radial-highlight {
+  position: relative;
+}
+.radial-highlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--mo, 0);
+  transition: opacity 0.3s ease;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(167, 139, 250, 0.12), transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-line-play { animation: none; opacity: 0; }
+  .signal-pulse-play { animation: none; opacity: 0; }
+}
+
+@keyframes cvScanLine {
+  0%   { opacity: 0; transform: translateY(-14px); }
+  40%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(14px); }
+}
+.cv-scan-line {
+  animation: cvScanLine 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-scan-line { animation: none; opacity: 0.6; transform: none; }
 }

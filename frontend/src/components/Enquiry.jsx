@@ -330,7 +330,7 @@ export default function Enquiry() {
                         disabled={!emailValid || !extraValid || submitted}
                         className="press-scale font-mono text-xs uppercase tracking-widest font-semibold px-6 py-3 bg-bg text-text hover:bg-accent-deep hover:text-bg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                       >
-                        {submitted ? 'Transmitting…' : 'Transmit →'}
+                        {submitted ? 'Sending…' : 'Send →'}
                       </button>
                     </div>
                   </div>
@@ -344,7 +344,7 @@ export default function Enquiry() {
                       </svg>
                     </div>
                     <p className="font-mono text-xs uppercase tracking-widest text-accent-deep mb-3">
-                      &gt; Packet received
+                      &gt; Received.
                     </p>
                     <h3 className="font-display font-semibold text-2xl mb-3 text-bg">Thank you.</h3>
                     <p className="text-bg/70 mb-8">
@@ -360,14 +360,9 @@ export default function Enquiry() {
           </div>
 
           {/* ==============================
-              RIGHT - mono datacenter readout
+              RIGHT - contact / spec readout
               ============================== */}
           <div className="relative bg-[#0b0818] text-text p-6 md:p-10 lg:p-12 flex flex-col justify-between min-h-[560px] overflow-hidden datacenter-panel">
-
-            {/* Background grid */}
-            <div className="dc-grid" aria-hidden="true" />
-            {/* Slow scan line */}
-            <span className="dc-scan" aria-hidden="true" />
 
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-10">
