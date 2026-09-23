@@ -13,6 +13,7 @@ import ExpertiseIndex from './pages/expertise/ExpertiseIndex.jsx';
 import SectorPage from './pages/expertise/SectorPage.jsx';
 import { SECTORS } from './components/Expertise.jsx';
 import { EXPERTISE_SLUGS } from './lib/expertiseRoutes.js';
+import ScrollToTop from "./components/ScrollToTop";
 
 /*
   App - the routing root.
@@ -41,6 +42,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+     <ScrollToTop />
       <div className="bg-bg text-text font-body min-h-screen">
         <Header />
         <main>
