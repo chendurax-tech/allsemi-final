@@ -482,6 +482,53 @@
   .contact-form-transition { animation: none; }
 }
 
+/* ============================================================
+   THE SIGNAL CONNECTION - Contact page signature interaction
+   ============================================================ */
+
+/* Route-reactive heading: a quick editorial settle on mount (the
+   heading/subtext remount on route change via a React key), not an
+   instant swap. */
+@keyframes signalHeadingEnter {
+  from { opacity: 0; transform: translateY(10px); letter-spacing: 0.01em; }
+  to   { opacity: 1; transform: translateY(0); letter-spacing: normal; }
+}
+.signal-heading-enter {
+  animation: signalHeadingEnter 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.signal-heading-enter-delay {
+  animation: signalHeadingEnter 550ms cubic-bezier(0.16, 1, 0.3, 1) 90ms both;
+}
+
+/* The active route's path and the hub->destination path glow in
+   softly once selected - a steady state, not a loop. */
+@keyframes signalPathCharge {
+  from { opacity: 0.3; }
+  to   { opacity: 1; }
+}
+.signal-path-charged {
+  animation: signalPathCharge 400ms ease-out both;
+}
+
+/* A small dot travels once along the charged path when a route is
+   selected - "connection established", not a continuous sweep. */
+@keyframes signalDotTravel {
+  0%   { offset-distance: 0%; opacity: 0; }
+  8%   { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.signal-dot-play {
+  animation: signalDotTravel 650ms ease-in-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-heading-enter,
+  .signal-heading-enter-delay { animation: none; }
+  .signal-path-charged { animation: none; opacity: 1; }
+  .signal-dot-play { animation: none; opacity: 0; }
+}
+
 @keyframes cvScanLine {
   0%   { opacity: 0; transform: translateY(-14px); }
   40%  { opacity: 0.9; }

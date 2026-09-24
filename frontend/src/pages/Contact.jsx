@@ -31,20 +31,26 @@ const OFFICE = {
 const ROUTES = [
   {
     key: 'employer',
+    num: '01',
     label: 'Employer',
     sub: 'Building a technical team',
+    heading: 'Build your engineering team.',
     intro: 'Tell us what you are building, where the technical requirement sits, and the kind of talent you need.',
   },
   {
     key: 'candidate',
+    num: '02',
     label: 'Candidate',
     sub: 'Exploring your next role',
+    heading: 'Find where your engineering fits.',
     intro: 'Tell us where your experience sits and the kind of engineering opportunity you are looking for.',
   },
   {
     key: 'general',
+    num: '03',
     label: 'General',
     sub: 'Partnerships, press, anything else',
+    heading: "Let's start a conversation.",
     intro: 'Tell us what you would like to talk about, and the right person will get back to you.',
   },
 ];
@@ -70,8 +76,7 @@ export default function Contact() {
 
   return (
     <>
-      <ContactHero />
-      <RouteSelector active={type} onSelect={selectType} />
+      <SignalConnection active={type} onSelect={selectType} />
       <ContactFormSection type={type} />
       <ContactInfoPanel />
       <ContactFinalCta />
@@ -79,83 +84,216 @@ export default function Contact() {
   );
 }
 
-/* ============ HERO ============ */
-function ContactHero() {
+/* ============ THE SIGNAL CONNECTION ============
+   The page's signature interaction: a small technical network
+   (Employer / Candidate / General -> ALLSEMI -> Enquiry) that the
+   visitor drives directly. Selecting a node sends a brief signal
+   along its path, the heading transitions to route-specific copy,
+   and the form below updates - "connection established" is the
+   feeling, not a looping animation. Desktop and mobile use genuinely
+   different node geometry (horizontal vs vertical), not one layout
+   scaled down. */
+function SignalConnection({ active, onSelect }) {
   const [ref, inView] = useInView(0.01);
+  const glowRef = useRadialHighlight();
+  const [hovered, setHovered] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [signalTick, setSignalTick] = useState(0);
+  const activeRoute = ROUTES.find(r => r.key === active);
+  const prevActive = React.useRef(active);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  // Replay the signal-travel animation whenever the route actually changes.
+  useEffect(() => {
+    if (prevActive.current !== active) {
+      prevActive.current = active;
+      setSignalTick(t => t + 1);
+    }
+  }, [active]);
+
+  const geo = isMobile ? MOBILE_GEO : DESKTOP_GEO;
+
   return (
-    <section ref={(el) => { ref.current = el; }} className="relative border-b border-line pt-24 md:pt-32 pb-14 md:pb-16 overflow-hidden">
+    <section
+      ref={(el) => { ref.current = el; }}
+      className="relative border-b border-line pt-24 md:pt-32 pb-10 md:pb-14 overflow-hidden"
+    >
       <TechnicalGrid className="opacity-[0.05]" />
-      <div className="relative max-w-4xl mx-auto px-5 md:px-10">
-        <MeasurementLabel className="block mb-4">CONTACT / 01</MeasurementLabel>
+      <div className="relative max-w-6xl mx-auto px-5 md:px-10">
+        <MeasurementLabel className="block mb-4">CONTACT / 01 &middot; SIGNAL / {activeRoute.num}</MeasurementLabel>
+
+        {/* Route-reactive heading - remounts on route change so the
+            enter transition replays; a quick fade/rise/tracking
+            settle rather than an instant swap. */}
         <h1
-          className={`font-display font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight leading-[1.02] transition-all duration-700 motion-reduce:transition-none ${
-            inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          key={active}
+          className={`signal-heading-enter font-display font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight leading-[1.02] max-w-2xl ${
+            inView ? '' : 'opacity-0'
           }`}
         >
-          How can we help you?
+          {activeRoute.heading}
         </h1>
-        <p className="mt-5 max-w-lg text-base md:text-lg text-text-dim leading-relaxed">
-          Choose the route that fits, and the form adapts to what we need to know.
+        <p key={`${active}-sub`} className="signal-heading-enter-delay mt-5 max-w-lg text-base md:text-lg text-text-dim leading-relaxed">
+          {activeRoute.intro}
         </p>
-      </div>
-    </section>
-  );
-}
 
-/* ============ ROUTE SELECTOR ============ */
-function RouteSelector({ active, onSelect }) {
-  const [ref, inView] = useInView(0.2);
-  const activeIndex = ROUTES.findIndex(r => r.key === active);
-
-  return (
-    <section ref={(el) => { ref.current = el; }} className="border-b border-line py-12 md:py-16">
-      <div className="max-w-4xl mx-auto px-5 md:px-10">
+        {/* ---- the network ---- */}
         <div
-          role="tablist"
-          aria-label="Contact route"
-          className="flex flex-col md:flex-row md:items-stretch border border-line"
+          ref={glowRef}
+          className="radial-highlight relative mt-12 md:mt-16"
         >
-          {ROUTES.map((r, i) => {
-            const isActive = active === r.key;
-            return (
-              <React.Fragment key={r.key}>
-                <button
+          <svg
+            viewBox={geo.viewBox}
+            className="w-full h-auto"
+            role="tablist"
+            aria-label="Contact route"
+            style={{ maxHeight: isMobile ? 'none' : 320 }}
+          >
+            {/* base paths (quiet) */}
+            {geo.nodes.map(n => (
+              <path key={`base-${n.key}`} d={n.path} fill="none" stroke="rgba(237,239,240,0.09)" strokeWidth="1" />
+            ))}
+            <path d={geo.hubPath} fill="none" stroke="rgba(237,239,240,0.09)" strokeWidth="1" />
+
+            {/* charged path for the active route (and hub->destination) */}
+            {geo.nodes.map(n => n.key === active && (
+              <path
+                key={`charged-${n.key}`}
+                d={n.path}
+                fill="none"
+                stroke="url(#signalGradient)"
+                strokeWidth="1.4"
+                className="signal-path-charged"
+              />
+            ))}
+            <path d={geo.hubPath} fill="none" stroke="url(#signalGradient)" strokeWidth="1.4" className="signal-path-charged" />
+
+            {/* traveling signal dots - remounted each time the route changes */}
+            {geo.nodes.map(n => n.key === active && (
+              <circle
+                key={`sig-${n.key}-${signalTick}`}
+                r="4"
+                fill="var(--color-accent, #a78bfa)"
+                className="signal-dot-play"
+                style={{ offsetPath: `path('${n.path}')`, offsetRotate: '0deg', animationDelay: '0ms' }}
+              />
+            ))}
+            <circle
+              key={`sig-hub-${signalTick}`}
+              r="4"
+              fill="var(--color-accent-2, #c084fc)"
+              className="signal-dot-play"
+              style={{ offsetPath: `path('${geo.hubPath}')`, offsetRotate: '0deg', animationDelay: '650ms' }}
+            />
+
+            <defs>
+              <linearGradient id="signalGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#a78bfa" />
+                <stop offset="100%" stopColor="#c084fc" />
+              </linearGradient>
+            </defs>
+
+            {/* route nodes */}
+            {geo.nodes.map(n => {
+              const route = ROUTES.find(r => r.key === n.key);
+              const isActive = active === n.key;
+              const isHovered = hovered === n.key;
+              return (
+                <g
+                  key={n.key}
                   role="tab"
                   aria-selected={isActive}
-                  id={`route-tab-${r.key}`}
+                  id={`route-tab-${n.key}`}
                   aria-controls="contact-form-panel"
-                  onClick={() => onSelect(r.key)}
-                  className={`group flex-1 text-left px-5 py-6 md:py-8 transition-all duration-400 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 ${
-                    isActive ? 'bg-white/[0.03]' : 'hover:bg-white/[0.015]'
-                  } ${inView ? 'opacity-100' : 'opacity-0'}`}
-                  style={{ transitionDelay: `${i * 90}ms` }}
+                  tabIndex={0}
+                  onClick={() => onSelect(n.key)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(n.key); } }}
+                  onMouseEnter={() => setHovered(n.key)}
+                  onMouseLeave={() => setHovered(null)}
+                  onFocus={() => setHovered(n.key)}
+                  onBlur={() => setHovered(null)}
+                  className="cursor-pointer focus-visible:outline-none"
+                  style={{ transform: `translate(${n.x}px, ${n.y}px)` }}
                 >
-                  <span className={`block w-2 h-2 rounded-full mb-4 transition-all duration-300 ${
-                    isActive ? 'bg-accent shadow-[0_0_8px_rgba(167,139,250,0.8)]' : 'bg-text-faint'
-                  }`} />
-                  <span className={`block font-display font-bold text-xl md:text-2xl tracking-tight transition-colors ${
-                    isActive ? 'text-text' : 'text-text-dim group-hover:text-text'
-                  }`}>
-                    {r.label}
-                  </span>
-                  <span className="block text-text-faint text-xs mt-1.5">{r.sub}</span>
-                </button>
-                {i < ROUTES.length - 1 && <span className="hidden md:block w-px bg-line" />}
-              </React.Fragment>
-            );
-          })}
-        </div>
-        {/* Active-route line, echoing the site's signal-line language */}
-        <div className="relative h-0.5 mt-0 bg-line">
-          <span
-            className="absolute top-0 h-0.5 bg-gradient-to-r from-accent to-accent-2 transition-all duration-400 ease-out motion-reduce:transition-none"
-            style={{ width: `${100 / ROUTES.length}%`, left: `${(100 / ROUTES.length) * activeIndex}%` }}
-          />
+                  <rect x="-16" y="-30" width="150" height="70" fill="transparent" />
+                  <circle
+                    r={isActive ? 9 : isHovered ? 8 : 6}
+                    fill={isActive ? '#a78bfa' : 'rgba(237,239,240,0.5)'}
+                    className="transition-all duration-300 motion-reduce:transition-none"
+                    style={{ filter: isActive ? 'drop-shadow(0 0 6px rgba(167,139,250,0.8))' : 'none' }}
+                  />
+                  {(isActive || isHovered) && (
+                    <circle r={isActive ? 16 : 13} fill="none" stroke="#a78bfa" strokeWidth="1" opacity="0.35" />
+                  )}
+                  <text x={n.labelX} y={n.labelY} textAnchor={n.anchor} className="font-mono select-none" style={{ fontSize: '11px', letterSpacing: '0.05em', fill: isActive ? '#edeff0' : 'rgba(237,239,240,0.55)', fontWeight: isActive ? 700 : 400 }}>
+                    {route.num} {route.label.toUpperCase()}
+                  </text>
+                  {(isActive || isHovered) && (
+                    <text x={n.labelX} y={n.labelY + 15} textAnchor={n.anchor} className="font-mono select-none" style={{ fontSize: '9px', fill: 'rgba(167,139,250,0.75)' }}>
+                      {isActive ? 'CONNECTION ESTABLISHED' : 'SELECT ROUTE'}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+
+            {/* hub */}
+            <g style={{ transform: `translate(${geo.hub.x}px, ${geo.hub.y}px)` }}>
+              <circle r="10" fill="none" stroke="#a78bfa" strokeWidth="1.4" />
+              <circle r="3" fill="#a78bfa" />
+              <text x={geo.hub.labelX} y={geo.hub.labelY} textAnchor={geo.hub.anchor} className="font-mono select-none" style={{ fontSize: '10px', letterSpacing: '0.08em', fill: 'rgba(237,239,240,0.7)' }}>
+                SYSTEM / ALLSEMI
+              </text>
+            </g>
+
+            {/* destination */}
+            <g style={{ transform: `translate(${geo.dest.x}px, ${geo.dest.y}px)` }}>
+              <rect x="-6" y="-6" width="12" height="12" fill="none" stroke="rgba(167,139,250,0.6)" strokeWidth="1.2" />
+              <text x={geo.dest.labelX} y={geo.dest.labelY} textAnchor={geo.dest.anchor} className="font-mono select-none" style={{ fontSize: '10px', letterSpacing: '0.08em', fill: 'rgba(237,239,240,0.55)' }}>
+                INPUT / ENQUIRY
+              </text>
+            </g>
+          </svg>
         </div>
       </div>
     </section>
   );
 }
+
+// Desktop: horizontal network, three route nodes on the left feeding
+// a central hub, which feeds the form below via a destination marker.
+const DESKTOP_GEO = {
+  viewBox: '0 0 1000 300',
+  nodes: [
+    { key: 'employer', x: 70, y: 60, labelX: 18, labelY: -18, anchor: 'start', path: 'M70,60 C 320,60 320,150 500,150' },
+    { key: 'candidate', x: 70, y: 150, labelX: 18, labelY: -18, anchor: 'start', path: 'M70,150 L500,150' },
+    { key: 'general', x: 70, y: 240, labelX: 18, labelY: 28, anchor: 'start', path: 'M70,240 C 320,240 320,150 500,150' },
+  ],
+  hub: { x: 500, y: 150, labelX: 0, labelY: -22, anchor: 'middle' },
+  hubPath: 'M500,150 L900,150',
+  dest: { x: 900, y: 150, labelX: 0, labelY: -18, anchor: 'middle' },
+};
+
+// Mobile: vertical stack - a genuinely different composition, not the
+// desktop network compressed.
+const MOBILE_GEO = {
+  viewBox: '0 0 320 700',
+  nodes: [
+    { key: 'employer', x: 160, y: 40, labelX: 16, labelY: 5, anchor: 'start', path: 'M160,40 C 260,150 260,280 160,360' },
+    { key: 'candidate', x: 160, y: 180, labelX: 16, labelY: 5, anchor: 'start', path: 'M160,180 L160,360' },
+    { key: 'general', x: 160, y: 300, labelX: 16, labelY: 5, anchor: 'start', path: 'M160,300 C 60,330 60,330 160,360' },
+  ],
+  hub: { x: 160, y: 380, labelX: 0, labelY: -26, anchor: 'middle' },
+  hubPath: 'M160,380 L160,500',
+  dest: { x: 160, y: 500, labelX: 0, labelY: 30, anchor: 'middle' },
+};
 
 /* ============ DYNAMIC FORM ============ */
 function ContactFormSection({ type }) {
