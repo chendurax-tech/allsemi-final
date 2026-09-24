@@ -208,7 +208,7 @@ function ArticleCta() {
           Looking for your next engineering opportunity?
         </h2>
         <div className="flex flex-wrap justify-center gap-3">
-          <Link to="/#enquiry" className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
+          <Link to="/contact" className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
             Get in Touch
           </Link>
           <Link to="/talent" className="inline-flex text-sm font-semibold px-6 py-3 border border-line-strong hover:border-accent transition-colors">

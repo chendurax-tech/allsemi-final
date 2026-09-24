@@ -127,7 +127,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
-            <Link to="/#enquiry" className="hidden lg:inline-flex text-sm font-semibold px-4 py-2 bg-text text-bg hover:bg-accent transition-colors">Get in Touch</Link>
+            <Link to="/contact" className="hidden lg:inline-flex text-sm font-semibold px-4 py-2 bg-text text-bg hover:bg-accent transition-colors">Get in Touch</Link>
             <button
               className="lg:hidden w-9 h-9 relative"
               aria-label="Toggle menu"
@@ -183,7 +183,7 @@ export default function Header() {
 
         <Link to="/insights" onClick={close} className="py-3 border-b border-line text-base">Insights</Link>
         <Link to="/about" onClick={close} className="py-3 border-b border-line text-base">About ALLSEMI</Link>
-        <Link to="/#enquiry" onClick={close} className="mt-4 text-center text-sm font-semibold py-3 bg-text text-bg">Get in Touch</Link>
+        <Link to="/contact" onClick={close} className="mt-4 text-center text-sm font-semibold py-3 bg-text text-bg">Get in Touch</Link>
       </div>
     </>
   );

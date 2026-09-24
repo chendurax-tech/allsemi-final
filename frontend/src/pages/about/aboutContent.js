@@ -42,6 +42,6 @@ export const ENGINEERING_APPROACH = {
 };
 
 export const ABOUT_CTA = {
-  employer: { headline: 'Building a team?', button: 'Start a Search', to: '/#enquiry' },
-  talent: { headline: 'Exploring your next move?', button: 'Send Your Profile', to: '/#enquiry' },
+  employer: { headline: 'Building a team?', button: 'Start a Search', to: '/contact?type=employer' },
+  talent: { headline: 'Exploring your next move?', button: 'Send Your Profile', to: '/contact?type=candidate' },
 };

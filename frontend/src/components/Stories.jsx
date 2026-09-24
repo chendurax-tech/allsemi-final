@@ -44,8 +44,12 @@ export default function Stories() {
       </div>
 
       <div className="max-w-7xl mx-auto px-5 md:px-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 items-center">
-        <div className="relative overflow-hidden border border-line aspect-[4/3] lg:aspect-[5/6] bg-bg-raised">
-          <img src={item.photo} alt="" className="w-full h-full object-cover grayscale contrast-105 brightness-70" />
+        <div className="group relative overflow-hidden border border-line aspect-[4/3] lg:aspect-[5/6] bg-bg-raised">
+          <img
+            src={item.photo}
+            alt=""
+            className="w-full h-full object-cover grayscale contrast-105 brightness-70 transition-all duration-700 ease-out group-hover:grayscale-0 group-hover:brightness-90 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          />
         </div>
         <div>
           <blockquote className="font-display font-medium text-xl md:text-2xl lg:text-3xl leading-snug text-text-dim">

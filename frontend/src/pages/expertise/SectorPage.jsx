@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { SECTORS } from '../../components/Expertise.jsx';
 import { EXPERTISE_SLUGS } from '../../lib/expertiseRoutes.js';
 import { DimensionRule } from '../../components/EngineeringGlyphs.jsx';
-import { SECTOR_CONTENT } from './sectorContent.js';
+import { SECTOR_CONTENT, SECTOR_INSIGHT_SLUG, SEARCH_EVALUATION } from './sectorContent.js';
 import { SECTOR_VISUALS } from './sectorVisuals.jsx';
 import { useInView, MeasurementLabel } from '../../lib/motionPrimitives.jsx';
+import { getArticleBySlug } from '../../lib/insightsContent.js';
 
 /*
   SectorPage - the shared architecture for all 8 /expertise/:slug pages.
@@ -128,7 +129,7 @@ export default function SectorPage({ sectorId }) {
             {sector.desc}
           </p>
           <div className="flex flex-wrap gap-3 mt-8">
-            <Link to="/#enquiry" className="inline-flex text-sm font-semibold px-5 py-3 bg-text text-bg hover:bg-accent transition-colors">
+            <Link to="/contact?type=employer" className="inline-flex text-sm font-semibold px-5 py-3 bg-text text-bg hover:bg-accent transition-colors">
               Hire for {sector.name}
             </Link>
             <Link to="/talent" className="inline-flex text-sm font-semibold px-5 py-3 border border-white/25 text-text hover:border-accent transition-colors">
@@ -142,8 +143,11 @@ export default function SectorPage({ sectorId }) {
       <section className="border-b border-line py-16 md:py-20">
         <div className="max-w-3xl mx-auto px-5 md:px-10 text-center">
           <span className="block font-mono text-xs uppercase tracking-[0.2em] text-accent mb-4">Positioning</span>
-          <p className="font-display font-medium text-xl md:text-3xl leading-snug text-text">
+          <p className="font-display font-medium text-xl md:text-3xl leading-snug text-text mb-8">
             {content.introduction}
+          </p>
+          <p className="text-base text-text-dim leading-relaxed text-left md:text-center max-w-2xl mx-auto">
+            {content.domainOverview}
           </p>
         </div>
       </section>
@@ -217,61 +221,52 @@ export default function SectorPage({ sectorId }) {
         </div>
       </section>
 
-      {/* ============ 05. HIRING AND TALENT NEEDS ============ */}
-      <section className="border-b border-line py-16 md:py-20">
-        <div className="max-w-3xl mx-auto px-5 md:px-10">
-          <span className="block font-mono text-xs uppercase tracking-[0.22em] text-accent mb-4">Hiring Challenges</span>
-          <p className="text-base md:text-lg text-text-dim leading-relaxed">
-            {content.hiringChallenges}
-          </p>
-        </div>
-      </section>
+      {/* ============ 05. HIRING CHALLENGES ============ */}
+      <ChallengesSection challenges={content.hiringChallenges} />
 
-      {/* ============ 06. EDITORIAL / INSIGHT ============ */}
-      <section className="border-b border-line py-16 md:py-20">
-        <div className="max-w-3xl mx-auto px-5 md:px-10">
-          <span className="block font-mono text-xs uppercase tracking-[0.22em] text-accent mb-4">From Insights</span>
-          <p className="text-base text-text-dim leading-relaxed mb-4">
-            Sector-specific hiring notes for {sector.name} are on their way.
-          </p>
-          <Link to="/insights" className="text-accent text-sm font-mono uppercase tracking-widest hover:text-accent-2 transition-colors">
-            Visit Insights →
-          </Link>
-        </div>
-      </section>
+      {/* ============ 06. TALENT SEARCH / EVALUATION ============ */}
+      <EvaluationSection />
 
-      {/* ============ 07. REPRESENTATIVE SEARCH ============ */}
+      {/* ============ 07. REPRESENTATIVE SEARCH PROFILES ============ */}
       <section className="border-b border-line py-16 md:py-24">
-        <div className="max-w-3xl mx-auto px-5 md:px-10">
-          <MeasurementLabel className="block mb-6">Representative Search</MeasurementLabel>
-          <div className="border border-line p-6 md:p-8">
-            <span className="font-mono text-[0.65rem] uppercase tracking-widest text-accent">{content.representativeSearch.ref}</span>
-            <span className="block font-mono text-[0.6rem] uppercase tracking-widest text-text-faint mt-1 mb-4">
-              Representative Search Profile
-            </span>
-            <h3 className="font-display font-bold text-xl mb-3">{content.representativeSearch.title}</h3>
-            <p className="text-text-dim text-sm mb-4">{content.representativeSearch.requirement}</p>
-            <div className="flex flex-wrap gap-2">
-              {content.representativeSearch.signals.map(sig => (
-                <span key={sig} className="font-mono text-[0.65rem] text-text-dim border border-line px-2 py-1">
-                  {sig}
+        <div className="max-w-7xl mx-auto px-5 md:px-10">
+          <MeasurementLabel className="block mb-4">Representative Search</MeasurementLabel>
+          <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-10">Search profiles.</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+            {content.representativeSearches.map((s) => (
+              <div key={s.ref} className="border border-line p-6 md:p-7">
+                <span className="font-mono text-[0.65rem] uppercase tracking-widest text-accent">{s.ref}</span>
+                <span className="block font-mono text-[0.6rem] uppercase tracking-widest text-text-faint mt-1 mb-4">
+                  Representative Search Profile
                 </span>
-              ))}
-            </div>
-            <p className="text-text-faint text-xs mt-6 leading-relaxed">
-              An illustrative technical profile built from real recruitment terminology, not a record of a specific placement.
-            </p>
+                <h3 className="font-display font-bold text-xl mb-3">{s.title}</h3>
+                <p className="text-text-dim text-sm mb-4">{s.requirement}</p>
+                <div className="flex flex-wrap gap-2">
+                  {s.signals.map(sig => (
+                    <span key={sig} className="font-mono text-[0.65rem] text-text-dim border border-line px-2 py-1">
+                      {sig}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
+          <p className="text-text-faint text-xs mt-6 leading-relaxed max-w-2xl">
+            Illustrative technical profiles built from real recruitment terminology, not a record of specific placements.
+          </p>
         </div>
       </section>
 
-      {/* ============ 08. FINAL CTA ============ */}
+      {/* ============ 08. FROM INSIGHTS ============ */}
+      <InsightsSection sectorId={sectorId} />
+
+      {/* ============ 09. FINAL CTA ============ */}
       <section className="py-16 md:py-24 text-center">
         <div className="max-w-2xl mx-auto px-5 md:px-10">
           <h2 className="font-display font-semibold text-2xl md:text-4xl tracking-tight mb-6">
             Hiring in {sector.name}?
           </h2>
-          <Link to="/#enquiry" className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
+          <Link to="/contact?type=employer" className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
             Get in Touch
           </Link>
         </div>
@@ -295,5 +290,106 @@ export default function SectorPage({ sectorId }) {
         </div>
       </section>
     </>
+  );
+}
+
+/* ---------- Hiring Challenges: interactive editorial cards ---------- */
+function ChallengesSection({ challenges }) {
+  const [active, setActive] = useState(0);
+  const [ref, inView] = useInView(0.15);
+  return (
+    <section ref={(el) => { ref.current = el; }} className="border-b border-line py-16 md:py-24">
+      <div className="max-w-7xl mx-auto px-5 md:px-10">
+        <MeasurementLabel className="block mb-4">Hiring Challenges</MeasurementLabel>
+        <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-10">What makes this search hard.</h2>
+        <div className="flex flex-col border border-line">
+          {challenges.map((c, i) => {
+            const isActive = active === i;
+            return (
+              <button
+                key={c.num}
+                onMouseEnter={() => setActive(i)}
+                onFocus={() => setActive(i)}
+                className={`text-left border-b border-line last:border-b-0 px-5 md:px-8 transition-all duration-400 motion-reduce:transition-none ${
+                  isActive ? 'py-7 md:py-8 bg-white/[0.02]' : 'py-4'
+                } ${inView ? 'opacity-100' : 'opacity-0'}`}
+                style={{ transitionDelay: inView ? `${i * 90}ms` : '0ms' }}
+              >
+                <div className="flex items-baseline gap-4">
+                  <span className={`font-mono text-xs shrink-0 transition-colors ${isActive ? 'text-accent' : 'text-text-faint'}`}>{c.num}</span>
+                  <span className={`font-display font-semibold tracking-tight transition-all duration-300 ${isActive ? 'text-xl md:text-2xl text-text' : 'text-base md:text-lg text-text-dim'}`}>
+                    {c.title}
+                  </span>
+                </div>
+                <p className={`text-text-dim text-sm leading-relaxed overflow-hidden transition-all duration-400 ${isActive ? 'max-h-24 mt-3 ml-9 opacity-100' : 'max-h-0 opacity-0'}`}>
+                  {c.detail}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Talent Search / Evaluation: shared 5-stage process ---------- */
+function EvaluationSection() {
+  const [ref, inView] = useInView(0.2);
+  return (
+    <section ref={(el) => { ref.current = el; }} className="border-b border-line py-16 md:py-24">
+      <div className="max-w-4xl mx-auto px-5 md:px-10">
+        <MeasurementLabel className="block mb-4">Talent Search / Evaluation</MeasurementLabel>
+        <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-12">How we evaluate fit.</h2>
+        <div className="relative">
+          <div className="absolute left-[15px] top-3 bottom-3 w-px bg-line" aria-hidden="true" />
+          <div
+            className="absolute left-[15px] top-3 w-px bg-gradient-to-b from-accent to-accent-2 transition-all ease-out motion-reduce:transition-none"
+            style={{ height: inView ? 'calc(100% - 24px)' : '0%', transitionDuration: '1200ms' }}
+            aria-hidden="true"
+          />
+          <div className="flex flex-col gap-8">
+            {SEARCH_EVALUATION.map((s, i) => (
+              <div key={s.num} className="relative flex items-start gap-5">
+                <span
+                  className={`relative z-10 shrink-0 w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[0.65rem] transition-all duration-500 motion-reduce:transition-none ${
+                    inView ? 'border-accent text-accent bg-bg' : 'border-line text-text-faint bg-bg'
+                  }`}
+                  style={{ transitionDelay: `${i * 140}ms` }}
+                >
+                  {s.num}
+                </span>
+                <div className="pt-1">
+                  <h3 className="font-display font-semibold text-base md:text-lg">{s.label}</h3>
+                  <p className="text-text-dim text-sm mt-1 leading-relaxed">{s.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- From Insights: a genuinely linked, sector-relevant article ---------- */
+function InsightsSection({ sectorId }) {
+  const article = getArticleBySlug(SECTOR_INSIGHT_SLUG[sectorId]);
+  if (!article) return null;
+  return (
+    <section className="border-b border-line py-16 md:py-20">
+      <div className="max-w-3xl mx-auto px-5 md:px-10">
+        <MeasurementLabel className="block mb-6">From Insights</MeasurementLabel>
+        <Link to={`/insights/${article.slug}`} className="group block border border-line p-6 md:p-8 hover:border-accent/50 transition-colors duration-300">
+          <span className="font-mono text-xs text-accent tracking-widest">{article.topics[0]}</span>
+          <h3 className="font-display font-bold text-xl md:text-2xl mt-2 mb-3 group-hover:text-accent transition-colors">{article.title}</h3>
+          <p className="text-text-dim text-sm mb-4">{article.excerpt}</p>
+          <div className="flex items-center gap-4 font-mono text-[0.65rem] uppercase tracking-widest text-text-faint">
+            <span>{article.readTime}</span>
+            <span className="text-accent group-hover:translate-x-1 transition-transform inline-block">View Insight →</span>
+          </div>
+        </Link>
+      </div>
+    </section>
   );
 }

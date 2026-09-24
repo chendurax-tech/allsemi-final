@@ -18,8 +18,8 @@ export default function Insights() {
       </div>
 
       <div className="max-w-7xl mx-auto px-5 md:px-10 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
-        <Link to="/insights" className="relative border border-line overflow-hidden aspect-video lg:aspect-[4/5] lg:row-span-2 group">
-          <img src="https://images.unsplash.com/photo-1782338938790-9a956490181d?auto=format&fit=crop&fm=jpg&q=80&w=1800" alt="" className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.55] group-hover:scale-105 transition-transform duration-700" />
+        <Link to="/insights/semiconductor-engineering-talent-trends" className="relative border border-line overflow-hidden aspect-video lg:aspect-[4/5] lg:row-span-2 group">
+          <img src="https://images.unsplash.com/photo-1782338938790-9a956490181d?auto=format&fit=crop&fm=jpg&q=80&w=1800" alt="" className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.55] transition-all duration-700 ease-out group-hover:grayscale-0 group-hover:brightness-90 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
           <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/30 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-6 z-10">
             <span className="font-mono text-xs uppercase tracking-widest text-accent">Semiconductor</span>
@@ -29,8 +29,8 @@ export default function Insights() {
           </div>
         </Link>
 
-        <Link to="/insights" className="relative border border-line overflow-hidden aspect-video group">
-          <img src="https://images.unsplash.com/photo-1768861812598-33dfaec89765?auto=format&fit=crop&fm=jpg&q=80&w=1400" alt="" className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.55] group-hover:scale-105 transition-transform duration-700" />
+        <Link to="/insights/automotive-engineering-talent" className="relative border border-line overflow-hidden aspect-video group">
+          <img src="https://images.unsplash.com/photo-1768861812598-33dfaec89765?auto=format&fit=crop&fm=jpg&q=80&w=1400" alt="" className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.55] transition-all duration-700 ease-out group-hover:grayscale-0 group-hover:brightness-90 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
           <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/30 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-5 z-10">
             <span className="font-mono text-xs uppercase tracking-widest text-accent">Automotive</span>
@@ -40,8 +40,8 @@ export default function Insights() {
           </div>
         </Link>
 
-        <Link to="/insights" className="relative border border-line overflow-hidden aspect-video group">
-          <img src="https://images.pexels.com/photos/7174676/pexels-photo-7174676.jpeg?auto=compress&dpr=1&h=750&w=1260" alt="" className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.55] group-hover:scale-105 transition-transform duration-700" />
+        <Link to="/insights/hiring-for-aerospace-systems" className="relative border border-line overflow-hidden aspect-video group">
+          <img src="https://images.pexels.com/photos/7174676/pexels-photo-7174676.jpeg?auto=compress&dpr=1&h=750&w=1260" alt="" className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.55] transition-all duration-700 ease-out group-hover:grayscale-0 group-hover:brightness-90 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
           <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/30 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-5 z-10">
             <span className="font-mono text-xs uppercase tracking-widest text-accent">Aerospace</span>

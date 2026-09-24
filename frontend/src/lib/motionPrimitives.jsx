@@ -186,3 +186,31 @@ export function MeasurementLabel({ children, className = '' }) {
     </span>
   );
 }
+
+// LocationScan - a restrained technical scanning treatment for a
+// location/contact panel: a faint coordinate grid plus a slow,
+// continuously looping horizontal sweep line. This is a generalized,
+// reusable version of a scanning interaction that previously existed
+// on the contact panel (a fine background grid with a soft violet
+// sweep line passing top-to-bottom, ~7s per pass) before the contact
+// experience was restructured - restored here as a shared primitive
+// rather than reintroduced as one-off markup, so any location/contact
+// panel across the site can reuse the same visual language instead of
+// each building its own. Reads as instrument/signal inspection, not
+// as a loading spinner - continuous but slow and quiet. Fully static
+// under prefers-reduced-motion (grid stays, sweep stops).
+export function LocationScan({ className = '' }) {
+  return (
+    <div className={`absolute inset-0 pointer-events-none overflow-hidden ${className}`} aria-hidden="true">
+      <div
+        className="absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(167,139,250,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(167,139,250,.6) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+        }}
+      />
+      <div className="absolute inset-x-0 h-px location-scan-sweep" />
+    </div>
+  );
+}

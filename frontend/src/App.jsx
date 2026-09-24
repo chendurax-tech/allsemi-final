@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
+import ScrollToTop from './components/ScrollToTop.jsx';
 import Landing from './pages/Landing.jsx';
 import Contact from './pages/Contact.jsx';
 import Employers from './pages/employers/Employers.jsx';
 import Talent from './pages/talent/Talent.jsx';
+import JobDetail from './pages/talent/JobDetail.jsx';
 import About from './pages/about/About.jsx';
 import InsightsIndex from './pages/insights/InsightsIndex.jsx';
 import InsightDetail from './pages/insights/InsightDetail.jsx';
@@ -13,7 +15,6 @@ import ExpertiseIndex from './pages/expertise/ExpertiseIndex.jsx';
 import SectorPage from './pages/expertise/SectorPage.jsx';
 import { SECTORS } from './components/Expertise.jsx';
 import { EXPERTISE_SLUGS } from './lib/expertiseRoutes.js';
-import ScrollToTop from "./components/ScrollToTop";
 
 /*
   App - the routing root.
@@ -42,7 +43,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-     <ScrollToTop />
+      <ScrollToTop />
       <div className="bg-bg text-text font-body min-h-screen">
         <Header />
         <main>
@@ -53,6 +54,7 @@ export default function App() {
             />
             <Route path="/employers" element={<Employers />} />
             <Route path="/talent" element={<Talent />} />
+            <Route path="/talent/jobs/:slug" element={<JobDetail />} />
             <Route path="/expertise" element={<ExpertiseIndex />} />
             {SECTORS.map(s => (
               <Route

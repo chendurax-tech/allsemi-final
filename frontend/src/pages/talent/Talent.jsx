@@ -5,9 +5,11 @@ import {
   TechnicalGrid, ScanLine, StaggerText, AnimatedUnderline, MeasurementLabel,
 } from '../../lib/motionPrimitives.jsx';
 import {
-  TALENT_HERO, CAREER_POSITIONING, SPECIALISATION_MAP, REPRESENTATIVE_ROLES,
+  TALENT_HERO, CAREER_POSITIONING, SPECIALISATION_MAP,
   TALENT_JOURNEY, TALENT_CTA,
 } from './talentContent.js';
+import { getPublishedJobs, JOB_CATEGORIES, JOB_LOCATIONS } from './jobsContent.js';
+import { ApplyModal } from './JobDetail.jsx';
 
 export default function Talent() {
   useEffect(() => {
@@ -19,7 +21,7 @@ export default function Talent() {
       <TalentHero />
       <CareerPositioning />
       <SpecialisationMap />
-      <RepresentativeRoles />
+      <OpenPositions />
       <HowWeWork />
       <CvCommunity />
       <TalentFinalCta />
@@ -171,39 +173,147 @@ function SpecialisationMap() {
   );
 }
 
-/* ============ REPRESENTATIVE ROLES ============ */
-function RepresentativeRoles() {
-  const [ref, inView] = useInView(0.1);
+/* ============ OPEN POSITIONS ============ */
+function OpenPositions() {
+  const [ref, inView] = useInView(0.05);
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [applyGeneral, setApplyGeneral] = useState(false);
+
+  const jobs = getPublishedJobs();
+  const filtered = jobs.filter(j => {
+    const q = query.trim().toLowerCase();
+    const matchesQuery = !q || j.title.toLowerCase().includes(q) || j.keywords.some(k => k.toLowerCase().includes(q));
+    const matchesCategory = !category || j.category === category;
+    const matchesLocation = !location || j.location === location;
+    return matchesQuery && matchesCategory && matchesLocation;
+  });
+
+  const hasActiveFilters = query || category || location;
+  function clearFilters() { setQuery(''); setCategory(null); setLocation(null); }
+
   return (
     <section id="roles" ref={(el) => { ref.current = el; }} className="border-b border-line py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-5 md:px-10">
-        <MeasurementLabel className="block mb-4">Roles</MeasurementLabel>
-        <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-2">Representative roles.</h2>
-        <p className="text-text-dim text-sm mb-12 max-w-lg">
-          Illustrative technical profiles, not live vacancies - the talent community below reaches the same team.
+        <MeasurementLabel className="block mb-4">Open Positions</MeasurementLabel>
+        <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-2">Current opportunities.</h2>
+        <p className="text-text-dim text-sm mb-10 max-w-lg">
+          Representative open positions, shown here as an illustrative showcase of live search scope.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-          {REPRESENTATIVE_ROLES.map((r, i) => (
-            <div
-              key={r.num}
-              className={`group border border-line p-6 hover:border-accent/50 hover:-translate-y-1 transition-all duration-500 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
-                inView ? 'opacity-100' : 'opacity-0'
-              }`}
-              style={{ transitionDelay: `${i * 80}ms` }}
-            >
-              <span className="font-mono text-xs text-accent">{r.num}</span>
-              <h3 className="font-display font-semibold text-lg mt-2 mb-3">{r.title}</h3>
-              <div className="flex flex-wrap gap-1.5">
-                {r.tags.map(t => (
-                  <span key={t} className="font-mono text-[0.62rem] uppercase tracking-wide text-text-dim border border-line px-2 py-1">
-                    {t}
-                  </span>
-                ))}
-              </div>
+
+        {/* Search + filters */}
+        <div className="flex flex-col gap-4 mb-10">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by title or keyword..."
+            className="w-full md:max-w-md bg-transparent border-b border-line-strong py-2.5 text-sm focus:outline-none focus:border-accent placeholder:text-text-faint"
+          />
+          <div className="flex flex-wrap gap-2">
+            <span className="font-mono text-[0.62rem] uppercase tracking-widest text-text-faint self-center mr-1">Category:</span>
+            {JOB_CATEGORIES.map(c => (
+              <button
+                key={c}
+                onClick={() => setCategory(c === category ? null : c)}
+                className={`font-mono text-xs uppercase tracking-wide px-3 py-1.5 border transition-colors ${
+                  category === c ? 'border-accent text-accent bg-accent/10' : 'border-line text-text-dim hover:border-accent/50'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="font-mono text-[0.62rem] uppercase tracking-widest text-text-faint self-center mr-1">Location:</span>
+            {JOB_LOCATIONS.map(l => (
+              <button
+                key={l}
+                onClick={() => setLocation(l === location ? null : l)}
+                className={`font-mono text-xs uppercase tracking-wide px-3 py-1.5 border transition-colors ${
+                  location === l ? 'border-accent text-accent bg-accent/10' : 'border-line text-text-dim hover:border-accent/50'
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+            {hasActiveFilters && (
+              <button onClick={clearFilters} className="font-mono text-xs uppercase tracking-wide px-3 py-1.5 border border-line-strong text-text-dim hover:text-accent hover:border-accent transition-colors">
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Results */}
+        {filtered.length === 0 ? (
+          <div className="border border-dashed border-line-strong p-10 text-center">
+            <p className="text-text-dim text-sm mb-5">No positions match your current filters.</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <button onClick={clearFilters} className="font-mono text-xs uppercase tracking-widest text-accent hover:text-accent-2 transition-colors px-4 py-2 border border-accent/40">
+                Clear Filters
+              </button>
+              <button onClick={() => setApplyGeneral(true)} className="font-mono text-xs uppercase tracking-widest text-text-dim hover:text-accent transition-colors px-4 py-2 border border-line">
+                General Application
+              </button>
             </div>
-          ))}
+          </div>
+        ) : (
+          <div className="flex flex-col border border-line">
+            {filtered.map((j, i) => (
+              <div
+                key={j.id}
+                className={`group relative flex flex-col md:flex-row md:items-center gap-3 md:gap-6 px-5 py-5 md:py-6 border-b border-line last:border-b-0 hover:pl-6 transition-all duration-300 motion-reduce:transition-none ${
+                  inView ? 'opacity-100' : 'opacity-0'
+                }`}
+                style={{ transitionDelay: `${Math.min(i, 6) * 60}ms` }}
+              >
+                <span className="absolute left-0 top-0 bottom-0 w-0 group-hover:w-1 bg-gradient-to-b from-accent to-accent-2 transition-all duration-300" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1.5">
+                    <span className="font-mono text-[0.62rem] uppercase tracking-widest text-accent group-hover:text-accent-2 transition-colors">{j.category}</span>
+                    <span className="font-mono text-[0.62rem] uppercase tracking-widest text-text-faint">{j.location}</span>
+                    <span className="font-mono text-[0.62rem] uppercase tracking-widest text-text-faint">{j.employmentType}</span>
+                  </div>
+                  <Link to={`/talent/jobs/${j.slug}`} className="font-display font-semibold text-lg group-hover:text-accent transition-colors">
+                    {j.title}
+                  </Link>
+                  <p className="text-text-dim text-sm mt-1 max-w-xl">{j.summary}</p>
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {j.keywords.slice(0, 4).map(k => (
+                      <span key={k} className="font-mono text-[0.6rem] uppercase tracking-wide text-text-dim group-hover:text-accent/80 border border-line px-2 py-1 transition-colors">
+                        {k}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex md:flex-col gap-2 shrink-0">
+                  <Link to={`/talent/jobs/${j.slug}`} className="font-mono text-xs uppercase tracking-widest text-center px-4 py-2 border border-line-strong hover:border-accent hover:text-accent transition-colors">
+                    View Role
+                  </Link>
+                  <Link to={`/talent/jobs/${j.slug}`} className="font-mono text-xs uppercase tracking-widest text-center px-4 py-2 bg-text text-bg hover:bg-accent transition-colors">
+                    Apply
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* General application */}
+        <div className="mt-12 text-center border-t border-line pt-10">
+          <p className="font-display font-semibold text-lg mb-2">Don't see the right role?</p>
+          <p className="text-text-dim text-sm mb-5">Submit your profile for future opportunities.</p>
+          <button onClick={() => setApplyGeneral(true)} className="inline-flex text-sm font-semibold px-6 py-3 border border-line-strong hover:border-accent hover:text-accent transition-colors">
+            General Application
+          </button>
         </div>
       </div>
+
+      {applyGeneral && (
+        <ApplyModal job={{ title: 'General Application' }} general onClose={() => setApplyGeneral(false)} />
+      )}
     </section>
   );
 }
@@ -282,7 +392,7 @@ function CvCommunity() {
           </label>
         </div>
 
-        <Link to="/#enquiry" className="inline-flex text-accent text-sm font-mono uppercase tracking-widest hover:text-accent-2 transition-colors mt-8">
+        <Link to="/contact?type=candidate" className="inline-flex text-accent text-sm font-mono uppercase tracking-widest hover:text-accent-2 transition-colors mt-8">
           Or reach us directly →
         </Link>
       </div>

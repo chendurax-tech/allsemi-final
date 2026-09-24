@@ -65,7 +65,7 @@ function EmployerHero() {
           {EMPLOYER_HERO.sub}
         </p>
         <div className="flex flex-wrap gap-3 mt-8">
-          <Link to="/#enquiry" className="inline-flex text-sm font-semibold px-5 py-3 bg-text text-bg hover:bg-accent transition-colors">
+          <Link to="/contact?type=employer" className="inline-flex text-sm font-semibold px-5 py-3 bg-text text-bg hover:bg-accent transition-colors">
             Start a Search
           </Link>
           <Link to="/expertise" className="inline-flex text-sm font-semibold px-5 py-3 border border-white/25 text-text hover:border-accent transition-colors">
@@ -346,7 +346,7 @@ function EmployerFinalCta() {
         <h2 className="font-display font-bold text-3xl md:text-5xl tracking-tight mb-8">
           <StaggerText text={EMPLOYER_CTA.headline} inView={inView} />
         </h2>
-        <Link to="/#enquiry" className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
+        <Link to="/contact?type=employer" className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
           {EMPLOYER_CTA.button}
         </Link>
       </div>

@@ -26,7 +26,7 @@ export default function Footer() {
             { label: 'Search Jobs.', to: '/talent' },
             { label: 'Specialisms.', to: '/expertise' },
             { label: 'Insights.', to: '/insights' },
-            { label: 'Contact Us.', to: '/#enquiry' },
+            { label: 'Contact Us.', to: '/contact' },
           ].map(l => (
             <Link key={l.label} to={l.to} className="text-text-dim text-sm hover:text-accent transition-colors">
               {l.label}

@@ -450,6 +450,38 @@
   .signal-pulse-play { animation: none; opacity: 0; }
 }
 
+/* Restored location/contact scanning sweep - a slow, continuous pass
+   (previously existed on the contact panel before it was restructured;
+   restored here as a shared, reusable class via LocationScan). */
+@keyframes locationScanSweep {
+  0%   { top: 0%;   opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+.location-scan-sweep {
+  background: linear-gradient(90deg, transparent, rgba(167,139,250,.65), transparent);
+  box-shadow: 0 0 14px rgba(167,139,250,.5);
+  animation: locationScanSweep 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .location-scan-sweep { animation: none; opacity: 0; }
+}
+
+/* Contact page: smooth transition when switching Employer/Candidate/
+   General - the form panel remounts (keyed by type) and fades/rises
+   in rather than snapping. */
+@keyframes contactFormIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.contact-form-transition {
+  animation: contactFormIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .contact-form-transition { animation: none; }
+}
+
 @keyframes cvScanLine {
   0%   { opacity: 0; transform: translateY(-14px); }
   40%  { opacity: 0.9; }
