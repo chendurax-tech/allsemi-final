@@ -1,13 +1,13 @@
 ﻿import React, { useState, useEffect } from 'react';
 const ITEMS = [
   {
-    quote: 'Allsemi helped us close five senior RTL Design and Verification engineers within three weeks - roles that had been open for over two months. Their deep understanding of VLSI talent is unmatched.',
+    quote: 'Allsemis helped us close five senior RTL Design and Verification engineers within three weeks - roles that had been open for over two months. Their deep understanding of VLSI talent is unmatched.',
     name: 'VP Engineering',
     role: 'Leading chip design firm',
     photo: 'https://images.pexels.com/photos/9242271/pexels-photo-9242271.jpeg?auto=compress&dpr=1&h=750&w=1260',
   },
   {
-    quote: 'We needed ADAS and functional safety engineers fast. Allsemi delivered pre-screened, interview-ready candidates in under a week. The quality and speed were exceptional.',
+    quote: 'We needed ADAS and functional safety engineers fast. Allsemis delivered pre-screened, interview-ready candidates in under a week. The quality and speed were exceptional.',
     name: 'Head of Talent Acquisition',
     role: 'Tier 1 automotive OEM',
     photo: 'https://images.pexels.com/photos/29475974/pexels-photo-29475974/free-photo-of-futuristic-car-dashboard-with-electronic-gadgets.jpeg?auto=compress&dpr=1&h=750&w=1260',

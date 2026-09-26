@@ -11,7 +11,7 @@ import {
 
 export default function About() {
   useEffect(() => {
-    document.title = 'ALLSEMI | About';
+    document.title = 'ALLSEMIS | About';
   }, []);
 
   return (
@@ -115,7 +115,7 @@ function WhatAllsemiConnects() {
         <TechnicalGrid />
       </div>
       <div className="relative max-w-4xl mx-auto px-5 md:px-10">
-        <MeasurementLabel className="block mb-4 text-center">What ALLSEMI Connects</MeasurementLabel>
+        <MeasurementLabel className="block mb-4 text-center">What ALLSEMIS Connects</MeasurementLabel>
         <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-14 text-center">A small, direct ecosystem.</h2>
 
         <div className="flex flex-col items-center">

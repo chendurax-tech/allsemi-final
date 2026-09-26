@@ -46,10 +46,10 @@ export default function Facts() {
     <section id="facts" className="border-t border-line py-16 md:py-24 lg:py-32">
       <div className="max-w-7xl mx-auto px-5 md:px-10 mb-10 md:mb-14">
         <span className="block font-mono text-xs uppercase tracking-[0.22em] text-accent mb-4">
-          05 / WHY ALLSEMI
+          05 / WHY ALLSEMIS
         </span>
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent mb-3">
-          Why Allsemi
+          Why Allsemis
         </p>
         <h2 className="font-display font-semibold text-4xl md:text-5xl lg:text-6xl tracking-tight leading-tight">
           Your trusted staffing partner.

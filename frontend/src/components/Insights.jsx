@@ -24,7 +24,7 @@ export default function Insights() {
           <div className="absolute inset-x-0 bottom-0 p-6 z-10">
             <span className="font-mono text-xs uppercase tracking-widest text-accent">Semiconductor</span>
             <h4 className="font-display font-semibold text-xl mt-2 text-text">
-              Hiring guides and market notes from the Allsemi team.
+              Hiring guides and market notes from the Allsemis team.
             </h4>
           </div>
         </Link>

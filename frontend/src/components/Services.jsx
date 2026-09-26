@@ -17,7 +17,7 @@ const SERVICES = [
   {
     num: '03',
     title: 'RPO Solution',
-    body: 'Outsource your entire recruitment process to Allsemi. Our Recruitment Process Outsourcing (RPO) solution delivers a dedicated hiring engine tailored to your talent acquisition needs.',
+    body: 'Outsource your entire recruitment process to Allsemis. Our Recruitment Process Outsourcing (RPO) solution delivers a dedicated hiring engine tailored to your talent acquisition needs.',
     Glyph: GlyphPipeline,
   },
 ];

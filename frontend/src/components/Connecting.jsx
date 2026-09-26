@@ -42,7 +42,7 @@ export default function Connecting() {
 
         <div className="mt-8 md:mt-10 space-y-5 text-base md:text-lg text-text-dim leading-relaxed max-w-2xl mx-auto">
           <p className="reveal">
-            Complex chips require specialized people. Allsemi partners with
+            Complex chips require specialized people. Allsemis partners with
             engineering teams across semiconductor design, automotive,
             aerospace, and industrial technology to place the architects,
             designers, and verification engineers who carry silicon from

@@ -10,7 +10,7 @@
 export const ABOUT_HERO = {
   eyebrow: 'ABOUT / 01',
   headline: 'Connecting specialised talent with the technology shaping what comes next.',
-  sub: 'ALLSEMI is a specialist staffing partner for semiconductor, VLSI, and advanced engineering talent.',
+  sub: 'ALLSEMIS is a specialist staffing partner for semiconductor, VLSI, and advanced engineering talent.',
   image: 'https://images.pexels.com/photos/9242271/pexels-photo-9242271.jpeg?auto=compress&cs=tinysrgb&h=1000&w=1500',
   alt: 'Electronics engineer assembling a circuit board with precision',
 };

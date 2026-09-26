@@ -37,7 +37,7 @@ export default function InsightDetail() {
   const article = getArticleBySlug(slug);
 
   useEffect(() => {
-    if (article) document.title = `ALLSEMI | ${article.title}`;
+    if (article) document.title = `ALLSEMIS | ${article.title}`;
   }, [article]);
 
   if (!article) return <Navigate to="/insights" replace />;

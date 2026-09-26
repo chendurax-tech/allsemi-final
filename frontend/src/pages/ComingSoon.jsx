@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom';
 */
 export default function ComingSoon({ label, title }) {
   useEffect(() => {
-    document.title = `ALLSEMI | ${title}`;
+    document.title = `ALLSEMIS | ${title}`;
   }, [title]);
 
   return (

@@ -248,7 +248,7 @@ export default function ChipSequence() {
             </span>
             <p className="text-text-dim leading-relaxed max-w-xs mb-8">
               The same chip carries the engineering complexity behind every
-              Allsemi placement. Scroll to see it come apart.
+              Allsemis placement. Scroll to see it come apart.
             </p>
 
             <div className="border-l border-accent/40 pl-5">

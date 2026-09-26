@@ -11,7 +11,7 @@ import {
 
 export default function Employers() {
   useEffect(() => {
-    document.title = 'ALLSEMI | Employers';
+    document.title = 'ALLSEMIS | Employers';
   }, []);
 
   return (
@@ -117,7 +117,7 @@ function TalentEngine() {
     <section ref={(el) => { ref.current = el; }} className="border-b border-line py-20 md:py-28">
       <div className="max-w-4xl mx-auto px-5 md:px-10">
         <MeasurementLabel className="block mb-4">Talent Engine</MeasurementLabel>
-        <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-14">How ALLSEMI works.</h2>
+        <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-14">How ALLSEMIS works.</h2>
 
         <div className="relative">
           <div className="absolute left-[15px] md:left-[19px] top-3 bottom-3 w-px bg-line" aria-hidden="true" />

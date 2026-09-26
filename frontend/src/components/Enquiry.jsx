@@ -376,7 +376,7 @@ export default function Enquiry() {
                   </g>
                 </svg>
                 <div>
-                  <div className="font-display font-bold text-lg tracking-widest">ALLSEMI</div>
+                  <div className="font-display font-bold text-lg tracking-widest">ALLSEMIS</div>
                   <div className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-accent/70 mt-0.5">
                     Talent · Engineered
                   </div>

@@ -36,9 +36,9 @@ export const SECTOR_INSIGHT_SLUG = {
 export const SECTOR_CONTENT = {
   semiconductor: {
     introduction:
-      'From architecture through verification to tape-out, semiconductor design is the sector ALLSEMI was built around.',
+      'From architecture through verification to tape-out, semiconductor design is the sector ALLSEMIS was built around.',
     domainOverview:
-      'Semiconductor design spans a chain of specialised disciplines, from RTL architecture through functional verification, design-for-test, physical implementation and final signoff. Each stage carries its own tools, its own methodology, and its own narrow talent pool, which means a single generic "chip engineer" search rarely finds the right person. ALLSEMI scopes every semiconductor search to the specific discipline, seniority and technology the role actually needs.',
+      'Semiconductor design spans a chain of specialised disciplines, from RTL architecture through functional verification, design-for-test, physical implementation and final signoff. Each stage carries its own tools, its own methodology, and its own narrow talent pool, which means a single generic "chip engineer" search rarely finds the right person. ALLSEMIS scopes every semiconductor search to the specific discipline, seniority and technology the role actually needs.',
     domains: ['Analog & Mixed-Signal', 'Digital & ASIC Design', 'RTL', 'Verification', 'Physical Design', 'DFT', 'Physical Verification', 'Process & Fab Engineering'],
     roles: ['RTL Design Engineer', 'Design Verification Engineer', 'Physical Design Engineer', 'DFT Engineer', 'Physical Verification Engineer', 'ASIC Design Engineer', 'SoC Design Engineer', 'Analog / Mixed-Signal Engineer'],
     hiringChallenges: [
@@ -58,7 +58,7 @@ export const SECTOR_CONTENT = {
     introduction:
       'The systems, silicon and infrastructure engineering that large-scale AI compute depends on.',
     domainOverview:
-      'AI infrastructure engineering sits at the intersection of distributed systems and hardware-aware engineering. Building and operating the compute behind large-scale AI workloads demands people who understand failure modes that only appear at genuine scale, from GPU scheduling contention to network partitioning under load. This is a distinct specialism from general cloud engineering, and ALLSEMI treats it as its own search.',
+      'AI infrastructure engineering sits at the intersection of distributed systems and hardware-aware engineering. Building and operating the compute behind large-scale AI workloads demands people who understand failure modes that only appear at genuine scale, from GPU scheduling contention to network partitioning under load. This is a distinct specialism from general cloud engineering, and ALLSEMIS treats it as its own search.',
     domains: ['AI Accelerator Architecture', 'Data Center Infrastructure', 'ML Systems Engineering', 'Compiler Engineering', 'Cloud Infrastructure Engineering'],
     roles: ['Infrastructure Engineer', 'ML Systems Engineer', 'Data Center Operations Engineer', 'AI Hardware Architect', 'Platform Engineer'],
     hiringChallenges: [
@@ -77,7 +77,7 @@ export const SECTOR_CONTENT = {
     introduction:
       'The embedded and electronics engineering inside modern vehicles, from sensor to system.',
     domainOverview:
-      'Automotive engineering hiring is shaped by one requirement above all others: the vehicle has to be safe, and that requirement runs through every layer of the hiring bar, not just roles with "safety" in the title. From ADAS and sensor fusion through embedded control software and power electronics, ALLSEMI searches for engineers who combine core technical depth with genuine safety-critical process experience.',
+      'Automotive engineering hiring is shaped by one requirement above all others: the vehicle has to be safe, and that requirement runs through every layer of the hiring bar, not just roles with "safety" in the title. From ADAS and sensor fusion through embedded control software and power electronics, ALLSEMIS searches for engineers who combine core technical depth with genuine safety-critical process experience.',
     domains: ['ADAS', 'Functional Safety', 'Embedded Software', 'Sensor Fusion', 'Power Electronics for EV'],
     roles: ['ADAS Engineer', 'Functional Safety Engineer', 'Embedded Software Engineer', 'Automotive Systems Engineer', 'Automotive Power Electronics Engineer', 'Sensor Fusion Engineer'],
     hiringChallenges: [
@@ -116,7 +116,7 @@ export const SECTOR_CONTENT = {
     introduction:
       'Commercial and operational talent for technology companies building consumer-facing products.',
     domainOverview:
-      'Commercial and operational roles around a technical product are often treated as generic hires, and they rarely should be. The strongest candidates in this space combine genuine business judgement with real fluency in the underlying technology, which changes how they operate in a room with engineers and technical buyers. ALLSEMI searches for commercial talent that can follow the product at a technical level, not just present it.',
+      'Commercial and operational roles around a technical product are often treated as generic hires, and they rarely should be. The strongest candidates in this space combine genuine business judgement with real fluency in the underlying technology, which changes how they operate in a room with engineers and technical buyers. ALLSEMIS searches for commercial talent that can follow the product at a technical level, not just present it.',
     domains: ['Sales Engineering', 'Business Operations', 'Product Management', 'Go-to-Market Strategy'],
     roles: ['Account Manager', 'Business Operations Lead', 'Product Manager', 'Sales Engineer'],
     hiringChallenges: [
@@ -170,7 +170,7 @@ export const SECTOR_CONTENT = {
     introduction:
       'Engineering talent for medical devices and diagnostic technology, where regulatory precision matters as much as technical skill.',
     domainOverview:
-      'Medical device and diagnostic engineering hiring has a second axis that most other engineering searches do not: regulatory fluency. A candidate can be an excellent embedded or signal-processing engineer and still be a poor fit for a role that requires real, working familiarity with a standard like ISO 13485 or an FDA 510(k) pathway. ALLSEMI searches account for both the engineering depth and the regulatory context together.',
+      'Medical device and diagnostic engineering hiring has a second axis that most other engineering searches do not: regulatory fluency. A candidate can be an excellent embedded or signal-processing engineer and still be a poor fit for a role that requires real, working familiarity with a standard like ISO 13485 or an FDA 510(k) pathway. ALLSEMIS searches account for both the engineering depth and the regulatory context together.',
     domains: ['Medical Device Engineering', 'Diagnostic Equipment Engineering', 'Imaging Systems', 'Regulatory & Quality Engineering'],
     roles: ['Medical Device Engineer', 'Diagnostic Systems Engineer', 'Imaging Systems Engineer', 'Regulatory & Quality Engineer'],
     hiringChallenges: [

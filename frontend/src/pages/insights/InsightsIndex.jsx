@@ -18,7 +18,7 @@ export default function InsightsIndex() {
   const [activeTopic, setActiveTopic] = useState(null);
 
   useEffect(() => {
-    document.title = 'ALLSEMI | Insights';
+    document.title = 'ALLSEMIS | Insights';
   }, []);
 
   const featured = ARTICLES.find(a => a.featured) || ARTICLES[0];

@@ -13,7 +13,7 @@ import { ApplyModal } from './JobDetail.jsx';
 
 export default function Talent() {
   useEffect(() => {
-    document.title = 'ALLSEMI | Talent';
+    document.title = 'ALLSEMIS | Talent';
   }, []);
 
   return (

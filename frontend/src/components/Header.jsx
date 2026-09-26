@@ -76,7 +76,7 @@ export default function Header() {
                 <path d="M17 10 H19.8 M17 14 H19.8"/>
               </g>
             </svg>
-            <span>ALLSEMI</span>
+            <span>ALLSEMIS</span>
           </Link>
 
           <nav ref={navRef} className="hidden lg:flex items-center gap-1 flex-1 justify-center">
@@ -123,7 +123,7 @@ export default function Header() {
             </div>
 
             <Link to="/insights" className={navLinkClass}>Insights</Link>
-            <Link to="/about" className={navLinkClass}>About ALLSEMI</Link>
+            <Link to="/about" className={navLinkClass}>About ALLSEMIS</Link>
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
@@ -182,7 +182,7 @@ export default function Header() {
         </div>
 
         <Link to="/insights" onClick={close} className="py-3 border-b border-line text-base">Insights</Link>
-        <Link to="/about" onClick={close} className="py-3 border-b border-line text-base">About ALLSEMI</Link>
+        <Link to="/about" onClick={close} className="py-3 border-b border-line text-base">About ALLSEMIS</Link>
         <Link to="/contact" onClick={close} className="mt-4 text-center text-sm font-semibold py-3 bg-text text-bg">Get in Touch</Link>
       </div>
     </>

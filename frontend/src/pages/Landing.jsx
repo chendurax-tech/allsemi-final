@@ -38,7 +38,7 @@ export default function Landing({ activeSector, setActiveSector, pulseKey }) {
   const location = useLocation();
 
   useEffect(() => {
-    document.title = 'ALLSEMI | Talent. Engineered.';
+    document.title = 'ALLSEMIS | Talent. Engineered.';
   }, []);
 
   useEffect(() => {

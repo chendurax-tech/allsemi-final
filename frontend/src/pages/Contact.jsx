@@ -67,7 +67,7 @@ export default function Contact() {
   const type = normalizeType(searchParams.get('type'));
 
   useEffect(() => {
-    document.title = 'ALLSEMI | Contact';
+    document.title = 'ALLSEMIS | Contact';
   }, []);
 
   function selectType(key) {
@@ -249,7 +249,7 @@ function SignalConnection({ active, onSelect }) {
               <circle r="10" fill="none" stroke="#a78bfa" strokeWidth="1.4" />
               <circle r="3" fill="#a78bfa" />
               <text x={geo.hub.labelX} y={geo.hub.labelY} textAnchor={geo.hub.anchor} className="font-mono select-none" style={{ fontSize: '10px', letterSpacing: '0.08em', fill: 'rgba(237,239,240,0.7)' }}>
-                SYSTEM / ALLSEMI
+                SYSTEM / ALLSEMIS
               </text>
             </g>
 

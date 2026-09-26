@@ -35,7 +35,7 @@ export default function SectorPage({ sectorId }) {
   const [flowRef, flowInView] = useInView();
 
   useEffect(() => {
-    document.title = `ALLSEMI | ${sector.name}`;
+    document.title = `ALLSEMIS | ${sector.name}`;
   }, [sector.name]);
 
   // Entrance for the oversized hero type - a single fade/rise on

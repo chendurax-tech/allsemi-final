@@ -11,7 +11,7 @@ export default function JobDetail() {
   const [applyOpen, setApplyOpen] = useState(false);
 
   useEffect(() => {
-    if (job) document.title = `ALLSEMI | ${job.title}`;
+    if (job) document.title = `ALLSEMIS | ${job.title}`;
   }, [job]);
 
   if (!job) return <Navigate to="/talent" replace />;

@@ -17,7 +17,7 @@ export default function Footer() {
               <path d="M17 10 H19.8 M17 14 H19.8"/>
             </g>
           </svg>
-          <span className="text-text">ALLSEMI</span>
+          <span className="text-text">ALLSEMIS</span>
         </Link>
 
         <nav className="flex flex-wrap justify-center gap-x-8 gap-y-3">
@@ -56,7 +56,7 @@ export default function Footer() {
         </div>
 
         <div className="pt-6 border-t border-line w-full max-w-2xl flex flex-col md:flex-row justify-center items-center gap-3 md:gap-10">
-          <span className="text-xs text-text-faint">© {year} Allsemi</span>
+          <span className="text-xs text-text-faint">© {year} Allsemis</span>
           <a href="#" className="text-xs text-text-faint hover:text-text-dim">Privacy Policy.</a>
         </div>
       </div>

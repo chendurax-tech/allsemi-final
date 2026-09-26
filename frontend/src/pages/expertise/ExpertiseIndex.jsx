@@ -26,7 +26,7 @@ export default function ExpertiseIndex() {
   const imgLayerRef = useRef(null);
 
   useEffect(() => {
-    document.title = 'ALLSEMI | Expertise';
+    document.title = 'ALLSEMIS | Expertise';
   }, []);
 
   // Subtle cursor parallax on the desktop reveal panel - direct DOM
@@ -68,7 +68,7 @@ export default function ExpertiseIndex() {
             Eight sectors. One standard.
           </h1>
           <p className="max-w-xl text-base md:text-lg text-text-dim leading-relaxed">
-            The specialist domains ALLSEMI recruits across, from semiconductor
+            The specialist domains ALLSEMIS recruits across, from semiconductor
             design to the systems it ends up inside.
           </p>
         </div>
