@@ -1,24 +1,33 @@
 ﻿import React from 'react';
+import { Link } from 'react-router-dom';
 import { GlyphDie, GlyphLayers, GlyphPipeline, DimensionRule } from './EngineeringGlyphs.jsx';
 
+/*
+  No dedicated per-service routes exist in App.jsx (checked against the
+  routing root before wiring these) - all three services route to the
+  existing /employers page, per the task's preferred destinations.
+*/
 const SERVICES = [
   {
     num: '01',
     title: 'Permanent Staffing',
     body: 'Find the right full-time talent for your semiconductor, chip design, automotive, or aerospace teams. We source, screen, and place top engineers who stay and grow with your organization.',
     Glyph: GlyphDie,
+    to: '/employers',
   },
   {
     num: '02',
     title: 'Project Staffing',
     body: 'Scale your team on-demand with highly skilled contract engineers for specific projects. From VLSI design to embedded systems, we provide experts exactly when you need them.',
     Glyph: GlyphLayers,
+    to: '/employers',
   },
   {
     num: '03',
     title: 'RPO Solution',
     body: 'Outsource your entire recruitment process to Allsemis. Our Recruitment Process Outsourcing (RPO) solution delivers a dedicated hiring engine tailored to your talent acquisition needs.',
     Glyph: GlyphPipeline,
+    to: '/employers',
   },
 ];
 
@@ -47,7 +56,12 @@ export default function Services() {
             </div>
             <h3 className="font-display font-semibold text-xl mt-4 mb-3 tracking-tight">{s.title}</h3>
             <p className="text-text-dim text-sm md:text-base leading-relaxed mb-6">{s.body}</p>
-            <span className="text-accent text-sm">Learn more →</span>
+            <Link
+              to={s.to}
+              className="text-accent text-sm inline-flex items-center rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+            >
+              Learn more →
+            </Link>
           </article>
         ))}
       </div>
