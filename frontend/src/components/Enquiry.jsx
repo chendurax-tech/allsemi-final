@@ -1,4 +1,5 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { LOCATIONS } from '../lib/officeLocations.js';
 
 const PATHS = {
   hire: {
@@ -30,12 +31,11 @@ const PATHS = {
   },
 };
 
-const OFFICE = {
-  address: ['No.73, Nallurahalli, Whitefield', 'Bangalore South, Karnataka 560066'],
-  phone: '+91-70901-23400',
-  email: 'sales@allsemi.com',
-  hours: ['Mon-Fri, 9:00 AM - 6:30 PM IST', 'Mon-Fri, 8:30 PM - 6:00 AM EST'],
-};
+// Office contact details are read from the single centralized source
+// (lib/officeLocations.js, also used by OfficeNetwork.jsx and the
+// /contact page) rather than a local copy, so there is exactly one
+// place this data is edited.
+const OFFICE = LOCATIONS[0];
 
 // Types out a string character-by-character when scrolled into view
 function Typewriter({ text, className = '' }) {
@@ -366,15 +366,14 @@ export default function Enquiry() {
 
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-10">
-                <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" className="text-accent">
-                  <rect x="7" y="7" width="10" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6"/>
-                  <g stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                    <path d="M10 7 V4.2 M14 7 V4.2"/>
-                    <path d="M10 17 V19.8 M14 17 V19.8"/>
-                    <path d="M7 10 H4.2 M7 14 H4.2"/>
-                    <path d="M17 10 H19.8 M17 14 H19.8"/>
-                  </g>
-                </svg>
+                <img
+                  src="/brand/allsemis-symbol-sm.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="w-[30px] h-[18px] object-contain"
+                  width={240}
+                  height={147}
+                />
                 <div>
                   <div className="font-display font-bold text-lg tracking-widest">ALLSEMIS</div>
                   <div className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-accent/70 mt-0.5">

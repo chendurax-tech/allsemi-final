@@ -5,6 +5,7 @@ import Footer from './components/Footer.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx';
 import Landing from './pages/Landing.jsx';
 import Contact from './pages/Contact.jsx';
+import Refer from './pages/Refer.jsx';
 import Employers from './pages/employers/Employers.jsx';
 import Talent from './pages/talent/Talent.jsx';
 import JobDetail from './pages/talent/JobDetail.jsx';
@@ -19,10 +20,11 @@ import { EXPERTISE_SLUGS } from './lib/expertiseRoutes.js';
 /*
   App - the routing root.
 
-  The existing landing page (Hero, Connecting, Services, ExpertiseBands,
-  Stories, Insights, Facts, Enquiry) is completely unchanged in content
-  and design; it has only been moved into pages/Landing.jsx so it can
-  render at "/" instead of being the whole application. Header and
+  The landing page (Hero, RecruitmentActions, Connecting, Services,
+  ExpertiseBands, Stories, Insights, Facts, and the closing engineering-
+  network/location section) lives in pages/Landing.jsx so it can render
+  at "/" instead of being the whole application. The detailed contact
+  interaction lives only on pages/Contact.jsx ("/contact"). Header and
   Footer stay mounted across every route, exactly as before.
 
   As of Phase 5, every top-level route (Employers, Talent, Expertise +
@@ -67,6 +69,7 @@ export default function App() {
             <Route path="/insights/:slug" element={<InsightDetail />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/refer" element={<Refer />} />
           </Routes>
         </main>
         <Footer />

@@ -1,32 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
   useInView, useRadialHighlight,
   TechnicalGrid, MeasurementLabel, LocationScan,
 } from '../lib/motionPrimitives.jsx';
 import { SECTORS } from '../components/Expertise.jsx';
+import { LOCATIONS } from '../lib/officeLocations.js';
 
 /*
-  Contact - a dedicated, standalone contact experience, distinct in
-  composition from the landing page's Enquiry section (which stays
-  completely untouched). Where Enquiry is editorial/immersive and
-  lives inside the landing page's scroll, this page is interactive
-  and information-rich: a route selector (Employer / Candidate /
-  General) drives a dynamic form, backed by the same real ALLSEMI
-  contact details and a restored technical scanning visual on the
-  location panel.
+  Contact - the dedicated, standalone contact experience. Per the
+  current architecture, the landing page carries only the engineering-
+  network/location visual and a single "Get in Touch" CTA; the full
+  interactive contact experience - route selection, a dynamic form,
+  and the location details - lives only here.
+
+  The signature interaction is SignalConnection: a small technical
+  network (Employer / Candidate / General -> ALLSEMIS -> Enquiry) the
+  visitor drives directly. Selecting a node sends a brief signal along
+  its path, the heading transitions to route-specific copy, and the
+  form below updates.
 
   Route is driven by ?type=employer|candidate|general (default:
   general), so CTAs elsewhere in the app can deep-link straight into
   the right experience without three separate page implementations.
+
+  Office contact details come from lib/officeLocations.js - the same
+  single source of truth OfficeNetwork.jsx (About page, and the
+  landing page's location section) reads from - rather than a local
+  copy, so there is exactly one place this data is edited.
 */
 
-const OFFICE = {
-  address: ['No.73, Nallurahalli, Whitefield', 'Bangalore South, Karnataka 560066'],
-  phone: '+91-70901-23400',
-  email: 'sales@allsemi.com',
-  hours: ['Mon-Fri, 9:00 AM - 6:30 PM IST', 'Mon-Fri, 8:30 PM - 6:00 AM EST'],
-};
+const OFFICE = LOCATIONS[0];
 
 const ROUTES = [
   {
@@ -585,7 +589,10 @@ function ContactInfoPanel() {
   );
 }
 
-/* ============ FINAL CTA ============ */
+/* ============ FINAL CTA ============
+   Landing no longer has an in-page enquiry anchor to send visitors
+   back to, so this closing CTA offers the two direct channels instead
+   (call / email) rather than a broken "back to landing" link. */
 function ContactFinalCta() {
   return (
     <section className="py-20 md:py-28 text-center">
@@ -594,11 +601,22 @@ function ContactFinalCta() {
           Prefer the direct route?
         </h2>
         <p className="text-text-dim text-base mb-8 max-w-md mx-auto">
-          Reach us on the landing page's own enquiry section, or use the details above.
+          Call or email us directly, any time.
         </p>
-        <Link to="/#enquiry" className="inline-flex text-sm font-semibold px-6 py-3 border border-line-strong hover:border-accent transition-colors">
-          Open Landing Enquiry
-        </Link>
+        <div className="flex flex-wrap justify-center gap-4">
+          <a
+            href={`mailto:${OFFICE.email}`}
+            className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors"
+          >
+            Email {OFFICE.email}
+          </a>
+          <a
+            href={`tel:${OFFICE.phone.replace(/[\s-]/g, '')}`}
+            className="inline-flex text-sm font-semibold px-6 py-3 border border-line-strong hover:border-accent transition-colors"
+          >
+            Call {OFFICE.phone}
+          </a>
+        </div>
       </div>
     </section>
   );

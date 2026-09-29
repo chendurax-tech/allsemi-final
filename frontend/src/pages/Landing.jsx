@@ -1,20 +1,19 @@
 import React, { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import Hero from '../components/Hero.jsx';
+import RecruitmentActions from '../components/RecruitmentActions.jsx';
 import Connecting from '../components/Connecting.jsx';
 import Services from '../components/Services.jsx';
 import ExpertiseBands from '../components/ExpertiseBands.jsx';
 import Stories from '../components/Stories.jsx';
 import Insights from '../components/Insights.jsx';
 import Facts from '../components/Facts.jsx';
-import Enquiry from '../components/Enquiry.jsx';
+import OfficeNetwork from '../components/OfficeNetwork.jsx';
 import { useReveal, useReactiveLetters } from '../lib/useReveal.js';
 
 /*
-  Landing - the existing, already-approved single-page experience,
-  unchanged in content, layout, animation or visual design. Moved into
-  its own route component so it renders at "/" instead of being the
-  entire application.
+  Landing - the existing, already-approved single-page experience.
+  Moved into its own route component so it renders at "/" instead of
+  being the entire application.
 
   useReveal/useReactiveLetters are called HERE rather than at the
   application root: both hooks query the DOM once on mount for
@@ -24,52 +23,41 @@ import { useReveal, useReactiveLetters } from '../lib/useReveal.js';
   correctly re-run on every mount - this is the one adjustment routing
   made necessary; the hooks' own implementation is untouched.
 
-  The hash-scroll effect below is the other routing-era adjustment:
-  React Router changes the URL hash on navigation but does not scroll
-  to it the way a full page load does. Every "Get in Touch" link in
-  the app now points at "/#enquiry" (the canonical, single enquiry
-  section - no more separate /contact page), so this scrolls there
-  whenever the hash is present, whether arriving fresh from another
-  page or already on "/".
+  FINAL architecture (per the latest brief): the landing page closes
+  with ONLY the engineering-network/location visual (OfficeNetwork,
+  the same map/data implementation shared with About and Contact, with
+  landing-specific copy) and a single "Get in Touch" CTA to /contact.
+  It does NOT contain the detailed "how can we help you" interaction -
+  that lives only on /contact now. The previous large Enquiry component
+  has been removed from the landing page entirely (it was only ever
+  used here, so it was safe to delete outright rather than leave
+  orphaned).
 */
 export default function Landing({ activeSector, setActiveSector, pulseKey }) {
   useReveal();
   useReactiveLetters();
-  const location = useLocation();
 
   useEffect(() => {
     document.title = 'ALLSEMIS | Talent. Engineered.';
   }, []);
 
-  useEffect(() => {
-    if (location.hash !== '#enquiry') return;
-    let cancelled = false;
-    function scrollToEnquiry() {
-      if (cancelled) return;
-      const el = document.getElementById('enquiry');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    // A fresh mount of Landing (arriving from another page) still has
-    // images, the Hero video, and ChipSequence's layout settling, which
-    // can shift the page height right after the first scroll fires. One
-    // immediate attempt plus a corrective follow-up after things settle
-    // covers both that case and the already-on-"/" case (which needs no
-    // correction, so the second call is a no-op there).
-    scrollToEnquiry();
-    const settle = setTimeout(scrollToEnquiry, 400);
-    return () => { cancelled = true; clearTimeout(settle); };
-  }, [location.hash]);
-
   return (
     <>
       <Hero />
+      <RecruitmentActions />
       <Connecting />
       <Services />
       <ExpertiseBands activeSector={activeSector} setActiveSector={setActiveSector} pulseKey={pulseKey} />
       <Stories />
       <Insights />
       <Facts />
-      <Enquiry />
+      <OfficeNetwork
+        id="location"
+        eyebrow="Engineering Network"
+        heading={<>Bengaluru is our <span className="gradient-text">active node.</span></>}
+        intro="ALLSEMIS operates from Bengaluru today, built as part of a wider engineering network structured to extend into new regions as it grows."
+        cta={{ to: '/contact', label: 'Get in Touch' }}
+      />
     </>
   );
 }

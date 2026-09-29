@@ -65,17 +65,16 @@ export default function Header() {
   return (
     <>
       <header className="fixed top-0 inset-x-0 z-50 bg-bg/80 backdrop-blur-md border-b border-line">
-        <div className="max-w-7xl mx-auto px-5 md:px-10 h-16 md:h-20 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2 font-display font-bold text-lg shrink-0">
-            <svg viewBox="0 0 24 24" width="22" height="22" className="text-accent" aria-hidden="true">
-              <rect x="7" y="7" width="10" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.6"/>
-              <g stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                <path d="M10 7 V4.2 M14 7 V4.2"/>
-                <path d="M10 17 V19.8 M14 17 V19.8"/>
-                <path d="M7 10 H4.2 M7 14 H4.2"/>
-                <path d="M17 10 H19.8 M17 14 H19.8"/>
-              </g>
-            </svg>
+        <div className="max-w-7xl mx-auto px-5 md:px-10 h-16 md:h-20 lg:h-16 flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-2 lg:gap-1.5 font-display font-bold text-lg lg:text-base shrink-0">
+            <img
+              src="/brand/allsemis-symbol-sm.png"
+              alt=""
+              aria-hidden="true"
+              className="w-[24px] h-[15px] lg:w-[20px] lg:h-[12px] object-contain"
+              width={240}
+              height={147}
+            />
             <span>ALLSEMIS</span>
           </Link>
 
@@ -188,3 +187,12 @@ export default function Header() {
     </>
   );
 }
+
+/*
+  The three candidate/employer entry points (Hire Talent, Find a Job,
+  Refer Talent) previously lived here as a compact header cluster. They
+  now have their own dedicated visual treatment - RecruitmentActions,
+  in a section of its own between the header and the hero on the
+  landing page - rather than living as small text controls beside
+  "Get in Touch". See src/components/RecruitmentActions.jsx.
+*/

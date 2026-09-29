@@ -17,6 +17,12 @@ import React, { useState, useRef, useEffect } from 'react';
   in real photography later.
 */
 
+// Ordering is deliberately engineering-first, not alphabetical: it opens
+// on semiconductor/chip engineering, moves through hardware/electronics
+// and specialist engineering domains, then adjacent/commercial domains,
+// and closes on AI Infrastructure and Banking & Finance - so the very
+// first impression of this list reads "semiconductor and engineering
+// specialist," with the two least hardware-adjacent sectors last.
 export const SECTORS = [
   {
     id: 'semiconductor',
@@ -28,17 +34,8 @@ export const SECTORS = [
     alt: 'Close-up of a microprocessor on a motherboard',
   },
   {
-    id: 'ai-infrastructure',
-    num: '02',
-    name: 'AI Infrastructure & Cloud',
-    shortName: 'AI & Cloud',
-    desc: 'The infrastructure and systems engineering behind large-scale compute.',
-    image: 'https://images.pexels.com/photos/4508751/pexels-photo-4508751.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
-    alt: 'Modern data center corridor with server racks',
-  },
-  {
     id: 'automotive',
-    num: '03',
+    num: '02',
     name: 'Automotive & Mobility',
     shortName: 'Automotive',
     desc: 'Electronics and embedded engineering for the vehicles being built today.',
@@ -47,7 +44,7 @@ export const SECTORS = [
   },
   {
     id: 'aerospace',
-    num: '04',
+    num: '03',
     name: 'Aerospace & Communications',
     shortName: 'Aerospace',
     desc: 'Precision hardware and systems engineering for aerospace and comms.',
@@ -55,26 +52,8 @@ export const SECTORS = [
     alt: 'Satellite antenna structure',
   },
   {
-    id: 'business-finance',
-    num: '05',
-    name: 'Business, Finance & Consumer',
-    shortName: 'Business',
-    desc: 'Commercial and operational talent across consumer-facing technology.',
-    image: 'https://images.pexels.com/photos/260929/pexels-photo-260929.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
-    alt: 'Modern boardroom conference table',
-  },
-  {
-    id: 'banking-fintech',
-    num: '06',
-    name: 'Banking, Finance & FinTech',
-    shortName: 'Banking',
-    desc: 'Engineering talent behind modern payment and financial infrastructure.',
-    image: 'https://images.pexels.com/photos/2988232/pexels-photo-2988232.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
-    alt: 'Close-up of a card payment being processed at a terminal',
-  },
-  {
     id: 'consumer-retail',
-    num: '07',
+    num: '04',
     name: 'Consumer Goods & Retail',
     shortName: 'Retail',
     desc: 'Precision manufacturing and engineering talent for consumer products.',
@@ -83,12 +62,39 @@ export const SECTORS = [
   },
   {
     id: 'healthcare',
-    num: '08',
+    num: '05',
     name: 'Healthcare & Medical Technology',
     shortName: 'Healthcare',
     desc: 'Engineering talent for medical devices and diagnostic technology.',
     image: 'https://images.pexels.com/photos/35444722/pexels-photo-35444722.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
     alt: 'Laboratory technician handling cell culture equipment',
+  },
+  {
+    id: 'business-finance',
+    num: '06',
+    name: 'Business, Finance & Consumer',
+    shortName: 'Business',
+    desc: 'Commercial and operational talent across consumer-facing technology.',
+    image: 'https://images.pexels.com/photos/260929/pexels-photo-260929.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Modern boardroom conference table',
+  },
+  {
+    id: 'ai-infrastructure',
+    num: '07',
+    name: 'AI Infrastructure & Cloud',
+    shortName: 'AI & Cloud',
+    desc: 'The infrastructure and systems engineering behind large-scale compute.',
+    image: 'https://images.pexels.com/photos/4508751/pexels-photo-4508751.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Modern data center corridor with server racks',
+  },
+  {
+    id: 'banking-fintech',
+    num: '08',
+    name: 'Banking, Finance & FinTech',
+    shortName: 'Banking',
+    desc: 'Engineering talent behind modern payment and financial infrastructure.',
+    image: 'https://images.pexels.com/photos/2988232/pexels-photo-2988232.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Close-up of a card payment being processed at a terminal',
   },
 ];
 

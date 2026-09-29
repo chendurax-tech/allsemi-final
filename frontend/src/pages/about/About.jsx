@@ -5,6 +5,7 @@ import {
   TechnicalGrid, ScanLine, StaggerText, AnimatedUnderline, MeasurementLabel,
 } from '../../lib/motionPrimitives.jsx';
 import ExpertiseBands from '../../components/ExpertiseBands.jsx';
+import OfficeNetwork from '../../components/OfficeNetwork.jsx';
 import {
   ABOUT_HERO, POSITIONING, CONNECTS_NODES, HOW_WE_WORK, ENGINEERING_APPROACH, ABOUT_CTA,
 } from './aboutContent.js';
@@ -20,6 +21,7 @@ export default function About() {
       <Positioning />
       <WhatAllsemiConnects />
       <DomainNetwork />
+      <OfficeNetwork />
       <HowWeWork />
       <EngineeringApproach />
       <AboutFinalCta />

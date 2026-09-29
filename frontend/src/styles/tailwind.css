@@ -14,6 +14,13 @@
   --color-accent-2: #c084fc;
   --color-accent-deep: #7c3aed;
 
+  /* Secondary vibrant accent, introduced alongside the existing purple
+     system rather than replacing it - used strategically (hover/active
+     states, network nodes, technical markers) so the site reads as
+     "dark technical + vibrant accents," not a recolored template. */
+  --color-turquoise: #2dd4bf;
+  --color-turquoise-deep: #14b8a6;
+
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "IBM Plex Sans", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
@@ -540,4 +547,111 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .cv-scan-line { animation: none; opacity: 0.6; transform: none; }
+}
+
+/* ============================================================
+   OFFICE NETWORK - active node glow pulse + status-dot blink
+   ============================================================ */
+@keyframes officeNodePulse {
+  0%   { opacity: 0.35; transform: scale(0.85); }
+  50%  { opacity: 0.7;  transform: scale(1.15); }
+  100% { opacity: 0.35; transform: scale(0.85); }
+}
+.office-node-pulse {
+  animation: officeNodePulse 2.6s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+@keyframes officeDotBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+.office-dot-blink {
+  animation: officeDotBlink 1.8s ease-in-out infinite;
+}
+@keyframes officeNodeRing {
+  0%   { opacity: 0.6; transform: scale(0.6); }
+  100% { opacity: 0;   transform: scale(1.4); }
+}
+.office-node-ring {
+  animation: officeNodeRing 2.6s ease-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+/* A single faint dot drifts once along one decorative trace, pauses,
+   then repeats - "a signal is moving through the network" as ambient
+   texture, not a busy or distracting loop. */
+@keyframes officeSignalTravel {
+  0%   { offset-distance: 0%;   opacity: 0; }
+  8%   { opacity: 0.85; }
+  42%  { offset-distance: 100%; opacity: 0.85; }
+  50%  { offset-distance: 100%; opacity: 0; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.office-signal-travel {
+  animation: officeSignalTravel 5.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .office-signal-travel { animation: none; opacity: 0; }
+}
+/* RecruitmentActions signal-network diagram: a small dot travels from
+   the ALLSEMI source node down the shared stem, along the bus, then
+   into whichever of the three pathways is hovered - three separate
+   keyframe routes (left column jogs left, center runs straight down,
+   right column jogs right) rather than one animation, since each
+   pathway's route through the diagram is a different shape. Runs only
+   while that pathway is hovered/focused (conditionally rendered), so
+   it naturally stops the moment the pointer leaves. */
+@keyframes signalTravelCol0 {
+  0%   { left: 50%; top: 0%; opacity: 0; }
+  10%  { opacity: 1; }
+  45%  { left: 50%; top: 48%; }
+  58%  { left: 16.666%; top: 48%; }
+  92%  { left: 16.666%; top: 100%; opacity: 1; }
+  100% { left: 16.666%; top: 100%; opacity: 0; }
+}
+@keyframes signalTravelCol1 {
+  0%   { left: 50%; top: 0%; opacity: 0; }
+  10%  { opacity: 1; }
+  92%  { left: 50%; top: 100%; opacity: 1; }
+  100% { left: 50%; top: 100%; opacity: 0; }
+}
+@keyframes signalTravelCol2 {
+  0%   { left: 50%; top: 0%; opacity: 0; }
+  10%  { opacity: 1; }
+  45%  { left: 50%; top: 48%; }
+  58%  { left: 83.333%; top: 48%; }
+  92%  { left: 83.333%; top: 100%; opacity: 1; }
+  100% { left: 83.333%; top: 100%; opacity: 0; }
+}
+.signal-travel-0 { animation: signalTravelCol0 1.1s linear infinite; }
+.signal-travel-1 { animation: signalTravelCol1 1.1s linear infinite; }
+.signal-travel-2 { animation: signalTravelCol2 1.1s linear infinite; }
+
+@keyframes signalNodeIdle {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 0.9; transform: scale(1.12); }
+}
+.signal-node-idle {
+  animation: signalNodeIdle 3.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .office-node-pulse { animation: none; opacity: 0.5; }
+  .office-dot-blink { animation: none; opacity: 1; }
+  .office-node-ring { animation: none; opacity: 0.3; }
+  .signal-travel-0, .signal-travel-1, .signal-travel-2 { animation: none; opacity: 0; }
+  .signal-node-idle { animation: none; opacity: 0.7; transform: none; }
+}
+
+/* A restrained purple-to-turquoise gradient text treatment - used
+   sparingly (a single word within a heading, not whole headlines) as
+   the "vibrant accent" moment the visual-direction brief asked for,
+   rather than recoloring every headline on the site. */
+.gradient-text {
+  background: linear-gradient(90deg, #a78bfa, #2dd4bf);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

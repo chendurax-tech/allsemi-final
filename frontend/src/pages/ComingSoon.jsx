@@ -30,7 +30,7 @@ export default function ComingSoon({ label, title }) {
           point you in the right direction.
         </p>
         <Link
-          to="/#enquiry"
+          to="/contact"
           className="inline-flex text-sm font-semibold px-5 py-3 bg-text text-bg hover:bg-accent transition-colors"
         >
           Get in Touch

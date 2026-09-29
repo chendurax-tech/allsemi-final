@@ -92,14 +92,6 @@ export default function Hero() {
           to tape-out, with the semiconductor, automotive, aerospace, and
           industrial teams building what is next.
         </p>
-        <div className="mt-8 md:mt-10 flex flex-wrap gap-3 justify-center">
-          <a href="#enquiry" className="text-sm font-semibold px-5 py-3 bg-text text-bg hover:bg-accent transition-colors">
-            Hire Talent
-          </a>
-          <a href="#enquiry" className="text-sm font-semibold px-5 py-3 border border-line-strong hover:border-accent transition-colors">
-            Search Jobs
-          </a>
-        </div>
       </div>
     </section>
   );
