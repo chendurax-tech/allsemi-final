@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useInView, MeasurementLabel } from '../lib/motionPrimitives.jsx';
+import { useInView, MeasurementLabel, prefersReducedMotion } from '../lib/motionPrimitives.jsx';
 import { activeLocations, projectCoordinates } from '../lib/officeLocations.js';
 
 const LOCATIONS = activeLocations();
@@ -161,6 +161,248 @@ export default function OfficeNetwork({
   );
 }
 
+/*
+  useCursorFX - the desktop-only "engineering scan field" interaction.
+
+  Pure refs + requestAnimationFrame: no React state is touched per
+  mouse move, so hovering the network never causes a React re-render.
+  All distance math happens in real screen pixels (converted to the
+  SVG's user-unit space only at the moment a style is written), so
+  the falloff radii and the ~8px node displacement the brief asks for
+  read the same regardless of how large the network is rendered.
+
+  Disabled entirely (every handler becomes a no-op) when the device
+  has no fine pointer / hover capability, or under
+  prefers-reduced-motion - same discipline as useParallax/
+  useRadialHighlight in motionPrimitives.jsx: a cursor-driven effect
+  simply does not exist for touch or reduced-motion, rather than
+  existing in a degraded form.
+*/
+function useCursorFX() {
+  const enabled =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
+    !prefersReducedMotion();
+
+  const svgRef = useRef(null);
+  const wrapRef = useRef(null);
+  const scannerRef = useRef(null);
+
+  const dotEls = useRef([]);
+  const dotAffected = useRef(new Set());
+  const nodeEls = useRef([]);
+  const locationRefs = useRef({}); // id -> { group, ring, x0, y0, leads: [], meshPaths: [] }
+
+  const mouse = useRef({ active: false, clientX: 0, clientY: 0 });
+  const rafRef = useRef(null);
+  const runningRef = useRef(false);
+
+  function resetDot(el) {
+    if (!el) return;
+    el.style.opacity = '';
+    el.style.transform = '';
+  }
+  function resetNode(el) {
+    if (!el) return;
+    el.style.opacity = '';
+    el.style.transform = '';
+  }
+  function resetLocation(refs) {
+    if (!refs) return;
+    if (refs.group) refs.group.style.transform = '';
+    if (refs.boostRing) refs.boostRing.style.opacity = '0';
+    if (refs.label) refs.label.style.transform = '';
+    (refs.leads || []).forEach((p) => { if (p) p.style.opacity = ''; });
+    (refs.meshPaths || []).forEach((p) => { if (p) { p.style.opacity = ''; p.style.strokeWidth = ''; } });
+  }
+
+  function tick() {
+    const svg = svgRef.current;
+    const wrap = wrapRef.current;
+    if (!svg || !wrap) { runningRef.current = false; return; }
+
+    const svgRect = svg.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const scaleX = VIEWBOX_W / svgRect.width || 1;
+    const scaleY = VIEWBOX_H / svgRect.height || 1;
+    const m = mouse.current;
+
+    if (scannerRef.current) {
+      if (m.active) {
+        scannerRef.current.style.opacity = '1';
+        scannerRef.current.style.transform = `translate(${m.clientX - wrapRect.left}px, ${m.clientY - wrapRect.top}px)`;
+      } else {
+        scannerRef.current.style.opacity = '0';
+      }
+    }
+
+    // cursor position in the SVG's own user-unit space
+    const cx = m.active ? (m.clientX - svgRect.left) * scaleX : -1e6;
+    const cy = m.active ? (m.clientY - svgRect.top) * scaleY : -1e6;
+
+    // background dot field - distance-based opacity/scale falloff;
+    // only the (few) dots within range are ever written to, and any
+    // dot that *was* affected last frame but no longer is gets reset
+    // once, so this stays cheap regardless of the ~400 total dots.
+    const near = new Set();
+    if (m.active) {
+      for (let i = 0; i < WORLD_DOTS.length; i++) {
+        const [dx0, dy0] = WORLD_DOTS[i];
+        const ddx = (dx0 - cx) / scaleX;
+        const ddy = (dy0 - cy) / scaleY;
+        if (Math.sqrt(ddx * ddx + ddy * ddy) < 150) near.add(i);
+      }
+    }
+    near.forEach((i) => {
+      const el = dotEls.current[i];
+      if (!el) return;
+      const [dx0, dy0] = WORLD_DOTS[i];
+      const ddx = (dx0 - cx) / scaleX;
+      const ddy = (dy0 - cy) / scaleY;
+      const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+      const t = Math.max(0, 1 - dist / 150);
+      el.style.opacity = String(0.22 + t * 0.62);
+      el.style.transform = `scale(${1 + t * 1.3})`;
+    });
+    dotAffected.current.forEach((i) => { if (!near.has(i)) resetDot(dotEls.current[i]); });
+    dotAffected.current = near;
+
+    // decorative network nodes - subtle magnetic displacement (capped
+    // ~8 screen px) plus a brightness lift, smoothed by the CSS
+    // transition already on these elements (see className below).
+    for (let i = 0; i < NETWORK_NODES.length; i++) {
+      const el = nodeEls.current[i];
+      if (!el) continue;
+      if (!m.active) { resetNode(el); continue; }
+      const [nx, ny] = NETWORK_NODES[i];
+      const ddx = (nx - cx) / scaleX;
+      const ddy = (ny - cy) / scaleY;
+      const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+      const radius = 130;
+      if (dist < radius && dist > 0.01) {
+        const t = 1 - dist / radius;
+        const maxOffsetPx = 8;
+        const offXUser = (-ddx / dist) * t * maxOffsetPx * scaleX;
+        const offYUser = (-ddy / dist) * t * maxOffsetPx * scaleY;
+        el.style.transform = `translate(${offXUser}px, ${offYUser}px)`;
+        el.style.opacity = String(0.4 + t * 0.5);
+      } else {
+        resetNode(el);
+      }
+    }
+
+    // active location(s), e.g. Bengaluru - the primary node: a
+    // slightly stronger displacement cap, brighter ring, illuminated
+    // connecting traces, and a bolder label while the cursor is near.
+    Object.values(locationRefs.current).forEach((refs) => {
+      if (!refs || refs.x0 == null) return;
+      if (!m.active) { resetLocation(refs); return; }
+      const ddx = (refs.x0 - cx) / scaleX;
+      const ddy = (refs.y0 - cy) / scaleY;
+      const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+      const radius = 150;
+      if (dist < radius && dist > 0.01) {
+        const t = 1 - dist / radius;
+        const maxOffsetPx = 6;
+        const offXUser = (-ddx / dist) * t * maxOffsetPx * scaleX;
+        const offYUser = (-ddy / dist) * t * maxOffsetPx * scaleY;
+        if (refs.group) refs.group.style.transform = `translate(${offXUser}px, ${offYUser}px) scale(${1 + t * 0.12})`;
+        if (refs.boostRing) refs.boostRing.style.opacity = String(t * 0.65);
+        if (refs.label) refs.label.style.transform = `scale(${1 + t * 0.1})`;
+        (refs.leads || []).forEach((p) => { if (p) p.style.opacity = String(0.4 + t * 0.6); });
+        (refs.meshPaths || []).forEach((p) => { if (p) { p.style.opacity = String(0.14 + t * 0.56); p.style.strokeWidth = String(1 + t * 0.8); } });
+      } else {
+        resetLocation(refs);
+      }
+    });
+
+    if (m.active) {
+      rafRef.current = requestAnimationFrame(tick);
+    } else {
+      runningRef.current = false;
+    }
+  }
+
+  function ensureLoop() {
+    if (!enabled || runningRef.current) return;
+    runningRef.current = true;
+    rafRef.current = requestAnimationFrame(tick);
+  }
+
+  function handleMouseEnter(e) {
+    if (!enabled) return;
+    mouse.current = { active: true, clientX: e.clientX, clientY: e.clientY };
+    ensureLoop();
+  }
+  function handleMouseMove(e) {
+    if (!enabled) return;
+    mouse.current.active = true;
+    mouse.current.clientX = e.clientX;
+    mouse.current.clientY = e.clientY;
+    ensureLoop();
+  }
+  function handleMouseLeave() {
+    if (!enabled) return;
+    mouse.current.active = false;
+    ensureLoop(); // one more tick resets everything, then the loop stops itself
+  }
+
+  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
+
+  return {
+    enabled,
+    svgRef,
+    wrapRef,
+    scannerRef,
+    handleMouseEnter,
+    handleMouseMove,
+    handleMouseLeave,
+    registerDot: (i, el) => { dotEls.current[i] = el; },
+    registerNetworkNode: (i, el) => { nodeEls.current[i] = el; },
+    registerLocation: (id, key, el) => {
+      if (!locationRefs.current[id]) locationRefs.current[id] = {};
+      locationRefs.current[id][key] = el;
+    },
+    registerLocationListItem: (id, key, index, el) => {
+      if (!locationRefs.current[id]) locationRefs.current[id] = {};
+      if (!locationRefs.current[id][key]) locationRefs.current[id][key] = [];
+      locationRefs.current[id][key][index] = el;
+    },
+    setLocationOrigin: (id, x0, y0) => {
+      if (!locationRefs.current[id]) locationRefs.current[id] = {};
+      locationRefs.current[id].x0 = x0;
+      locationRefs.current[id].y0 = y0;
+    },
+  };
+}
+
+// Cursor-reactive scan field: a small, quiet technical ring (not a
+// spotlight) that follows the pointer while it's over the desktop
+// network. Purely decorative/pointer-events-none - it never blocks
+// the existing node hit-targets beneath it.
+function CursorScanner({ fxRef }) {
+  return (
+    <div
+      ref={fxRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute left-0 top-0 opacity-0 transition-opacity duration-200 ease-out will-change-transform"
+    >
+      <svg width="130" height="130" viewBox="0 0 130 130" style={{ position: 'absolute', left: -65, top: -65 }}>
+        <defs>
+          <radialGradient id="scannerGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.10" />
+            <stop offset="65%" stopColor="#2dd4bf" stopOpacity="0.05" />
+            <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="65" cy="65" r="62" fill="url(#scannerGlow)" />
+        <circle cx="65" cy="65" r="48" fill="none" stroke="rgba(167,139,250,0.32)" strokeWidth="1" />
+        <path d="M65,8 v7 M65,115 v7 M8,65 h7 M115,65 h7" stroke="rgba(45,212,191,0.4)" strokeWidth="1" />
+      </svg>
+    </div>
+  );
+}
+
 function MapDefs() {
   return (
     <defs>
@@ -172,15 +414,25 @@ function MapDefs() {
   );
 }
 
-function MapContent({ locations, activeId, hoveredId, onSelect, onHover, inView }) {
+function MapContent({ locations, activeId, hoveredId, onSelect, onHover, inView, fx }) {
   return (
     <>
       <MapDefs />
 
-      {/* dotted world silhouette - land only, sparse and subdued */}
+      {/* dotted world silhouette - land only, sparse and subdued.
+          fx (desktop only) registers each dot so the cursor-scan
+          effect can brighten/scale the handful near the pointer
+          without touching React state. */}
       <g className={`transition-opacity duration-1000 motion-reduce:transition-none ${inView ? 'opacity-100' : 'opacity-0'}`}>
         {WORLD_DOTS.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r="1.4" fill="rgba(237,239,240,0.22)" />
+          <circle
+            key={i}
+            cx={x} cy={y} r="1.4"
+            fill="rgba(237,239,240,0.22)"
+            className={fx ? 'transition-[opacity,transform] duration-200 ease-out' : undefined}
+            style={fx ? { transformBox: 'fill-box', transformOrigin: 'center' } : undefined}
+            ref={fx ? (el) => fx.registerDot(i, el) : undefined}
+          />
         ))}
       </g>
 
@@ -188,6 +440,7 @@ function MapContent({ locations, activeId, hoveredId, onSelect, onHover, inView 
       <g className={`transition-opacity duration-1000 motion-reduce:transition-none ${inView ? 'opacity-100' : 'opacity-0'}`}>
         {(() => {
           const [bx, by] = projectCoordinates(locations[0].coordinates, VIEWBOX_W, VIEWBOX_H);
+          if (fx) fx.setLocationOrigin(locations[0].id, bx, by);
           return TRACE_TARGETS.map((idx, i) => {
             const [nx, ny] = NETWORK_NODES[idx];
             const pathD = `M ${bx} ${by} L ${nx} ${ny}`;
@@ -199,6 +452,8 @@ function MapContent({ locations, activeId, hoveredId, onSelect, onHover, inView 
                   stroke="rgba(167,139,250,0.14)"
                   strokeWidth="1"
                   strokeDasharray="3 4"
+                  className={fx ? 'transition-[opacity,stroke-width] duration-200 ease-out' : undefined}
+                  ref={fx ? (el) => fx.registerLocationListItem(locations[0].id, 'meshPaths', i, el) : undefined}
                 />
                 {/* One faint signal drifts along the first trace only -
                     ambient texture ("a signal is moving through the
@@ -217,10 +472,20 @@ function MapContent({ locations, activeId, hoveredId, onSelect, onHover, inView 
         })()}
       </g>
 
-      {/* decorative network nodes - dim, unlabeled, not selectable */}
+      {/* decorative network nodes - dim, unlabeled, not selectable.
+          fx gives each a subtle magnetic displacement toward the
+          cursor (capped ~8px) plus a brightness lift when nearby. */}
       <g>
         {NETWORK_NODES.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r="3" fill="rgba(45,212,191,0.4)" stroke="rgba(45,212,191,0.15)" strokeWidth="4" />
+          <circle
+            key={i}
+            cx={x} cy={y} r="3"
+            fill="rgba(45,212,191,0.4)"
+            stroke="rgba(45,212,191,0.15)"
+            strokeWidth="4"
+            className={fx ? 'transition-[opacity,transform] duration-200 ease-out' : undefined}
+            ref={fx ? (el) => fx.registerNetworkNode(i, el) : undefined}
+          />
         ))}
       </g>
 
@@ -230,10 +495,25 @@ function MapContent({ locations, activeId, hoveredId, onSelect, onHover, inView 
         const isActive = loc.id === activeId;
         const isHovered = loc.id === hoveredId;
         return (
-          <g key={loc.id}>
+          <g
+            key={loc.id}
+            className={fx ? 'transition-transform duration-200 ease-out' : undefined}
+            style={fx ? { transformOrigin: `${x}px ${y}px` } : undefined}
+            ref={fx ? (el) => fx.registerLocation(loc.id, 'group', el) : undefined}
+          >
             <g className={`transition-opacity duration-700 motion-reduce:transition-none ${inView ? 'opacity-100' : 'opacity-0'}`}>
-              <path d={`M ${x} ${y} L ${x + 55} ${y - 32} L ${x + 130} ${y - 32}`} fill="none" stroke="rgba(45,212,191,0.4)" strokeWidth="1.2" />
-              <path d={`M ${x} ${y} L ${x - 48} ${y + 38} L ${x - 120} ${y + 38}`} fill="none" stroke="rgba(167,139,250,0.35)" strokeWidth="1.2" />
+              <path
+                d={`M ${x} ${y} L ${x + 55} ${y - 32} L ${x + 130} ${y - 32}`}
+                fill="none" stroke="rgba(45,212,191,0.4)" strokeWidth="1.2"
+                className={fx ? 'transition-opacity duration-200 ease-out' : undefined}
+                ref={fx ? (el) => fx.registerLocationListItem(loc.id, 'leads', 0, el) : undefined}
+              />
+              <path
+                d={`M ${x} ${y} L ${x - 48} ${y + 38} L ${x - 120} ${y + 38}`}
+                fill="none" stroke="rgba(167,139,250,0.35)" strokeWidth="1.2"
+                className={fx ? 'transition-opacity duration-200 ease-out' : undefined}
+                ref={fx ? (el) => fx.registerLocationListItem(loc.id, 'leads', 1, el) : undefined}
+              />
               <circle cx={x + 130} cy={y - 32} r="2.5" fill="#2dd4bf" opacity="0.6" />
               <circle cx={x - 120} cy={y + 38} r="2.5" fill="#a78bfa" opacity="0.5" />
             </g>
@@ -243,6 +523,18 @@ function MapContent({ locations, activeId, hoveredId, onSelect, onHover, inView 
             )}
             {isActive && (
               <circle cx={x} cy={y} r="18" fill="none" stroke="#2dd4bf" strokeWidth="1" opacity="0.5" className="motion-reduce:hidden office-node-ring" />
+            )}
+            {/* fx-only boost ring: a second, non-animated ring the
+                cursor effect can brighten directly. Kept separate from
+                office-node-ring above because that ring's opacity is
+                already driven by a looping CSS keyframe, which would
+                otherwise fight a plain style.opacity write every frame. */}
+            {fx && (
+              <circle
+                cx={x} cy={y} r="22" fill="none" stroke="#2dd4bf" strokeWidth="1.4" opacity="0"
+                className="transition-opacity duration-200 ease-out"
+                ref={(el) => fx.registerLocation(loc.id, 'boostRing', el)}
+              />
             )}
 
             <circle
@@ -278,7 +570,7 @@ function MapContent({ locations, activeId, hoveredId, onSelect, onHover, inView 
   );
 }
 
-function MapLabels({ locations, activeId, viewBox }) {
+function MapLabels({ locations, activeId, viewBox, fx }) {
   const [vx, vy, vw, vh] = viewBox.split(' ').map(Number);
   return (
     <>
@@ -294,7 +586,10 @@ function MapLabels({ locations, activeId, viewBox }) {
             className="absolute pointer-events-none"
             style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(24px, -34px)' }}
           >
-            <div className="bg-bg/70 backdrop-blur-[1px] px-1 -ml-1 rounded-sm">
+            <div
+              className={`bg-bg/70 backdrop-blur-[1px] px-1 -ml-1 rounded-sm${fx ? ' transition-transform duration-200 ease-out' : ''}`}
+              ref={fx ? (el) => fx.registerLocation(loc.id, 'label', el) : undefined}
+            >
               <span className={`block font-mono uppercase tracking-wide whitespace-nowrap transition-colors ${isActive ? 'text-turquoise' : 'text-text-dim'}`} style={{ fontSize: '12px', letterSpacing: '0.06em' }}>
                 {loc.city}
               </span>
@@ -315,14 +610,37 @@ function MapLabels({ locations, activeId, viewBox }) {
 // visual) can reuse the exact same map rendering - one implementation
 // of "the ALLSEMIS network map," not two drifting copies.
 export function NetworkMap({ locations, activeId, hoveredId, onSelect, onHover, inView }) {
+  // Desktop-only "engineering scan field" cursor interaction (see
+  // useCursorFX above). fx.enabled is false on touch/coarse-pointer
+  // devices and under prefers-reduced-motion, in which case the mouse
+  // handlers and every fx.register* call below are no-ops and the
+  // network renders exactly as it did before this pass.
+  const fx = useCursorFX();
+  const { wrapRef: fxWrapRef, svgRef: fxSvgRef, scannerRef: fxScannerRef, handleMouseEnter, handleMouseMove, handleMouseLeave, enabled: fxEnabled } = fx;
+  const fxForChildren = fxEnabled ? fx : null;
+
   return (
     <div className="relative border border-line bg-bg-raised/40 overflow-hidden">
       {/* Desktop / tablet: full world, wide aspect */}
-      <div className="hidden md:block relative aspect-[1000/460]">
-        <svg viewBox={DESKTOP_VIEWBOX} className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="ALLSEMIS global engineering network, Bengaluru active">
-          <MapContent locations={locations} activeId={activeId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} inView={inView} />
+      <div
+        ref={fxWrapRef}
+        onMouseEnter={handleMouseEnter}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className="hidden md:block relative aspect-[1000/460]"
+      >
+        <svg
+          ref={fxSvgRef}
+          viewBox={DESKTOP_VIEWBOX}
+          className="absolute inset-0 w-full h-full"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label="ALLSEMIS global engineering network, Bengaluru active"
+        >
+          <MapContent locations={locations} activeId={activeId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} inView={inView} fx={fxForChildren} />
         </svg>
-        <MapLabels locations={locations} activeId={activeId} viewBox={DESKTOP_VIEWBOX} />
+        <MapLabels locations={locations} activeId={activeId} viewBox={DESKTOP_VIEWBOX} fx={fxForChildren} />
+        {fxEnabled && <CursorScanner fxRef={fxScannerRef} />}
       </div>
 
       {/* Mobile: cropped to the EMEA -> South Asia -> APAC band, taller

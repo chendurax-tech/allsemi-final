@@ -645,6 +645,24 @@
   .signal-node-idle { animation: none; opacity: 0.7; transform: none; }
 }
 
+/* WHY ALLSEMIS NETWORK (mobile) - a single dot drifts once down the
+   vertical spine connecting the ALLSEMIS hub to the five capability
+   nodes, after the spine itself has drawn in - "a signal moving
+   through the network," matching officeSignalTravel's restraint
+   (one pass, not a loop). */
+@keyframes whyMobileSignalDrop {
+  0%   { top: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+.why-mobile-signal-drop {
+  animation: whyMobileSignalDrop 1.8s ease-in-out 900ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .why-mobile-signal-drop { animation: none; opacity: 0; }
+}
+
 /* A restrained purple-to-turquoise gradient text treatment - used
    sparingly (a single word within a heading, not whole headlines) as
    the "vibrant accent" moment the visual-direction brief asked for,
