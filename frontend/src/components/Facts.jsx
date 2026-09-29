@@ -1,6 +1,13 @@
 ﻿import React from 'react';
-import { GlyphMesh, GlyphDie, GlyphVerify, GlyphTick, GlyphPipeline, DimensionRule } from './EngineeringGlyphs.jsx';
+import { GlyphMesh, GlyphChipGrid, GlyphVerify, GlyphSignal, GlyphFlow, DimensionRule } from './EngineeringGlyphs.jsx';
 
+/*
+  These five glyphs (GlyphMesh, GlyphChipGrid, GlyphVerify, GlyphSignal,
+  GlyphFlow) are deliberately separate from the look-alike icons
+  Services.jsx uses (GlyphDie, GlyphPipeline) even where the concept is
+  similar - Services' cards are out of scope for this pass, so its
+  icons are left completely untouched rather than shared/mutated here.
+*/
 const REASONS = [
   {
     num: '01',
@@ -12,7 +19,7 @@ const REASONS = [
     num: '02',
     title: 'Domain expertise',
     body: 'Strong domain expertise across chip design, automotive, and aerospace.',
-    Glyph: GlyphDie,
+    Glyph: GlyphChipGrid,
   },
   {
     num: '03',
@@ -24,13 +31,13 @@ const REASONS = [
     num: '04',
     title: 'Rapid turnaround',
     body: 'Shortlists delivered within 48 to 72 hours.',
-    Glyph: GlyphTick,
+    Glyph: GlyphSignal,
   },
   {
     num: '05',
     title: 'End-to-end managed',
     body: 'End-to-end managed staffing with dedicated account managers.',
-    Glyph: GlyphPipeline,
+    Glyph: GlyphFlow,
   },
 ];
 
@@ -66,10 +73,10 @@ export default function Facts() {
 
       <div className="max-w-7xl mx-auto px-5 md:px-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {REASONS.map(r => (
-          <article key={r.num} className="border border-line p-7 md:p-8 min-h-[170px] flex flex-col gap-3 hover:border-accent/50 hover:-translate-y-1 transition-all">
+          <article key={r.num} className="group border border-line p-7 md:p-8 min-h-[170px] flex flex-col gap-3 hover:border-accent/50 hover:-translate-y-1 transition-all">
             <div className="flex items-center justify-between">
               <span className="font-mono text-xs tracking-widest text-accent">{r.num}</span>
-              <r.Glyph className="text-accent/60" />
+              <r.Glyph className="text-accent/60 transition-all duration-300 group-hover:text-accent group-hover:drop-shadow-[0_0_5px_rgba(167,139,250,0.55)]" />
             </div>
             <h3 className="font-display font-semibold text-lg">{r.title}</h3>
             <p className="text-text-dim text-sm leading-relaxed">{r.body}</p>

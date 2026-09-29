@@ -48,7 +48,7 @@ export default function Stories() {
           <img
             src={item.photo}
             alt=""
-            className="w-full h-full object-cover grayscale contrast-105 brightness-70 transition-all duration-700 ease-out group-hover:grayscale-0 group-hover:brightness-90 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            className="w-full h-full object-cover grayscale contrast-105 brightness-70 transition-all duration-700 ease-out group-hover:grayscale-0 group-hover:brightness-90 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100 max-md:!grayscale-0 max-md:!brightness-100 max-md:!contrast-100"
           />
         </div>
         <div>

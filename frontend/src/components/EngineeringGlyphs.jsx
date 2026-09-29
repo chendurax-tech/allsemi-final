@@ -54,25 +54,73 @@ export function GlyphPipeline(props) {
   );
 }
 
-/* Network / mesh - Deep network */
+/* Network / mesh with a lit center hub - Deep network. The outer
+   nodes read as engineers, the center hub as ALLSEMIS routing between
+   them - a talent network, not a decorative constellation. */
 export function GlyphMesh(props) {
   return (
     <svg {...base} {...props}>
+      <path d="M16 16 16 7 M16 16 7 20 M16 16 25 20 M16 16 16 26" />
+      <circle cx="16" cy="16" r="2.4" fill="currentColor" stroke="none" />
       <circle cx="16" cy="7" r="1.8" />
       <circle cx="7" cy="20" r="1.8" />
       <circle cx="25" cy="20" r="1.8" />
       <circle cx="16" cy="26" r="1.8" />
-      <path d="M16 8.8 8.3 18.7 M16 8.8 23.7 18.7 M8.7 21.4 15 25 M23.3 21.4 17 25" />
     </svg>
   );
 }
 
-/* Verification mark in bracket - Safety-critical hiring */
+/* Precision inspection frame - Safety-critical hiring. Corner
+   brackets with measurement ticks (a calibrated instrument's
+   viewfinder) around a confirm mark - reads as verification/
+   validation, deliberately not a shield or a plain checkmark. */
 export function GlyphVerify(props) {
   return (
     <svg {...base} {...props}>
       <path d="M9 6H6.5a1.5 1.5 0 00-1.5 1.5V10 M23 6h2.5A1.5 1.5 0 0127 7.5V10 M9 26H6.5A1.5 1.5 0 015 24.5V22 M23 26h2.5a1.5 1.5 0 001.5-1.5V22" />
+      <path d="M6 15.3h1.6 M26 15.3h-1.6 M15.3 6v1.6 M15.3 26v-1.6" opacity="0.55" strokeWidth="1.1" />
       <path d="M11 16.2l3.2 3.2 6.8-7" />
+    </svg>
+  );
+}
+
+/* Chip die with an internal circuit grid - Domain expertise. A more
+   sophisticated read than a bare package outline: the die actually
+   has structure inside it. */
+export function GlyphChipGrid(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="9" y="9" width="14" height="14" rx="1.2" />
+      <path d="M12 9V5.5 M18 9V5.5 M12 23v3.5 M18 23v3.5 M9 12H5.5 M9 18H5.5 M23 12h3.5 M23 18h3.5" />
+      <path d="M13.2 9v14 M18.8 9v14 M9 13.2h14 M9 18.8h14" opacity="0.45" strokeWidth="1" />
+    </svg>
+  );
+}
+
+/* Rising signal edge with forward motion ticks - Rapid turnaround.
+   An oscilloscope-style pulse reading left to right, deliberately not
+   a clock face, so "fast" reads as a signal/cycle, not elapsed time. */
+export function GlyphSignal(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4.5 20.5h4l3-11 4 17 3-13.5 3 7.5h5.5" />
+      <path d="M24 8l3.6-1.2M24 11l3.6-1.2M24 14l3.6-1.2" opacity="0.6" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+/* End-to-end path with start/end caps - End-to-end managed. Distinct
+   from the plain three-node pipeline used elsewhere (Services'
+   "RPO Solution"): explicit bracket caps at both ends make the
+   "start to finish, fully managed" idea legible on its own. */
+export function GlyphFlow(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5 11v-3a1.5 1.5 0 011.5-1.5H9 M5 21v3a1.5 1.5 0 001.5 1.5H9 M27 11v-3a1.5 1.5 0 00-1.5-1.5H23 M27 21v3a1.5 1.5 0 01-1.5 1.5H23" opacity="0.7" />
+      <circle cx="7" cy="16" r="2.1" />
+      <circle cx="16" cy="16" r="2.1" />
+      <circle cx="25" cy="16" r="2.1" />
+      <path d="M9.1 16h4.8 M18.1 16h4.8" />
     </svg>
   );
 }
@@ -104,19 +152,3 @@ export function DimensionRule({ className = '' }) {
   );
 }
 
-/* Radial tick countdown - Rapid turnaround */
-export function GlyphTick(props) {
-  return (
-    <svg {...base} {...props}>
-      <circle cx="16" cy="16" r="10" />
-      <path d="M16 16 16 9.5 M16 16 21 19" />
-      {Array.from({ length: 12 }, (_, i) => {
-        const a = (i * 30 * Math.PI) / 180;
-        const r1 = 10, r2 = i % 3 === 0 ? 8 : 8.8;
-        const x1 = 16 + Math.sin(a) * r1, y1 = 16 - Math.cos(a) * r1;
-        const x2 = 16 + Math.sin(a) * r2, y2 = 16 - Math.cos(a) * r2;
-        return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} strokeWidth="1" opacity={i % 3 === 0 ? 0.9 : 0.4} />;
-      })}
-    </svg>
-  );
-}

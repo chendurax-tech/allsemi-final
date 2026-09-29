@@ -94,25 +94,23 @@ export default function Contact() {
    visitor drives directly. Selecting a node sends a brief signal
    along its path, the heading transitions to route-specific copy,
    and the form below updates - "connection established" is the
-   feeling, not a looping animation. Desktop and mobile use genuinely
-   different node geometry (horizontal vs vertical), not one layout
-   scaled down. */
+   feeling, not a looping animation.
+
+   Desktop keeps the exact SVG network diagram, completely unchanged.
+   Below md, it is replaced by MobileRouteSelector - a genuinely
+   different, mobile-native composition (not the same diagram
+   shrunk): a stacked list of full-width, comfortably tappable rows
+   that still carries the same connected/technical visual language
+   (a lit node per row, mono labels, an active-state glow, a closing
+   "SYSTEM / ALLSEMIS -> ENQUIRY" line). The split is pure CSS
+   (hidden md:block / md:hidden), not JS device detection. */
 function SignalConnection({ active, onSelect }) {
   const [ref, inView] = useInView(0.01);
   const glowRef = useRadialHighlight();
   const [hovered, setHovered] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
   const [signalTick, setSignalTick] = useState(0);
   const activeRoute = ROUTES.find(r => r.key === active);
   const prevActive = React.useRef(active);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
-    const update = () => setIsMobile(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
 
   // Replay the signal-travel animation whenever the route actually changes.
   useEffect(() => {
@@ -122,12 +120,12 @@ function SignalConnection({ active, onSelect }) {
     }
   }, [active]);
 
-  const geo = isMobile ? MOBILE_GEO : DESKTOP_GEO;
+  const geo = DESKTOP_GEO;
 
   return (
     <section
       ref={(el) => { ref.current = el; }}
-      className="relative border-b border-line pt-24 md:pt-32 pb-10 md:pb-14 overflow-hidden"
+      className="relative border-b border-line pt-20 sm:pt-24 md:pt-32 pb-8 sm:pb-10 md:pb-14 overflow-hidden"
     >
       <TechnicalGrid className="opacity-[0.05]" />
       <div className="relative max-w-6xl mx-auto px-5 md:px-10">
@@ -138,27 +136,27 @@ function SignalConnection({ active, onSelect }) {
             settle rather than an instant swap. */}
         <h1
           key={active}
-          className={`signal-heading-enter font-display font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight leading-[1.02] max-w-2xl ${
+          className={`signal-heading-enter font-display font-bold text-[2.1rem] leading-[1.08] sm:text-5xl sm:leading-[1.02] md:text-6xl tracking-tight max-w-2xl ${
             inView ? '' : 'opacity-0'
           }`}
         >
           {activeRoute.heading}
         </h1>
-        <p key={`${active}-sub`} className="signal-heading-enter-delay mt-5 max-w-lg text-base md:text-lg text-text-dim leading-relaxed">
+        <p key={`${active}-sub`} className="signal-heading-enter-delay mt-4 sm:mt-5 max-w-lg text-base md:text-lg text-text-dim leading-relaxed">
           {activeRoute.intro}
         </p>
 
-        {/* ---- the network ---- */}
+        {/* ---- desktop: the network diagram, unchanged ---- */}
         <div
           ref={glowRef}
-          className="radial-highlight relative mt-12 md:mt-16"
+          className="radial-highlight relative mt-12 md:mt-16 hidden md:block"
         >
           <svg
             viewBox={geo.viewBox}
             className="w-full h-auto"
             role="tablist"
             aria-label="Contact route"
-            style={{ maxHeight: isMobile ? 'none' : 320 }}
+            style={{ maxHeight: 320 }}
           >
             {/* base paths (quiet) */}
             {geo.nodes.map(n => (
@@ -266,6 +264,11 @@ function SignalConnection({ active, onSelect }) {
             </g>
           </svg>
         </div>
+
+        {/* ---- mobile: stacked, tappable route selector ---- */}
+        <div className="md:hidden mt-8">
+          <MobileRouteSelector active={active} onSelect={onSelect} />
+        </div>
       </div>
     </section>
   );
@@ -285,19 +288,68 @@ const DESKTOP_GEO = {
   dest: { x: 900, y: 150, labelX: 0, labelY: -18, anchor: 'middle' },
 };
 
-// Mobile: vertical stack - a genuinely different composition, not the
-// desktop network compressed.
-const MOBILE_GEO = {
-  viewBox: '0 0 320 700',
-  nodes: [
-    { key: 'employer', x: 160, y: 40, labelX: 16, labelY: 5, anchor: 'start', path: 'M160,40 C 260,150 260,280 160,360' },
-    { key: 'candidate', x: 160, y: 180, labelX: 16, labelY: 5, anchor: 'start', path: 'M160,180 L160,360' },
-    { key: 'general', x: 160, y: 300, labelX: 16, labelY: 5, anchor: 'start', path: 'M160,300 C 60,330 60,330 160,360' },
-  ],
-  hub: { x: 160, y: 380, labelX: 0, labelY: -26, anchor: 'middle' },
-  hubPath: 'M160,380 L160,500',
-  dest: { x: 160, y: 500, labelX: 0, labelY: 30, anchor: 'middle' },
-};
+/* Mobile route selector - a stacked list, not the desktop diagram
+   scaled down. Each row is a full-width button (min-height 56px, well
+   over the ~44px comfortable touch-target minimum) carrying the same
+   node/signal visual language as the desktop network: a ringed dot
+   that lights up and glows when active, mono technical labels, and a
+   closing line naming the same "SYSTEM / ALLSEMIS" hub the desktop
+   diagram shows, so the underlying concept still reads as one
+   connected system. */
+function MobileRouteSelector({ active, onSelect }) {
+  return (
+    <div>
+      <div role="tablist" aria-label="Contact route" className="flex flex-col gap-2.5">
+        {ROUTES.map((route) => {
+          const isActive = active === route.key;
+          return (
+            <button
+              key={route.key}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              id={`route-tab-${route.key}`}
+              aria-controls="contact-form-panel"
+              onClick={() => onSelect(route.key)}
+              className={`relative flex min-h-[56px] items-center gap-4 border px-4 py-3.5 text-left transition-colors duration-300 motion-reduce:transition-none ${
+                isActive ? 'border-accent bg-accent/[0.07]' : 'border-line-strong active:border-accent/50'
+              }`}
+            >
+              <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">
+                <span className={`absolute inset-0 rounded-full border transition-colors ${isActive ? 'border-accent' : 'border-line-strong'}`} />
+                <span
+                  className={`h-2 w-2 rounded-full transition-all duration-300 motion-reduce:transition-none ${isActive ? 'bg-accent' : 'bg-text-faint'}`}
+                  style={{ filter: isActive ? 'drop-shadow(0 0 5px rgba(167,139,250,0.85))' : 'none' }}
+                />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={`block font-mono text-[0.66rem] uppercase tracking-[0.16em] ${isActive ? 'text-accent' : 'text-text-faint'}`}>
+                  {route.num} {route.label}
+                </span>
+                <span className={`block mt-0.5 text-sm leading-snug ${isActive ? 'text-text' : 'text-text-dim'}`}>
+                  {route.sub}
+                </span>
+              </span>
+              <span
+                className={`shrink-0 font-mono text-sm transition-opacity duration-300 ${isActive ? 'opacity-100 text-accent' : 'opacity-0'}`}
+                aria-hidden="true"
+              >
+                &rarr;
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-4 flex items-center gap-3 px-1" aria-hidden="true">
+        <span className="h-px flex-1 bg-line-strong" />
+        <span className="font-mono text-[0.58rem] uppercase tracking-[0.16em] text-text-faint whitespace-nowrap">
+          System / Allsemis &rarr; Enquiry
+        </span>
+        <span className="h-px flex-1 bg-line-strong" />
+      </div>
+    </div>
+  );
+}
 
 /* ============ DYNAMIC FORM ============ */
 function ContactFormSection({ type }) {
@@ -352,7 +404,7 @@ function ContactFormSection({ type }) {
   }
 
   return (
-    <section className="border-b border-line py-16 md:py-24">
+    <section className="border-b border-line py-12 sm:py-16 md:py-24">
       <div className="max-w-3xl mx-auto px-5 md:px-10">
         <div
           key={type}
@@ -486,7 +538,7 @@ function ContactFormSection({ type }) {
                   This form shows the intended contact experience. Backend submission is not yet connected.
                 </p>
 
-                <button type="submit" className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
+                <button type="submit" className="w-full sm:w-auto inline-flex justify-center items-center min-h-[48px] text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
                   Send {route.label} Enquiry
                 </button>
               </form>
@@ -551,14 +603,14 @@ function ContactInfoPanel() {
   ];
 
   return (
-    <section ref={(el) => { ref.current = el; }} className="border-b border-line py-16 md:py-24">
+    <section ref={(el) => { ref.current = el; }} className="border-b border-line py-12 sm:py-16 md:py-24">
       <div className="max-w-4xl mx-auto px-5 md:px-10">
         <MeasurementLabel className="block mb-4">Reach Us Directly</MeasurementLabel>
-        <h2 className="font-display font-semibold text-2xl md:text-3xl tracking-tight mb-10">Contact information.</h2>
+        <h2 className="font-display font-semibold text-2xl md:text-3xl tracking-tight mb-8 md:mb-10">Contact information.</h2>
 
-        <div ref={glowRef} className="radial-highlight relative border border-line-strong p-6 md:p-10 overflow-hidden">
+        <div ref={glowRef} className="radial-highlight relative border border-line-strong p-5 sm:p-6 md:p-10 overflow-hidden">
           <TechnicalGrid className="opacity-[0.04]" />
-          <div className="relative grid sm:grid-cols-2 gap-8 md:gap-10">
+          <div className="relative grid sm:grid-cols-2 gap-6 sm:gap-8 md:gap-10">
             {rows.map((row, i) => (
               <div
                 key={row.k}
@@ -595,24 +647,24 @@ function ContactInfoPanel() {
    (call / email) rather than a broken "back to landing" link. */
 function ContactFinalCta() {
   return (
-    <section className="py-20 md:py-28 text-center">
+    <section className="py-14 sm:py-20 md:py-28 text-center">
       <div className="max-w-2xl mx-auto px-5 md:px-10">
-        <h2 className="font-display font-bold text-2xl md:text-4xl tracking-tight mb-4">
+        <h2 className="font-display font-bold text-[1.6rem] leading-tight sm:text-2xl md:text-4xl tracking-tight mb-4">
           Prefer the direct route?
         </h2>
         <p className="text-text-dim text-base mb-8 max-w-md mx-auto">
           Call or email us directly, any time.
         </p>
-        <div className="flex flex-wrap justify-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center gap-3 sm:gap-4">
           <a
             href={`mailto:${OFFICE.email}`}
-            className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors"
+            className="inline-flex justify-center items-center min-h-[48px] text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors"
           >
             Email {OFFICE.email}
           </a>
           <a
             href={`tel:${OFFICE.phone.replace(/[\s-]/g, '')}`}
-            className="inline-flex text-sm font-semibold px-6 py-3 border border-line-strong hover:border-accent transition-colors"
+            className="inline-flex justify-center items-center min-h-[48px] text-sm font-semibold px-6 py-3 border border-line-strong hover:border-accent transition-colors"
           >
             Call {OFFICE.phone}
           </a>
