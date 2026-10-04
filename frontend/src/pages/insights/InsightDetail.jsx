@@ -36,8 +36,25 @@ export default function InsightDetail() {
   const { slug } = useParams();
   const article = getArticleBySlug(slug);
 
+  // Document title and meta description: the article's SEO fields when
+  // the CMS provides them, otherwise the original title format and the
+  // excerpt. The site-wide description is restored on leaving the page.
   useEffect(() => {
-    if (article) document.title = `ALLSEMIS | ${article.title}`;
+    if (!article) return undefined;
+    document.title = article.seoTitle || `ALLSEMIS | ${article.title}`;
+    let meta = document.querySelector('meta[name="description"]');
+    const created = !meta;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'description');
+      document.head.appendChild(meta);
+    }
+    const previous = meta.getAttribute('content');
+    meta.setAttribute('content', article.seoDescription || article.excerpt);
+    return () => {
+      if (created) meta.remove();
+      else if (previous !== null) meta.setAttribute('content', previous);
+    };
   }, [article]);
 
   if (!article) return <Navigate to="/insights" replace />;

@@ -1,14 +1,25 @@
 // Maps each SECTORS id (defined in components/Expertise.jsx) to its
-// future /expertise/:slug route, per ALLSEMI-CONTENT-MASTER.md's
-// routing table. Shared between App.jsx (route definitions) and
-// Header.jsx (dropdown navigation), so the two never drift apart.
+// canonical /expertise/:slug route. Shared between App.jsx (route
+// definitions), Header.jsx (dropdown navigation) and every internal
+// link to a sector page, so they never drift apart.
 export const EXPERTISE_SLUGS = {
   semiconductor: 'semiconductor-chip-engineering',
+  embedded: 'embedded-systems-electronics',
+  mobility: 'mobility-communications',
   'ai-infrastructure': 'ai-infrastructure-cloud',
-  automotive: 'automotive-mobility',
-  aerospace: 'aerospace-communications',
+  healthcare: 'healthcare-medical-technology',
+  'consumer-retail': 'consumer-goods-retail',
   'business-finance': 'business-finance-consumer',
   'banking-fintech': 'banking-finance-fintech',
-  'consumer-retail': 'consumer-goods-retail',
-  healthcare: 'healthcare-medical-technology',
+};
+
+// Sector URLs that existed before the client-approved sector list.
+// Each old slug redirects to the canonical page that now covers its
+// subject, so an old link or bookmark never lands on a missing page or
+// on a page whose heading no longer matches. Automotive engineering and
+// aerospace / RF communications are both part of Mobility &
+// Communications.
+export const EXPERTISE_LEGACY_SLUGS = {
+  'automotive-mobility': 'mobility-communications',
+  'aerospace-communications': 'mobility-communications',
 };

@@ -37,13 +37,13 @@ const GAP_COUNT = 7;
 
 const ART = {
   semiconductor: { position: '50% 45%' },
+  embedded: { position: '50% 50%' },
+  mobility: { position: '50% 30%' },
   'ai-infrastructure': { position: '30% 50%' },
-  automotive: { position: '50% 60%' },
-  aerospace: { position: '50% 30%' },
+  healthcare: { position: '40% 45%' },
+  'consumer-retail': { position: '50% 55%' },
   'business-finance': { position: '50% 40%' },
   'banking-fintech': { position: '65% 50%' },
-  'consumer-retail': { position: '50% 55%' },
-  healthcare: { position: '40% 45%' },
 };
 
 function ExploreMark({ className = '' }) {

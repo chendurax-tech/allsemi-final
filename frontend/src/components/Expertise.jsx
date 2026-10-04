@@ -17,12 +17,12 @@ import React, { useState, useRef, useEffect } from 'react';
   in real photography later.
 */
 
-// Ordering is deliberately engineering-first, not alphabetical: it opens
-// on semiconductor/chip engineering, moves through hardware/electronics
-// and specialist engineering domains, then adjacent/commercial domains,
-// and closes on AI Infrastructure and Banking & Finance - so the very
-// first impression of this list reads "semiconductor and engineering
-// specialist," with the two least hardware-adjacent sectors last.
+// The client-approved order and names. `num` follows the order, and the
+// same list drives the header menu, the landing canvas, the Expertise
+// index, every sector page, the contact form and the admin seed data,
+// so a name or position is only ever changed here. The `id` is the
+// internal key used by expertiseRoutes.js, sectorContent.js and
+// sectorVisuals.jsx.
 export const SECTORS = [
   {
     id: 'semiconductor',
@@ -34,53 +34,26 @@ export const SECTORS = [
     alt: 'Close-up of a microprocessor on a motherboard',
   },
   {
-    id: 'automotive',
+    id: 'embedded',
     num: '02',
-    name: 'Automotive & Mobility',
-    shortName: 'Automotive',
-    desc: 'Electronics and embedded engineering for the vehicles being built today.',
-    image: 'https://images.pexels.com/photos/6870298/pexels-photo-6870298.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
-    alt: 'Mechanic examining a car engine under an open hood',
+    name: 'Embedded Systems & Electronics',
+    shortName: 'Embedded',
+    desc: 'Firmware, embedded software and electronics engineering for the devices built around the chip.',
+    image: 'https://images.pexels.com/photos/3862632/pexels-photo-3862632.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Engineer working at a technical workstation surrounded by lab equipment',
   },
   {
-    id: 'aerospace',
+    id: 'mobility',
     num: '03',
-    name: 'Aerospace & Communications',
-    shortName: 'Aerospace',
-    desc: 'Precision hardware and systems engineering for aerospace and comms.',
+    name: 'Mobility & Communications',
+    shortName: 'Mobility',
+    desc: 'Vehicle electronics, ADAS and the wireless, RF and satellite links that keep systems connected.',
     image: 'https://images.pexels.com/photos/6325002/pexels-photo-6325002.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
     alt: 'Satellite antenna structure',
   },
   {
-    id: 'consumer-retail',
-    num: '04',
-    name: 'Consumer Goods & Retail',
-    shortName: 'Retail',
-    desc: 'Precision manufacturing and engineering talent for consumer products.',
-    image: 'https://images.pexels.com/photos/5554948/pexels-photo-5554948.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
-    alt: 'Organized electronic circuit boards in a production setting',
-  },
-  {
-    id: 'healthcare',
-    num: '05',
-    name: 'Healthcare & Medical Technology',
-    shortName: 'Healthcare',
-    desc: 'Engineering talent for medical devices and diagnostic technology.',
-    image: 'https://images.pexels.com/photos/35444722/pexels-photo-35444722.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
-    alt: 'Laboratory technician handling cell culture equipment',
-  },
-  {
-    id: 'business-finance',
-    num: '06',
-    name: 'Business, Finance & Consumer',
-    shortName: 'Business',
-    desc: 'Commercial and operational talent across consumer-facing technology.',
-    image: 'https://images.pexels.com/photos/260929/pexels-photo-260929.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
-    alt: 'Modern boardroom conference table',
-  },
-  {
     id: 'ai-infrastructure',
-    num: '07',
+    num: '04',
     name: 'AI Infrastructure & Cloud',
     shortName: 'AI & Cloud',
     desc: 'The infrastructure and systems engineering behind large-scale compute.',
@@ -88,11 +61,38 @@ export const SECTORS = [
     alt: 'Modern data center corridor with server racks',
   },
   {
+    id: 'healthcare',
+    num: '05',
+    name: 'Healthcare & Medical Technology',
+    shortName: 'Healthcare',
+    desc: 'Engineering talent for medical devices, medical electronics and healthcare software.',
+    image: 'https://images.pexels.com/photos/35444722/pexels-photo-35444722.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Laboratory technician handling cell culture equipment',
+  },
+  {
+    id: 'consumer-retail',
+    num: '06',
+    name: 'Consumer Goods & Retail',
+    shortName: 'Retail',
+    desc: 'Engineering talent for connected consumer products, retail technology and digital commerce.',
+    image: 'https://images.pexels.com/photos/5554948/pexels-photo-5554948.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Organized electronic circuit boards in a production setting',
+  },
+  {
+    id: 'business-finance',
+    num: '07',
+    name: 'Business, Finance & Consumer',
+    shortName: 'Business',
+    desc: 'Enterprise technology, business systems and digital products for commercial organisations.',
+    image: 'https://images.pexels.com/photos/260929/pexels-photo-260929.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
+    alt: 'Modern boardroom conference table',
+  },
+  {
     id: 'banking-fintech',
     num: '08',
     name: 'Banking, Finance & FinTech',
     shortName: 'Banking',
-    desc: 'Engineering talent behind modern payment and financial infrastructure.',
+    desc: 'Engineering talent behind banking technology, payments and secure financial infrastructure.',
     image: 'https://images.pexels.com/photos/2988232/pexels-photo-2988232.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400',
     alt: 'Close-up of a card payment being processed at a terminal',
   },

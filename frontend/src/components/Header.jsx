@@ -66,12 +66,23 @@ export default function Header() {
     <>
       <header className="fixed top-0 inset-x-0 z-50 bg-bg/80 backdrop-blur-md border-b border-line">
         <div className="max-w-7xl mx-auto px-5 md:px-10 h-16 md:h-20 lg:h-16 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2 lg:gap-1.5 font-display font-bold text-lg lg:text-base shrink-0">
+          {/* Header logo: the official symbol asset beside the ALLSEMIS name.
+              - Only the symbol's height is set; its width follows the
+                file's own 240:147 ratio, so it is never stretched. The
+                image file itself is untouched (no filter, glow or shadow).
+              - The lockup is about 150px wide on desktop and about 135px
+                on phones. The header height is unchanged.
+              - On desktop the link keeps the layout width the logo had
+                originally (lg:w-[107px]) and the larger logo extends into
+                the empty space to its right, so the centred navigation
+                stays exactly where it was. `relative z-10` keeps the whole
+                logo clickable over that space. */}
+          <Link to="/" className="relative z-10 flex items-center gap-[9px] lg:gap-2.5 lg:w-[107px] whitespace-nowrap font-display font-bold text-xl lg:text-[1.375rem] shrink-0">
             <img
               src="/brand/allsemis-symbol-sm.png"
               alt=""
               aria-hidden="true"
-              className="w-[24px] h-[15px] lg:w-[20px] lg:h-[12px] object-contain"
+              className="h-[21px] lg:h-[23px] w-auto max-w-none shrink-0"
               width={240}
               height={147}
             />

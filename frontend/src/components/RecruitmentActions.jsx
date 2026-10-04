@@ -131,9 +131,12 @@ export default function RecruitmentActions() {
 
       {/* Desktop / tablet: branching signal diagram */}
       <div className={`hidden md:block relative max-w-4xl mx-auto px-5 md:px-10 transition-opacity duration-700 delay-150 motion-reduce:transition-none ${inView ? 'opacity-100' : 'opacity-0'}`}>
-        {/* Source node */}
+        {/* Source node - the ALLSEMIS logo video, the brand anchor of the
+            diagram. 84px (1.5x its earlier 56px); it is centred by the
+            same flex column the stem below hangs from, so it stays on
+            the network's vertical axis at any size. */}
         <div className="relative flex flex-col items-center">
-          <div className="relative w-14 h-14 rounded-full border border-line-strong bg-bg overflow-hidden">
+          <div className="relative w-[84px] h-[84px] rounded-full border border-line-strong bg-bg overflow-hidden">
             <div className="absolute -inset-2 rounded-full bg-accent/20 signal-node-idle motion-reduce:hidden" aria-hidden="true" />
             <video
               className="absolute inset-0 w-full h-full object-cover motion-reduce:hidden"
@@ -152,7 +155,7 @@ export default function RecruitmentActions() {
               className="hidden motion-reduce:block absolute inset-0 w-full h-full object-cover"
             />
           </div>
-          <span className="mt-2 font-mono text-[0.6rem] uppercase tracking-[0.2em] text-text-faint">
+          <span className="mt-3 font-mono text-[0.6rem] uppercase tracking-[0.2em] text-text-faint">
             Allsemi Network
           </span>
         </div>
@@ -239,7 +242,8 @@ export default function RecruitmentActions() {
       {/* Mobile: vertical signal chain - its own composition, not a squeezed diagram */}
       <div className={`md:hidden relative max-w-md mx-auto px-5 transition-opacity duration-700 motion-reduce:transition-none ${inView ? 'opacity-100' : 'opacity-0'}`}>
         <div className="flex flex-col items-center">
-          <div className="relative w-12 h-12 rounded-full border border-line-strong bg-bg overflow-hidden">
+          {/* 72px (1.5x its earlier 48px) */}
+          <div className="relative w-[72px] h-[72px] rounded-full border border-line-strong bg-bg overflow-hidden">
             <video
               className="absolute inset-0 w-full h-full object-cover motion-reduce:hidden"
               src="/allsemi-logo-signal.mp4"
@@ -257,7 +261,7 @@ export default function RecruitmentActions() {
               className="hidden motion-reduce:block absolute inset-0 w-full h-full object-cover"
             />
           </div>
-          <span className="mt-2 font-mono text-[0.6rem] uppercase tracking-[0.2em] text-text-faint">
+          <span className="mt-3 font-mono text-[0.6rem] uppercase tracking-[0.2em] text-text-faint">
             Allsemi Network
           </span>
           <span className="w-px h-6 bg-line-strong mt-2" aria-hidden="true" />

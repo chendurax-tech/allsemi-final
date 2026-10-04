@@ -2,34 +2,24 @@
 import { Link } from 'react-router-dom';
 import { GlyphDie, GlyphLayers, GlyphPipeline, DimensionRule } from './EngineeringGlyphs.jsx';
 
+import { publishedServices } from '../pages/employers/servicesContent.js';
+
 /*
-  No dedicated per-service routes exist in App.jsx (checked against the
-  routing root before wiring these) - all three services route to the
-  existing /employers page, per the task's preferred destinations.
+  Service names, descriptions and destinations come from
+  pages/employers/servicesContent.js - the single source of truth shared
+  with the service detail pages and the admin Services screen. Each card
+  routes to its own page under /employers/:slug. Only the glyph mapping
+  lives here, because a glyph is a component, not content.
 */
-const SERVICES = [
-  {
-    num: '01',
-    title: 'Permanent Staffing',
-    body: 'Find the right full-time talent for your semiconductor, chip design, automotive, or aerospace teams. We source, screen, and place top engineers who stay and grow with your organization.',
-    Glyph: GlyphDie,
-    to: '/employers',
-  },
-  {
-    num: '02',
-    title: 'Project Staffing',
-    body: 'Scale your team on-demand with highly skilled contract engineers for specific projects. From VLSI design to embedded systems, we provide experts exactly when you need them.',
-    Glyph: GlyphLayers,
-    to: '/employers',
-  },
-  {
-    num: '03',
-    title: 'RPO Solution',
-    body: 'Outsource your entire recruitment process to Allsemis. Our Recruitment Process Outsourcing (RPO) solution delivers a dedicated hiring engine tailored to your talent acquisition needs.',
-    Glyph: GlyphPipeline,
-    to: '/employers',
-  },
-];
+const GLYPHS = { die: GlyphDie, layers: GlyphLayers, pipeline: GlyphPipeline };
+
+const SERVICES = publishedServices().map((s) => ({
+  num: s.num,
+  title: s.name,
+  body: s.description,
+  Glyph: GLYPHS[s.icon] || GlyphDie,
+  to: `/employers/${s.slug}`,
+}));
 
 export default function Services() {
   return (

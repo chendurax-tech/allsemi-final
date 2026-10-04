@@ -7,12 +7,12 @@ export default function Footer() {
   return (
     <footer className="border-t border-line py-16 md:py-24">
       <div className="max-w-7xl mx-auto px-5 md:px-10 flex flex-col items-center gap-8">
-        <Link to="/" className="flex items-center gap-3 font-display font-bold text-xl tracking-wider text-accent">
+        <Link to="/" className="flex items-center gap-3 font-display font-bold text-2xl tracking-wider text-accent">
           <img
             src="/brand/allsemis-symbol-sm.png"
             alt=""
             aria-hidden="true"
-            className="w-[30px] h-[18px] object-contain"
+            className="h-[26px] w-auto"
             width={240}
             height={147}
           />
