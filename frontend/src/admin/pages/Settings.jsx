@@ -126,7 +126,7 @@ function SystemTab({ settings }) {
               ['Decision rule', 'A score supports a recruiter. It never changes the status of a candidate or an application.'],
             ]}
           />
-          <p className="mt-6 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim mb-2">Weights, out of 100</p>
+          <p className="mt-6 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim mb-2">Baseline weights, out of 100</p>
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(engine.data.weights).map(([name, weight]) => (
               <li key={name} className="flex items-baseline justify-between gap-3 border border-line px-3 py-2">
@@ -135,7 +135,7 @@ function SystemTab({ settings }) {
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-text-dim leading-relaxed">A part the job gives nothing to compare for is left out, and the remaining weights are rescaled.</p>
+          <p className="mt-3 text-xs text-text-dim leading-relaxed">The baseline is used for every job without a requirement profile. A job with a requirement profile is scored against that profile, with the job's own weights when it has them: the profile is edited on the job's page. A part the job gives nothing to compare for is left out, and the remaining weights are rescaled.</p>
         </Panel>
       )}
 
@@ -147,7 +147,8 @@ function SystemTab({ settings }) {
             ...(ai.model ? [['Model', ai.model]] : []),
             ['API key on the server', ai.keyConfigured ? 'Set' : 'Not set'],
             ...(ai.reason ? [['Note', ai.reason]] : []),
-            ['How it is used', 'The rule-based ATS always runs first. An AI comparison is never automatic: a recruiter starts it on one evaluation, and the result is advice. It shortlists and rejects nobody.'],
+            ['How it is used', 'The rule-based ATS always runs first. AI is never automatic. A recruiter can start three things, each by its own button: a comparison of one candidate with a job, a draft of a job\'s requirement profile, and a comparison of several candidates of one job. Every result is advice. AI shortlists and rejects nobody and changes no status.'],
+            ['Usage', 'The estimated AI usage and spend are on the dashboard.'],
           ]}
         />
       </Panel>

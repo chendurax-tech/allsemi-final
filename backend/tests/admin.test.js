@@ -618,7 +618,10 @@ test('rule-based ATS: run, review and read', async () => {
 // fetch is put back when the test ends.
 // ---------------------------------------------------------------------
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-const AI_FIELDS = ['concerns', 'experienceGaps', 'matchedSkills', 'missingSkills', 'overallMatch', 'qualificationAssessment', 'recommendation', 'relevantExperience', 'strengths', 'summary'];
+const AI_FIELDS = [
+  'concerns', 'domainRelevance', 'evidence', 'experienceGaps', 'matchedSkills', 'missingRequirements', 'missingSkills', 'overallMatch', 'partialMatches',
+  'qualificationAssessment', 'recommendation', 'relevantExperience', 'strengths', 'strongMatches', 'summary', 'transferableSkills', 'uncertainties',
+];
 
 const aiAnswer = (overrides = {}) => ({
   overallMatch: 72,
@@ -631,6 +634,13 @@ const aiAnswer = (overrides = {}) => ({
   strengths: ['Hands-on UVM experience'],
   concerns: ['No formal verification is mentioned'],
   recommendation: 'Worth a conversation to check the formal verification gap. The recruiter decides.',
+  strongMatches: ['UVM testbench work is stated'],
+  partialMatches: ['Coverage closure is mentioned without detail'],
+  missingRequirements: ['Formal verification is not stated'],
+  domainRelevance: 'The stated domain is semiconductor verification, which is the domain of the role.',
+  transferableSkills: ['Python scripting carries over to regression tooling'],
+  evidence: [{ requirement: 'UVM', evidence: 'Lists UVM among the skills and describes block-level testbench work.' }],
+  uncertainties: ['Whether the coverage closure was owned or assisted is not stated: ask in the interview.'],
   ...overrides,
 });
 
@@ -724,8 +734,9 @@ test('AI comparison: a recruiter asks, one request goes to OpenAI, the validated
   assert.equal(compared.status, 200);
   assert.equal(compared.body.data.id, fx.id, 'the whole ATS result comes back');
   assert.equal(compared.body.data.engine, 'RULE_BASED');
-  const { model, comparedAt, comparedByName, ...fields } = compared.body.data.aiComparison;
+  const { model, comparedAt, comparedByName, usedRequirementProfile, ...fields } = compared.body.data.aiComparison;
   assert.deepEqual(fields, aiAnswer());
+  assert.equal(usedRequirementProfile, false, 'this job has no requirement profile');
   assert.equal(model, 'test-comparison-model-2026-01-01', 'the model the provider says answered');
   assert.equal(comparedByName, 'Test RECRUITER');
   assert.ok(Math.abs(Date.now() - Date.parse(comparedAt)) < 60_000);
@@ -749,7 +760,7 @@ test('AI comparison: a recruiter asks, one request goes to OpenAI, the validated
   assert.equal(format.strict, true);
   assert.equal(format.schema.type, 'object');
   assert.equal(format.schema.additionalProperties, false);
-  assert.deepEqual([...format.schema.required].sort(), AI_FIELDS, 'all ten properties are required');
+  assert.deepEqual([...format.schema.required].sort(), AI_FIELDS, 'every property is required');
   assert.deepEqual(Object.keys(format.schema.properties).sort(), AI_FIELDS);
   assert.ok(!/"(minLength|maxLength|minimum|maximum|minItems|maxItems|pattern|format)"/.test(JSON.stringify(format.schema)), 'no keyword that strict mode refuses');
   assert.deepEqual(call.body.messages.map((message) => message.role), ['system', 'user']);
@@ -1028,7 +1039,7 @@ test('AI comparison: a provider failure answers 502 and leaks nothing', async (t
     'key refused (401)': () => jsonResponse(401, { error: { message: providerText, type: 'invalid_request_error', code: 'invalid_api_key' } }),
     'permission (403)': () => jsonResponse(403, { error: { message: providerText, type: 'insufficient_permissions' } }),
     'unknown model (404)': () => jsonResponse(404, { error: { message: providerText, type: 'invalid_request_error', code: 'model_not_found' } }),
-    'rate limited (429)': () => jsonResponse(429, { error: { message: providerText, type: 'insufficient_quota', code: 'insufficient_quota' } }),
+    'rate limited (429)': () => jsonResponse(429, { error: { message: providerText, type: 'requests', code: 'rate_limit_exceeded' } }),
     'schema refused (400)': () => jsonResponse(400, { error: { message: providerText, type: 'invalid_request_error' } }),
     'server error (500)': () => jsonResponse(500, { error: { message: providerText, type: 'server_error' } }),
     'bad gateway with a page (502)': () => new Response(`<html>PROVIDER-RAW-TEXT ${key}</html>`, { status: 502, headers: { 'content-type': 'text/html' } }),
@@ -1085,7 +1096,7 @@ test('AI comparison: without the key or the model it answers 503 and OpenAI is n
   // Configured again: available, with the model name and never the key.
   Object.assign(env.openai, original);
   const status = await engine();
-  assert.deepEqual(Object.keys(status).sort(), ['ai', 'engine', 'label', 'version', 'weights'], 'the engine answer keeps its shape');
+  assert.deepEqual(Object.keys(status).sort(), ['ai', 'engine', 'label', 'profileWeights', 'version', 'weightKeys', 'weights'], 'the engine answer keeps its shape');
   assert.deepEqual(Object.keys(status.ai).sort(), ['available', 'keyConfigured', 'model', 'reason']);
   assert.deepEqual({ available: status.ai.available, keyConfigured: status.ai.keyConfigured, model: status.ai.model }, { available: true, keyConfigured: true, model: 'test-comparison-model' });
   assert.match(status.ai.reason, /advisory/);
@@ -1181,7 +1192,7 @@ test('AI comparison: instructions typed by a candidate are sent as data and chan
   assert.match(system.content, /untrusted/);
   assert.match(system.content, /A human recruiter reads it and makes every decision/);
   assert.match(system.content, /age, gender, religion, caste/);
-  assert.match(system.content, /Never say that the candidate is, will be or must be shortlisted, rejected, selected or hired/);
+  assert.match(system.content, /Never say that a candidate is, will be or must be shortlisted, rejected, selected or hired/);
   assert.match(system.content, /Do not guess/);
 
   // Server-side nothing follows what the candidate typed: the number is

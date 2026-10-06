@@ -15,7 +15,7 @@
     "create-admin": "node scripts/create-admin.js",
     "migrate:recruitment": "node scripts/migrate-recruitment.js",
     "clean:showcase": "node scripts/clean-showcase.js",
-    "test": "node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js",
+    "test": "node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js tests/session.test.js tests/health.test.js tests/requirements.test.js tests/ai-usage.test.js",
     "check": "node scripts/check-syntax.js"
   },
   "dependencies": {

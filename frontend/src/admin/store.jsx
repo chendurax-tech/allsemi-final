@@ -32,6 +32,12 @@ import { useAuth } from './auth.jsx';
           compareWithAi(resultId) is the only code that asks for an AI
           comparison, and only a button calls it: nothing in the admin
           starts one on load, on a timer or again after a failure.
+
+  The store asks for nothing else from the AI routes. The usage figures
+  on the dashboard, a requirement profile draft and the comparison of
+  several candidates are requested by their own panels: the first when
+  the dashboard opens (it reads the server's own record and calls no
+  model), the other two only when a recruiter presses their button.
 */
 
 const AdminStoreContext = createContext(null);
@@ -185,6 +191,9 @@ export function AdminStoreProvider({ children }) {
       // The server says it has no AI connection after all: read its
       // status again so the screens stop offering the button.
       if (error.code === 'AI_NOT_CONFIGURED') reloadEngine();
+      // A quota refusal (AI_QUOTA_EXCEEDED) is kept like any other
+      // failure, for the screen to show. Nothing is sent again, and
+      // the server still has its key, so its status is not read again.
     } finally {
       aiInFlight.current.delete(resultId);
     }

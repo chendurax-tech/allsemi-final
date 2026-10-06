@@ -31,7 +31,29 @@ function resource(name, operations = ['list', 'get', 'create', 'update', 'remove
 // returns it ready to open.
 const signedLink = (path) => api.get(path).then((r) => ({ ...r.data, url: apiUrl(r.data.url) }));
 
-export const jobsApi = resource('jobs');
+export const jobsApi = {
+  ...resource('jobs'),
+  // The job's requirement profile: an optional structured list of what
+  // the job asks for. save and remove resolve to
+  // { requirementProfile, scoring }. Neither changes an evaluation that
+  // already exists.
+  saveRequirementProfile: (id, profile) => api.put(`/api/admin/jobs/${seg(id)}/requirement-profile`, profile).then((r) => r.data),
+  removeRequirementProfile: (id) => api.delete(`/api/admin/jobs/${seg(id)}/requirement-profile`).then((r) => r.data),
+  // Sent only when a recruiter presses "Draft with AI". One AI request,
+  // about a minute at most. Resolves to { draft, model, saved: false }:
+  // the server stores nothing, the draft goes into the form.
+  draftRequirementProfile: (id) => api.post(`/api/admin/jobs/${seg(id)}/requirement-profile/ai-draft`).then((r) => r.data),
+  // Rule based only, no AI: runs the rules again for every evaluation
+  // the job already has. Resolves to { evaluated, total }.
+  reevaluate: (id) => api.post(`/api/admin/jobs/${seg(id)}/ats/re-run`).then((r) => r.data),
+  // The stored AI comparison of several candidates for this job, or
+  // null. Reading it asks no model anything.
+  candidateComparison: (id) => api.get(`/api/admin/jobs/${seg(id)}/candidate-comparison`).then((r) => r.data.comparison),
+  // Sent only when a recruiter presses "Compare candidates with AI".
+  // resultIds: two to five ATS result ids of this job. One AI request.
+  // Resolves to the comparison, which replaces the stored one.
+  compareCandidates: (id, resultIds) => api.post(`/api/admin/jobs/${seg(id)}/candidate-comparison`, { resultIds }).then((r) => r.data.comparison),
+};
 
 export const candidatesApi = {
   // Candidates are created by an application or a converted referral.
@@ -91,6 +113,13 @@ export const atsApi = {
   // whole ATS result with its new aiComparison, and can take about a
   // minute.
   compareWithAi: (id) => api.post(`/api/admin/ats-results/${seg(id)}/ai-comparison`).then((r) => r.data),
+};
+
+// The AI usage figures for the dashboard. The server adds up its own
+// record of the AI requests it sent: reading this calls no AI provider
+// and costs nothing. The spend in it is an estimate, not a balance.
+export const aiApi = {
+  usage: () => api.get('/api/admin/ai/usage').then((r) => r.data),
 };
 
 export const settingsApi = {

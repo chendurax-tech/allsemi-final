@@ -1,5 +1,5 @@
 import { ATSResult, Candidate, Job } from '../models/index.js';
-import { ATS_ENGINE, LEVEL_MIN_YEARS } from '../config/constants.js';
+import { ATS_ENGINE, LEVEL_MIN_YEARS, ATS_WEIGHT_KEYS } from '../config/constants.js';
 import { notFound } from '../utils/AppError.js';
 
 /*
@@ -11,7 +11,8 @@ import { notFound } from '../utils/AppError.js';
   It is decision support: it never changes a candidate's or an
   application's status. A recruiter does that.
 
-  Components and weights (out of 100):
+  THE BASELINE. A job without a requirement profile is scored with
+  these components and weights (out of 100):
     required skills     45   exact-name match after normalising case,
                              spacing and punctuation
     experience          20   stated years against the job level
@@ -21,6 +22,20 @@ import { notFound } from '../utils/AppError.js';
     location            10   remote or hybrid roles pass; otherwise the
                              candidate's city against the job's
     profile completeness 5
+
+  A JOB WITH A REQUIREMENT PROFILE (models/Job.js) is scored against
+  that profile, still by rules only:
+    - its required and preferred skills are used (the job's own lists
+      when the profile leaves one empty);
+    - its minimum years replace the years set for the job level;
+    - its tools and technologies are a component of their own;
+    - its domains count for domain relevance, next to the job category;
+    - its work arrangement and location are used for the location rule;
+    - education, certifications and other constraints are listed as
+      checks for the recruiter and are not scored: a name match in
+      free text is not reliable enough to move a score;
+    - its weights, when it has them, replace the baseline weights. A
+      weight of 0 leaves a component out of the score.
 
   A component that does not apply (a job with no preferred skills, for
   example) is left out and the remaining weights are rescaled, so it
@@ -32,8 +47,33 @@ import { notFound } from '../utils/AppError.js';
   not replace these rules, and nothing here reads or writes it.
 */
 
-export const ENGINE_VERSION = '1';
+export const ENGINE_VERSION = '2';
+// The baseline: used for every job that has no requirement profile.
 export const WEIGHTS = { skills: 45, experience: 20, preferredSkills: 10, domain: 10, location: 10, completeness: 5 };
+// The starting weights of a job with a requirement profile, until a
+// recruiter sets the job's own.
+export const PROFILE_DEFAULT_WEIGHTS = { skills: 40, experience: 20, preferredSkills: 10, tools: 10, domain: 10, location: 5, completeness: 5 };
+
+/*
+  The weights one job is scored with: { weights, source }.
+    BASELINE  no requirement profile
+    PROFILE   a profile without weights of its own
+    JOB       the weights saved in the job's profile
+*/
+export function weightsFor(job) {
+  const profile = job?.requirementProfile || null;
+  if (!profile) return { weights: { ...WEIGHTS }, source: 'BASELINE' };
+  const own = profile.weights && typeof profile.weights === 'object' ? profile.weights : null;
+  if (!own) return { weights: { ...PROFILE_DEFAULT_WEIGHTS }, source: 'PROFILE' };
+  const weights = {};
+  for (const key of ATS_WEIGHT_KEYS) {
+    const value = Number(own[key]);
+    weights[key] = Number.isFinite(value) && value > 0 ? Math.min(100, Math.round(value)) : 0;
+  }
+  // Weights that add up to nothing cannot score anything.
+  if (Object.values(weights).every((value) => value === 0)) return { weights: { ...PROFILE_DEFAULT_WEIGHTS }, source: 'PROFILE' };
+  return { weights, source: 'JOB' };
+}
 
 const round = (value) => Math.round(value);
 
@@ -72,9 +112,23 @@ const DOMAIN_ALIASES = {
   fintech: ['banking', 'payments', 'finance'],
 };
 
-function domainCheck(candidate, job) {
+function domainCheck(candidate, job, profileDomains = []) {
   const stated = `${candidate.domain || ''} ${candidate.headline || ''}`.trim();
   if (!stated) return { score: 0, result: 'review', detail: 'The candidate has not stated a domain or current role.' };
+
+  // The domains named in the job's requirement profile come first.
+  for (const domain of profileDomains) {
+    const domainWords = words(domain);
+    for (const word of [...domainWords]) (Object.hasOwn(DOMAIN_ALIASES, word) ? DOMAIN_ALIASES[word] : []).forEach((alias) => domainWords.add(alias));
+    if (domainWords.size && overlaps(domainWords, words(candidate.domain))) {
+      return { score: 100, result: 'pass', detail: `Candidate domain "${candidate.domain}" matches "${domain}" in the job's requirement profile.` };
+    }
+  }
+  for (const domain of profileDomains) {
+    if (overlaps(words(domain), words(candidate.headline))) {
+      return { score: 60, result: 'review', detail: `Current role "${candidate.headline}" relates to "${domain}" in the job's requirement profile, but the stated domain does not match it.` };
+    }
+  }
 
   const categoryWords = words(job.category);
   for (const word of [...categoryWords]) (Object.hasOwn(DOMAIN_ALIASES, word) ? DOMAIN_ALIASES[word] : []).forEach((alias) => categoryWords.add(alias));
@@ -93,10 +147,18 @@ function domainCheck(candidate, job) {
 
 const cityOf = (location) => String(location || '').split(',')[0].trim().toLowerCase().replace('bangalore', 'bengaluru');
 
-function locationCheck(candidate, job) {
-  const jobLocation = String(job.location || '').trim();
+const ARRANGEMENT_LABELS = { ON_SITE: 'on site', HYBRID: 'hybrid', REMOTE: 'remote' };
+
+function locationCheck(candidate, job, profile = null) {
+  const arrangement = profile?.workArrangement || '';
+  if (arrangement === 'REMOTE' || arrangement === 'HYBRID') {
+    return { score: 100, result: 'pass', detail: `The job's requirement profile sets the role as ${ARRANGEMENT_LABELS[arrangement]}.` };
+  }
+  const jobLocation = String(profile?.location || job.location || '').trim();
   if (!jobLocation) return null; // not applicable
-  if (/remote|hybrid/i.test(jobLocation)) return { score: 100, result: 'pass', detail: `The role is ${jobLocation}.` };
+  // A profile that says "on site" settles it; otherwise the wording of
+  // the location decides, as it always has.
+  if (arrangement !== 'ON_SITE' && /remote|hybrid/i.test(jobLocation)) return { score: 100, result: 'pass', detail: `The role is ${jobLocation}.` };
   const jobCity = cityOf(jobLocation);
   const candidatePlaces = [candidate.location, candidate.preferredLocation].filter(Boolean);
   if (candidatePlaces.length === 0) return { score: 50, result: 'review', detail: `The candidate has not stated a location. The role is in ${jobLocation}.` };
@@ -106,14 +168,45 @@ function locationCheck(candidate, job) {
   return { score: 40, result: 'review', detail: `The candidate is in ${candidate.location || candidate.preferredLocation}. The role is in ${jobLocation}.` };
 }
 
-function experienceCheck(candidate, job) {
-  const minYears = LEVEL_MIN_YEARS[job.experienceLevel] ?? 0;
+const isYears = (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+
+function experienceCheck(candidate, job, profile = null) {
+  const fromProfile = isYears(profile?.minYears);
+  const minYears = fromProfile ? profile.minYears : (LEVEL_MIN_YEARS[job.experienceLevel] ?? 0);
+  const asked = fromProfile ? `The job's requirement profile asks for ${minYears}+ years.` : `${job.experienceLevel} is set at ${minYears}+ years.`;
   const years = candidate.experienceYears;
   if (years === null || years === undefined) {
-    return { score: 0, result: 'review', detail: `Experience is not stated. ${job.experienceLevel} is set at ${minYears}+ years.` };
+    return { score: 0, result: 'review', detail: `Experience is not stated. ${asked}` };
   }
-  if (years >= minYears) return { score: 100, result: 'pass', detail: `${years} years stated. ${job.experienceLevel} is set at ${minYears}+ years.` };
-  return { score: round((years / minYears) * 100), result: 'review', detail: `${years} years stated. ${job.experienceLevel} is set at ${minYears}+ years.` };
+  if (years >= minYears) return { score: 100, result: 'pass', detail: `${years} years stated. ${asked}` };
+  return { score: round((years / minYears) * 100), result: 'review', detail: `${years} years stated. ${asked}` };
+}
+
+// Everything the candidate typed that could name a degree or a
+// certificate, as one normalised text.
+const flat = (text) => ` ${String(text || '').toLowerCase().replace(/[^a-z0-9+#]+/g, ' ').trim()} `;
+function statedText(candidate) {
+  const parts = [candidate.headline, candidate.summary, ...(candidate.skills || [])];
+  for (const entry of candidate.education || []) parts.push(entry?.degree, entry?.institution);
+  for (const entry of candidate.experience || []) parts.push(entry?.title, ...(entry?.highlights || []));
+  return flat(parts.filter(Boolean).join(' '));
+}
+
+// Listed for the recruiter, never scored: which of the named items
+// appear in what the candidate typed.
+function namedItemsCheck(rule, items, haystack) {
+  if (!items.length) return null;
+  const found = [];
+  const notFound = [];
+  for (const item of items) {
+    const needle = flat(item);
+    (needle.trim() && haystack.includes(needle) ? found : notFound).push(item);
+  }
+  const parts = [];
+  if (found.length) parts.push(`Named in the profile: ${found.join(', ')}.`);
+  if (notFound.length) parts.push(`Not found by name: ${notFound.join(', ')}.`);
+  parts.push('Not scored: check the resume.');
+  return { rule, result: notFound.length ? 'review' : 'pass', detail: parts.join(' '), score: null, weight: null };
 }
 
 function completenessCheck(candidate) {
@@ -145,21 +238,31 @@ export function matchBand(total) {
 
 /*
   evaluate - pure function, no database access. Takes plain candidate
-  and job objects and returns the result fields.
+  and job objects and returns the result fields. A job with a
+  requirement profile is scored against it (see the top of this file).
 */
 export function evaluate(candidate, job) {
+  const profile = job.requirementProfile || null;
+  const { weights: WEIGHT, source: weightSource } = weightsFor(job);
+  const own = (list, fallback) => (profile && (list || []).length ? list : fallback || []);
+
   const candidateSkills = candidate.skills || [];
-  const requiredSkills = job.requiredSkills || [];
-  const preferredSkills = job.preferredSkills || [];
+  const requiredSkills = own(profile?.requiredSkills, job.requiredSkills);
+  const preferredSkills = own(profile?.preferredSkills, job.preferredSkills);
+  const tools = profile ? (profile.tools || []) : [];
   const required = matchSkills(requiredSkills, candidateSkills);
   const preferred = matchSkills(preferredSkills, candidateSkills);
+  const tooling = matchSkills(tools, candidateSkills);
 
   const components = [];
   const checks = [];
   const add = (key, rule, check) => {
     if (!check) return null;
-    components.push({ key, score: check.score, weight: WEIGHTS[key] });
-    checks.push({ rule, result: check.result, detail: check.detail, score: check.score, weight: WEIGHTS[key] });
+    const weight = WEIGHT[key] ?? 0;
+    // A weight of 0 (only a job's own weights can say that) keeps the
+    // check on the list and out of the score.
+    if (weight > 0) components.push({ key, score: check.score, weight });
+    checks.push({ rule, result: check.result, detail: weight > 0 ? check.detail : `${check.detail} Not counted in the score for this job.`, score: check.score, weight });
     return check.score;
   };
 
@@ -175,7 +278,12 @@ export function evaluate(candidate, job) {
     checks.push({ rule: 'Required skills', result: 'info', detail: 'The job lists no required skills, so skills are not scored.', score: null, weight: null });
   }
 
-  const experienceScore = add('experience', 'Experience level', experienceCheck(candidate, job));
+  const experienceScore = add('experience', 'Experience level', experienceCheck(candidate, job, profile));
+  if (profile && isYears(profile.preferredYears)) {
+    const years = candidate.experienceYears;
+    const stated = years === null || years === undefined ? 'Experience is not stated.' : `${years} years stated.`;
+    checks.push({ rule: 'Preferred experience', result: 'info', detail: `The job's requirement profile prefers ${profile.preferredYears}+ years. ${stated} Not scored.`, score: null, weight: null });
+  }
 
   let preferredSkillScore = null;
   if (preferredSkills.length) {
@@ -187,11 +295,35 @@ export function evaluate(candidate, job) {
     });
   }
 
-  const domainScore = add('domain', 'Domain relevance', domainCheck(candidate, job));
-  const location = locationCheck(candidate, job);
+  let toolScore = null;
+  if (tools.length) {
+    toolScore = round((tooling.matched.length / tools.length) * 100);
+    let result = 'review';
+    if (tooling.missing.length === 0) result = 'pass';
+    add('tools', 'Tools and technologies', { score: toolScore, result, detail: `${tooling.matched.length} of ${tools.length} tools and technologies found by name among the candidate's skills.` });
+  }
+
+  const domainScore = add('domain', 'Domain relevance', domainCheck(candidate, job, profile ? (profile.domains || []) : []));
+  const location = locationCheck(candidate, job, profile);
   const locationScore = location ? add('location', 'Location', location) : 100;
   if (!location) checks.push({ rule: 'Location', result: 'info', detail: 'The job has no location, so location is not scored.', score: null, weight: null });
   const completenessScore = add('completeness', 'Profile completeness', completenessCheck(candidate));
+
+  if (profile) {
+    const haystack = statedText(candidate);
+    for (const check of [
+      namedItemsCheck('Education', profile.education || [], haystack),
+      namedItemsCheck('Certifications', profile.certifications || [], haystack),
+    ]) if (check) checks.push(check);
+    const unscored = [
+      [(profile.constraints || []).length, 'other constraint', 'other constraints'],
+      [(profile.niceToHave || []).length, 'nice-to-have requirement', 'nice-to-have requirements'],
+      [(profile.responsibilities || []).length, 'key responsibility', 'key responsibilities'],
+    ].filter(([count]) => count > 0).map(([count, one, many]) => `${count} ${count === 1 ? one : many}`);
+    if (unscored.length) {
+      checks.push({ rule: 'Other requirements', result: 'info', detail: `The job's requirement profile also lists ${unscored.join(', ')}. The rules do not evaluate these: read them against the resume, or ask for the AI comparison.`, score: null, weight: null });
+    }
+  }
 
   checks.push({
     rule: 'Notice period',
@@ -210,17 +342,24 @@ export function evaluate(candidate, job) {
     totalScore,
     skillScore,
     preferredSkillScore,
+    toolScore,
     experienceScore,
     domainScore,
     locationScore,
     completenessScore,
     weights: Object.fromEntries(components.map((c) => [c.key, c.weight])),
+    // BASELINE: the fixed weights. PROFILE: the job has a requirement
+    // profile. JOB: the profile also carries the job's own weights.
+    weightSource,
+    usedRequirementProfile: Boolean(profile),
     band: matchBand(totalScore),
     requiredSkills,
     matchedSkills: required.matched,
     missingSkills: required.missing,
     preferredMatched: preferred.matched,
     preferredMissing: preferred.missing,
+    toolsMatched: tooling.matched,
+    toolsMissing: tooling.missing,
     checks,
   };
 }
@@ -247,4 +386,25 @@ export async function runEvaluation({ candidateId, jobId, applicationId = null, 
   result.runByName = runByName;
   await result.save();
   return result;
+}
+
+/*
+  reevaluateJob - runs the rules again for every existing result of one
+  job, after its requirement profile changed. Rule-based only: no model
+  is called, no result is created, and no application, candidate, label
+  or review is touched. Returns how many results were updated.
+*/
+export async function reevaluateJob({ jobId, runByName = 'System' }) {
+  const results = await ATSResult.find({ jobId, engine: ATS_ENGINE }).select('candidateId jobId applicationId');
+  let evaluated = 0;
+  for (const result of results) {
+    try {
+      await runEvaluation({ candidateId: result.candidateId, jobId: result.jobId, applicationId: result.applicationId, runByName });
+      evaluated += 1;
+    } catch (error) {
+      // A result whose candidate no longer exists is left as it is.
+      if (error?.statusCode !== 404 && error?.status !== 404) throw error;
+    }
+  }
+  return { evaluated, total: results.length };
 }

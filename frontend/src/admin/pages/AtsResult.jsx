@@ -6,7 +6,7 @@ import { useAuth } from '../auth.jsx';
 import {
   PageHeader, Panel, StageTrace, ScoreRing, Badge, Button, Chip, EmptyState, DefinitionList, Notice, cx, inputCls, labelCls,
 } from '../components/ui.jsx';
-import { ATS_STAGES, ATS_STAGE_COLUMNS, ATS_COMPONENTS } from '../data/atsStages.js';
+import { ATS_STAGES, ATS_STAGE_COLUMNS, ATS_COMPONENTS, WEIGHT_SOURCE_LABELS } from '../data/atsStages.js';
 import { ATS_REVIEW_STATES, label } from '../data/enums.js';
 import { formatDate, formatDateTime } from '../lib/format.js';
 import ShortlistPanel from '../components/ShortlistPanel.jsx';
@@ -21,6 +21,12 @@ import AiComparison, { AtsScopeNotice } from '../components/AiComparison.jsx';
   and finally the recruiter's review.
 
   Everything in those panels is what the rule-based engine stored.
+  A job with a requirement profile is scored against that profile, so
+  the breakdown says which weights were used (the baseline, the
+  profile's default weights or the job's own) and shows "Tools and
+  technologies" as a part of its own when the profile lists tools. A
+  check the engine lists without a score is shown without one, and a
+  part the job weights at 0 is shown as not counted.
   Running an evaluation or saving a review never changes an
   application. The decision to shortlist is a separate action a
   recruiter takes, offered beside the review.
@@ -81,6 +87,15 @@ function ReviewPanel({ result }) {
     </Panel>
   );
 }
+
+// What the weights of a result mean, in one sentence each.
+const WEIGHT_SOURCE_NOTES = {
+  BASELINE: 'The job had no requirement profile when this evaluation ran.',
+  PROFILE: "The job's requirement profile was used, with the default weights of a profile.",
+  JOB: "The job's requirement profile was used, with the weights saved for this job.",
+};
+
+const isNumber = (value) => typeof value === 'number' && Number.isFinite(value);
 
 function SkillGroup({ title, items, tone, empty }) {
   return (
@@ -188,8 +203,21 @@ export default function AtsResult({ candidateId }) {
     return { ...stage, state: reviewed ? 'done' : 'current' };
   });
   const weights = result.weights || {};
-  const components = ATS_COMPONENTS.map((part) => ({ ...part, value: result[part.score], share: weights[part.weight] }));
-  const weightTotal = components.reduce((sum, part) => sum + (part.share || 0), 0);
+  const checks = result.checks || [];
+  const weightSource = WEIGHT_SOURCE_LABELS[result.weightSource] ? result.weightSource : 'BASELINE';
+  // Tools are a part only when the job's requirement profile lists
+  // some. `zero` marks a part the job's own weights set to 0: the
+  // engine keeps its check on the list with a weight of 0.
+  const hasTools = isNumber(result.toolScore);
+  const components = ATS_COMPONENTS
+    .filter((part) => part.score !== 'toolScore' || hasTools)
+    .map((part) => ({
+      ...part,
+      value: result[part.score],
+      share: weights[part.weight],
+      zero: checks.some((check) => check.rule === part.rule && check.weight === 0),
+    }));
+  const weightTotal = components.reduce((sum, part) => sum + (isNumber(part.share) ? part.share : 0), 0);
 
   return (
     <>
@@ -264,20 +292,29 @@ export default function AtsResult({ candidateId }) {
 
         <div className="space-y-6 min-w-0">
           <Panel title="Score breakdown" meta={`The total is the weighted average of the parts that apply. Weights used here add up to ${weightTotal}.`} pad={false}>
+            <p className="border-b border-line px-4 py-3 text-xs leading-relaxed text-text-dim md:px-5 break-words" data-ats-weight-source={weightSource}>
+              Weights used: <span className="font-semibold text-text">{WEIGHT_SOURCE_LABELS[weightSource]}</span>. {WEIGHT_SOURCE_NOTES[weightSource]}
+            </p>
             <ul className="divide-y divide-line">
               {components.map((part) => {
-                const scored = part.share !== undefined && part.value !== null && part.value !== undefined;
+                const scored = isNumber(part.share) && part.share > 0 && isNumber(part.value);
+                // Weighted at 0 by this job: worked out, shown, not counted.
+                const leftOut = !scored && part.zero;
+                let weightNote = 'Not scored';
+                if (scored) weightNote = `Weight ${part.share}`;
+                else if (leftOut) weightNote = 'Weight 0';
                 return (
                   <li key={part.score} className="px-4 py-3 md:px-5">
                     <div className="flex items-baseline gap-3">
                       <span className="min-w-0 flex-1 text-sm font-semibold">{part.label}</span>
-                      <span className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim whitespace-nowrap">{scored ? `Weight ${part.share}` : 'Not scored'}</span>
-                      <span className="w-10 text-right font-display text-lg font-semibold tabular-nums">{scored ? part.value : ''}</span>
+                      <span className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim whitespace-nowrap">{weightNote}</span>
+                      <span className={cx('w-10 text-right font-display text-lg font-semibold tabular-nums', leftOut && 'text-text-dim')}>{(scored || leftOut) && isNumber(part.value) ? part.value : ''}</span>
                     </div>
                     <div className="mt-2 h-1 w-full bg-line-strong" aria-hidden="true">
                       {scored && <div className="h-full bg-[#5b9dff]" style={{ width: `${Math.max(0, Math.min(100, part.value))}%` }} />}
                     </div>
-                    {!scored && <p className="mt-2 text-xs text-text-dim">The job gives nothing to compare for this part, so it is left out of the total.</p>}
+                    {leftOut && <p className="mt-2 text-xs text-text-dim">This job gives this part a weight of 0, so it is not counted for this job.</p>}
+                    {!scored && !leftOut && <p className="mt-2 text-xs text-text-dim">The job gives nothing to compare for this part, so it is left out of the total.</p>}
                   </li>
                 );
               })}
@@ -286,13 +323,23 @@ export default function AtsResult({ candidateId }) {
 
           <Panel title="Rule-based checks" meta="Deterministic. The same inputs always give the same result." pad={false}>
             <ul className="divide-y divide-line">
-              {result.checks.map((check) => (
-                <li key={check.rule} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 md:px-5">
-                  <span className="w-44 shrink-0 text-sm font-semibold">{check.rule}</span>
-                  <span className="flex-1 text-sm text-text-dim">{check.detail}</span>
-                  <span><Badge>{check.result}</Badge></span>
-                </li>
-              ))}
+              {checks.map((check) => {
+                // A check without a score (education, certifications,
+                // notice period and the like) is listed without one.
+                let scoreNote = '';
+                if (check.weight === 0) scoreNote = 'Not counted for this job';
+                else if (isNumber(check.score) && isNumber(check.weight)) scoreNote = `Score ${check.score}, weight ${check.weight}`;
+                return (
+                  <li key={check.rule} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 md:px-5">
+                    <span className="w-44 shrink-0">
+                      <span className="block text-sm font-semibold">{check.rule}</span>
+                      {scoreNote && <span className="mt-0.5 block font-mono text-[0.6rem] uppercase tracking-[0.12em] text-text-dim">{scoreNote}</span>}
+                    </span>
+                    <span className="min-w-0 flex-1 break-words text-sm text-text-dim">{check.detail || ''}</span>
+                    <span><Badge>{check.result || 'info'}</Badge></span>
+                  </li>
+                );
+              })}
             </ul>
           </Panel>
 
@@ -301,6 +348,15 @@ export default function AtsResult({ candidateId }) {
             <div className="mt-4"><SkillGroup title="Required, missing" items={result.missingSkills} tone="amber" empty="None" /></div>
             <div className="mt-4"><SkillGroup title="Preferred, matched" items={result.preferredMatched} tone="blue" empty="None" /></div>
             <div className="mt-4"><SkillGroup title="Preferred, not found" items={result.preferredMissing} tone="dim" empty="None" /></div>
+            {hasTools && (
+              <div className="mt-5 border-t border-line pt-4" data-ats-tools="group">
+                <p className="mb-3 text-xs leading-relaxed text-text-dim">
+                  Tools and technologies from the job's requirement profile, matched by name against the candidate's skills: {result.toolScore} of 100.
+                </p>
+                <SkillGroup title="Tools and technologies, matched" items={result.toolsMatched || []} tone="teal" empty="None" />
+                <div className="mt-4"><SkillGroup title="Tools and technologies, not found" items={result.toolsMissing || []} tone="amber" empty="None" /></div>
+              </div>
+            )}
           </Panel>
         </div>
       </div>

@@ -8,15 +8,23 @@ import { requestContext } from './middleware/requestContext.js';
 import { apiLimiter } from './middleware/rateLimiters.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { LOCAL_MEDIA_ROOT, memoryMedia } from './services/storage/publicMedia.js';
+import { databaseReady } from './config/db.js';
 
 /*
   The Express application, without a listener (server.js starts it;
   the tests import it directly).
 
   Order of the global middleware:
-    request id + log  ->  security headers  ->  CORS  ->  rate limit
-    ->  body parsers (size limited)  ->  routes  ->  404  ->  errors
+    request id + log  ->  security headers  ->  /health and /ready
+    ->  CORS  ->  rate limit  ->  body parsers (size limited)
+    ->  routes  ->  404  ->  errors
 */
+
+// Fixed answers. They say that the process is up and nothing more: no
+// version of a dependency, no host name, no configuration.
+const SERVICE_NAME = 'allsemis-api';
+const ALIVE = Object.freeze({ status: 'ok', service: SERVICE_NAME });
+
 export function createApp() {
   const app = express();
 
@@ -38,6 +46,29 @@ export function createApp() {
     referrerPolicy: { policy: 'no-referrer' },
     hsts: env.isProduction ? { maxAge: 15552000, includeSubDomains: true } : false,
   }));
+
+  /*
+    GET /health - liveness, for an uptime monitor and the host's health
+    check. Public, no sign-in, no cookie, no database, no outside
+    service: it answers 200 whenever this process can answer at all. It
+    sits before CORS, the rate limiter and the body parsers, so a
+    monitor that calls it every minute is never refused and does no
+    work. It is a fixed object: there is nothing in it to leak.
+
+    GET /ready - readiness: 200 when the database connection is up,
+    503 when it is not. Still no data and no detail beyond that.
+
+    /api/health (routes/index.js) stays as it was.
+  */
+  app.get('/health', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.status(200).json(ALIVE);
+  });
+  app.get('/ready', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (databaseReady()) return res.status(200).json({ status: 'ready', service: SERVICE_NAME });
+    return res.status(503).json({ status: 'unavailable', service: SERVICE_NAME });
+  });
 
   // Strict CORS: only the configured frontend origin(s), with
   // credentials. A request with no Origin header (server to server, a

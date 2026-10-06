@@ -252,6 +252,14 @@ export async function applyShowcaseCleanup(plan, { actorName = 'System' } = {}) 
     done.records[name] = ids.length ? (await Model.deleteMany({ _id: { $in: ids } })).deletedCount ?? ids.length : 0;
   }
 
+  // A kept job may hold an AI comparison that includes a removed
+  // candidate. A comparison is about all of its candidates together,
+  // so it goes with any one of them.
+  const removedCandidates = plan.collections.Candidate.remove.map((item) => item.id);
+  if (removedCandidates.length) {
+    await Job.updateMany({ 'candidateComparison.candidates.candidateId': { $in: removedCandidates } }, { $set: { candidateComparison: null } }, { timestamps: false });
+  }
+
   if (plan.audit.remove.length) {
     done.auditRemoved = (await AuditLog.deleteMany({ _id: { $in: plan.audit.remove } })).deletedCount ?? plan.audit.remove.length;
   }

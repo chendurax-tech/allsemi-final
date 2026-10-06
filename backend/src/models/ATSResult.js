@@ -10,7 +10,10 @@ const { Schema } = mongoose;
   The scores, skill lists and `checks` are produced by the RULE-BASED
   engine (services/atsService.js). Every one of those numbers comes
   from deterministic rules and can be explained from `checks`. No AI
-  model is involved in them.
+  model is involved in them. A job with a requirement profile is scored
+  against it, with the job's own weights when it has them: `weights`
+  holds the weights this result was scored with and `weightSource`
+  says where they came from.
 
   `aiComparison` is separate. It is empty until a recruiter presses
   "Compare with AI" for this result, and then holds the advisory
@@ -33,9 +36,27 @@ const checkSchema = new Schema({
 // is validated against them before it is stored (services/aiService.js).
 // The model's name is stored as `aiModel` and returned by the API as
 // `model`.
+const evidenceSchema = new Schema({
+  requirement: { type: String, required: true, maxlength: AI.evidence.requirement },
+  evidence: { type: String, required: true, maxlength: AI.evidence.text },
+}, { _id: false });
+
+// strongMatches, partialMatches, missingRequirements, domainRelevance,
+// transferableSkills, evidence, uncertainties and
+// usedRequirementProfile were added later: a comparison stored before
+// that has them empty, and the admin shows what there is.
 const aiComparisonSchema = new Schema({
   overallMatch: { type: Number, required: true, min: 0, max: 100 },
   summary: { type: String, required: true, maxlength: AI.summary },
+  strongMatches: { type: [String], default: [] },
+  partialMatches: { type: [String], default: [] },
+  missingRequirements: { type: [String], default: [] },
+  domainRelevance: { type: String, default: '', maxlength: AI.domainRelevance },
+  transferableSkills: { type: [String], default: [] },
+  evidence: { type: [evidenceSchema], default: [] },
+  uncertainties: { type: [String], default: [] },
+  // Whether the job had a requirement profile when the comparison ran.
+  usedRequirementProfile: { type: Boolean, default: false },
   matchedSkills: { type: [String], default: [] },
   missingSkills: { type: [String], default: [] },
   relevantExperience: { type: String, required: true, maxlength: AI.relevantExperience },
@@ -60,11 +81,17 @@ const atsResultSchema = new Schema({
   totalScore: { type: Number, required: true },
   skillScore: { type: Number, required: true },
   preferredSkillScore: { type: Number, default: null },
+  // Only for a job with a requirement profile that lists tools.
+  toolScore: { type: Number, default: null },
   experienceScore: { type: Number, required: true },
   domainScore: { type: Number, required: true },
   locationScore: { type: Number, required: true },
   completenessScore: { type: Number, required: true },
   weights: { type: Schema.Types.Mixed, default: {} },
+  // Where the weights came from: BASELINE (the fixed weights), PROFILE
+  // (the job has a requirement profile) or JOB (the job's own weights).
+  weightSource: { type: String, enum: ['BASELINE', 'PROFILE', 'JOB'], default: 'BASELINE' },
+  usedRequirementProfile: { type: Boolean, default: false },
   band: { type: String, default: '' },
 
   requiredSkills: { type: [String], default: [] },
@@ -72,6 +99,8 @@ const atsResultSchema = new Schema({
   missingSkills: { type: [String], default: [] },
   preferredMatched: { type: [String], default: [] },
   preferredMissing: { type: [String], default: [] },
+  toolsMatched: { type: [String], default: [] },
+  toolsMissing: { type: [String], default: [] },
   checks: { type: [checkSchema], default: [] },
 
   review: {
@@ -115,6 +144,14 @@ atsResultSchema.set('toJSON', {
     out.aiComparison = ai ? {
       overallMatch: ai.overallMatch,
       summary: ai.summary,
+      strongMatches: [...(ai.strongMatches || [])],
+      partialMatches: [...(ai.partialMatches || [])],
+      missingRequirements: [...(ai.missingRequirements || [])],
+      domainRelevance: ai.domainRelevance || '',
+      transferableSkills: [...(ai.transferableSkills || [])],
+      evidence: (ai.evidence || []).map((item) => ({ requirement: item.requirement, evidence: item.evidence })),
+      uncertainties: [...(ai.uncertainties || [])],
+      usedRequirementProfile: Boolean(ai.usedRequirementProfile),
       matchedSkills: [...(ai.matchedSkills || [])],
       missingSkills: [...(ai.missingSkills || [])],
       relevantExperience: ai.relevantExperience,

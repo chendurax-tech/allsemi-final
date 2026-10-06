@@ -6,6 +6,7 @@ import { useAuth } from '../auth.jsx';
 import { PageHeader, Panel, StatCard, StageTrace, Badge, Button, DataTable, EmptyState, Notice } from '../components/ui.jsx';
 import { RECRUITMENT_LABELS, label } from '../data/enums.js';
 import { formatDate, formatDateTime } from '../lib/format.js';
+import AiUsagePanel from '../components/AiUsagePanel.jsx';
 
 /*
   Dashboard - the overview for the signed-in role. Every card and panel
@@ -17,6 +18,11 @@ import { formatDate, formatDateTime } from '../lib/format.js';
   The application pipeline is drawn with the same signal-path figure
   the ATS screens use for their stages, so the admin panel has one
   recurring visual idea taken from the public site's network diagrams.
+
+  A role that may run the ATS also sees "AI usage": how many AI
+  requests the server sent today and this month and what they are
+  estimated to have cost (components/AiUsagePanel.jsx). The panel reads
+  the server's own record. The dashboard never starts an AI request.
 */
 
 const PRIORITY_ORDER = { HIGH: 0, MEDIUM: 1, LOW: 2 };
@@ -67,6 +73,7 @@ export default function Dashboard() {
     ats: can('ats:read'),
     content: can('content:read'),
     audit: can('audit:read'),
+    aiUsage: can('ats:run'),
   };
   const recruitment = sees.applications || sees.candidates;
 
@@ -201,6 +208,12 @@ export default function Dashboard() {
           )}
 
           {sees.audit && <Activity />}
+        </div>
+      )}
+
+      {sees.aiUsage && (
+        <div className="mt-6">
+          <AiUsagePanel />
         </div>
       )}
 

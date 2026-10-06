@@ -18,12 +18,25 @@ export const ATS_STAGE_COLUMNS = 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6';
 // The scored components of a result, in the order the engine applies
 // them. `weight` names the key in result.weights; a component the
 // engine left out (a job with no preferred skills, for example) has no
-// weight there and is shown as not scored.
+// weight there and is shown as not scored. `rule` is the name of the
+// check the engine lists for the component. "Tools and technologies"
+// exists only for a job whose requirement profile lists tools.
 export const ATS_COMPONENTS = [
-  { score: 'skillScore', weight: 'skills', label: 'Required skills' },
-  { score: 'experienceScore', weight: 'experience', label: 'Experience' },
-  { score: 'preferredSkillScore', weight: 'preferredSkills', label: 'Preferred skills' },
-  { score: 'domainScore', weight: 'domain', label: 'Domain relevance' },
-  { score: 'locationScore', weight: 'location', label: 'Location' },
-  { score: 'completenessScore', weight: 'completeness', label: 'Profile completeness' },
+  { score: 'skillScore', weight: 'skills', label: 'Required skills', rule: 'Required skills' },
+  { score: 'experienceScore', weight: 'experience', label: 'Experience', rule: 'Experience level' },
+  { score: 'preferredSkillScore', weight: 'preferredSkills', label: 'Preferred skills', rule: 'Preferred skills' },
+  { score: 'toolScore', weight: 'tools', label: 'Tools and technologies', rule: 'Tools and technologies' },
+  { score: 'domainScore', weight: 'domain', label: 'Domain relevance', rule: 'Domain relevance' },
+  { score: 'locationScore', weight: 'location', label: 'Location', rule: 'Location' },
+  { score: 'completenessScore', weight: 'completeness', label: 'Profile completeness', rule: 'Profile completeness' },
 ];
+
+// Which weights a result was scored with (result.weightSource).
+//   BASELINE  the job had no requirement profile
+//   PROFILE   it had one, without weights of its own
+//   JOB       it had one that carries the job's own weights
+export const WEIGHT_SOURCE_LABELS = {
+  BASELINE: 'Baseline weights',
+  PROFILE: 'Requirement profile, default weights',
+  JOB: "This job's own weights",
+};

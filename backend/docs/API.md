@@ -32,7 +32,7 @@ Contents:
 
 ### 1.1 Base path
 
-Every endpoint is under `/api`. In local development the server listens on `http://localhost:4000` and the Vite dev server forwards `/api` to it, so the browser calls `/api/...` on the frontend origin.
+Every endpoint is under `/api`, except the two health endpoints `GET /health` and `GET /ready` (section 4). In local development the server listens on `http://localhost:4000` and the Vite dev server forwards `/api` to it, so the browser calls `/api/...` on the frontend origin.
 
 ### 1.2 Response shape
 
@@ -80,21 +80,22 @@ These are the codes the code returns, with their HTTP status.
 | 403 | `PASSWORD_CHANGE_REQUIRED` | An admin route was called by an account that is still on a temporary password (section 2.2). |
 | 404 | `NOT_FOUND` | Unknown endpoint, unknown record, a record with no stored document, an expired download link, or, in production, a document that was stored on a development machine (section 8.5). |
 | 409 | `CONFLICT` | A unique value is already in use (for example a user email), a referral was already converted, a job that has applications is deleted, an image that a saved record still uses is removed through the media endpoint, an application that is already shortlisted is shortlisted again, or a shortlist email is requested for an application that is not shortlisted, whose email was already sent, or while an attempt is in progress (section 7.4). |
-| 409 | `AI_IN_PROGRESS` | An AI comparison is already running for the same ATS result in this server process (section 7.8). |
+| 409 | `AI_IN_PROGRESS` | An AI request is already running in this server process for the same ATS result (the comparison of one candidate, section 7.8) or for the same job (the draft of a requirement profile, section 7.2, or the comparison of several candidates, section 7.8). |
 | 413 | `FILE_TOO_LARGE` | The uploaded file is over 5 MB. |
 | 413 | `PAYLOAD_TOO_LARGE` | A JSON body over 1 MB or a URL-encoded body over 100 KB. |
 | 415 | `UNSUPPORTED_FILE_TYPE` | The file content is not an accepted type, or the extension does not match the content. |
 | 429 | `RATE_LIMITED` | A rate limit was reached (section 2.5). |
 | 500 | `INTERNAL_ERROR` | An unexpected fault. In production the message is generic. Outside production it includes the internal error message. A stack trace is never sent. |
 | 502 | `MEDIA_UPLOAD_FAILED` | An image upload did not succeed at Cloudinary: it refused the request, could not be reached, or answered without an address for the image. The reason is in the server log (`media.cloudinary_failed`), not in the response. A failed removal is logged only and does not produce this error. |
-| 502 | `AI_FAILED` | The request an AI comparison sends to OpenAI did not succeed: OpenAI could not be reached, did not answer within 60 seconds, or answered with an error status. The message is one of this API's own sentences. OpenAI's status and a short error identifier are in the server log (`ai.request_failed`), not in the response. Nothing is stored (section 7.8). |
-| 502 | `AI_INVALID_RESPONSE` | OpenAI answered an AI comparison, but the answer could not be used: it was not the ten expected fields with the expected types, or it was a refusal, cut off or filtered. Nothing is stored (section 7.8). |
-| 503 | `DATABASE_UNAVAILABLE` | Returned by `GET /api/health` only, when the database connection is down (section 4). |
+| 502 | `AI_FAILED` | The one request an AI action sends to OpenAI did not succeed: OpenAI could not be reached, did not answer within 60 seconds, or answered with an error status that is not a quota or billing refusal. The message is one of this API's own sentences. OpenAI's status and a short error identifier are in the server log (`ai.request_failed`), not in the response. Nothing is stored and the request is not retried (section 7.8). |
+| 502 | `AI_INVALID_RESPONSE` | OpenAI answered an AI action, but the answer could not be used: it was not exactly the fields that action expects, with the expected types, or it was a refusal, cut off or filtered. Nothing is stored (section 7.8). |
+| 503 | `DATABASE_UNAVAILABLE` | Returned by `GET /api/health` only, when the database connection is down (section 4). `GET /ready` answers 503 in the same situation, with its own fixed body and no error code. |
 | 503 | `STORAGE_NOT_CONFIGURED` | Backblaze B2 is the document store in use but its variables are incomplete. Returned by an upload, and by a `resume-url` or `attachment-url` request for a document that is held in B2. |
 | 503 | `MEDIA_NOT_CONFIGURED` | Cloudinary is the image store in use but its variables are incomplete. |
-| 503 | `AI_NOT_CONFIGURED` | An AI comparison was asked for while `OPENAI_API_KEY` or `OPENAI_MODEL` is not set. OpenAI is not called. |
+| 503 | `AI_NOT_CONFIGURED` | An AI action was asked for while `OPENAI_API_KEY` or `OPENAI_MODEL` is not set. OpenAI is not called, and nothing is written to the usage ledger (section 9.9). |
+| 503 | `AI_QUOTA_EXCEEDED` | OpenAI refused the request of an AI action with the error code or type `insufficient_quota`, `billing_hard_limit_reached`, `billing_not_active` or `quota_exceeded` (usually with HTTP 429): the OpenAI account has no credit left, has reached its spend limit or has no active billing. The message says so, asks for an administrator to check billing on the OpenAI account, and says that nothing was changed. The request is not retried, and asking again does not help until the account is put right. |
 
-The four `AI_` codes are returned by one endpoint only, `POST /api/admin/ats-results/:id/ai-comparison` (section 7.8).
+The five `AI_` codes are returned by the three AI routes only: `POST /api/admin/ats-results/:id/ai-comparison` and `POST /api/admin/jobs/:id/candidate-comparison` (section 7.8), and `POST /api/admin/jobs/:id/requirement-profile/ai-draft` (section 7.2).
 
 The frontend client (`frontend/src/lib/api/client.js`) adds two codes of its own that never come from the server: `NETWORK_ERROR` (the request did not reach the server) and `REQUEST_FAILED` (a failure response without the standard error body).
 
@@ -107,7 +108,9 @@ The frontend client (`frontend/src/lib/api/client.js`) adds two codes of its own
 | `Content-Type` | `application/json` for JSON bodies. `multipart/form-data` for uploads (let the browser set the boundary). |
 | `Cookie` | The session cookie, sent by the browser. Use `credentials: 'include'` with `fetch`. |
 
-CORS allows only the origins in `FRONTEND_URL`, with credentials, the methods `GET, POST, PATCH, PUT, DELETE`, and the request headers `Content-Type` and `X-Requested-With`. `X-Request-Id` is exposed to scripts. Preflight results may be cached for 600 seconds. A request from any other origin receives no CORS headers.
+CORS allows only the origins in `FRONTEND_URL`, with credentials, the methods `GET, POST, PATCH, PUT, DELETE`, and the request headers `Content-Type` and `X-Requested-With`. The allowed origin is always answered by name, never with a wildcard. `http://localhost:5173` is the default origin only outside production. `X-Request-Id` is exposed to scripts. Preflight results may be cached for 600 seconds. A request from any other origin receives no CORS headers.
+
+These checks are the same whatever `SameSite` value the session cookie has (section 2.1). When the frontend and the API are on the same site the cookie is `SameSite=Lax`, which is a third layer: a browser then does not attach it to a cross-site `POST`. When the frontend calls the API on another site the cookie has to be `SameSite=None`, that layer does not apply, and the `X-Requested-With` and `Origin` checks are what protects a state-changing request.
 
 ### 1.5 Body size limits
 
@@ -154,7 +157,7 @@ One cookie is used: the session cookie `allsemis_sid` (section 2.1). The API set
 
 ### 1.9 Caching
 
-Every `/api` response has `Cache-Control: no-store`, except the public content endpoints, which send `Cache-Control: public, max-age=0, must-revalidate`. A browser may keep a copy of those but checks it with the server before every use, so a record that was just edited, published or unpublished in the admin is correct at the next page load.
+Every `/api` response has `Cache-Control: no-store`, and so have `GET /health` and `GET /ready`. The exception is the public content endpoints, which send `Cache-Control: public, max-age=0, must-revalidate`. A browser may keep a copy of those but checks it with the server before every use, so a record that was just edited, published or unpublished in the admin is correct at the next page load.
 
 ---
 
@@ -168,11 +171,28 @@ Sign-in creates a server-side session stored in MongoDB. The browser holds only 
 | --- | --- |
 | Name | `allsemis_sid` |
 | `HttpOnly` | Always |
-| `Secure` | When `NODE_ENV=production`, or when `COOKIE_SAMESITE=none` |
-| `SameSite` | `COOKIE_SAMESITE`: `lax` (default), `strict` or `none` |
+| `Secure` | Always when `NODE_ENV=production`, and whenever `SameSite` is `None` |
+| `SameSite` | Decided for each sign-in request from `COOKIE_SAMESITE` (`lax` by default, `strict` or `none`) and from how the browser reports the request. See below. |
+| `Partitioned` | Set when `SameSite` is `None` |
 | `Path` | `/` |
 | `Max-Age` | `SESSION_TTL_HOURS` hours (default 12) |
-| `Domain` | Set only when `COOKIE_DOMAIN` is set |
+| `Domain` | Set only when `COOKIE_DOMAIN` is set. Without it the cookie belongs to the API host only. |
+
+The `SameSite` value (`sessionSameSite` in `src/services/authService.js`):
+
+| `COOKIE_SAMESITE` | The browser reports the sign-in request as | `SameSite` |
+| --- | --- | --- |
+| `lax` (default) | same-origin or same-site (`Sec-Fetch-Site: same-origin` or `same-site`) | `Lax` |
+| `lax` (default) | cross-site (`Sec-Fetch-Site: cross-site`) | `None` |
+| `lax` (default) | any other value, or no `Sec-Fetch-Site` header | `Lax` |
+| `none` | anything | `None` |
+| `strict` | anything | `Strict` |
+
+- A browser sets `Sec-Fetch-Site` itself and a page cannot set it. The rule exists because a browser refuses a `SameSite=Lax` cookie that arrives in a cross-site response: with the frontend on one site calling the API directly on another, a `Lax` cookie is not kept and the request after the sign-in is answered 401.
+- `POST /api/auth/logout` clears the cookie with the same attributes, decided from the sign-out request in the same way.
+- `COOKIE_SAMESITE=strict` logs a `config.warning` at start-up: signing in then works only when the frontend and the API are on the same site.
+- With the frontend and the API on different sites the session cookie is a third-party cookie. Browsers that block third-party cookies (Safari and other WebKit browsers by default, Brave, Chrome in Incognito or with the setting switched on) may refuse it even with `SameSite=None`. The `Partitioned` attribute is meant to keep the cookie working where the browser supports it, and that was not verified in those browsers. A deployment in which the frontend host forwards `/api` to this API makes the cookie first-party and does not have this limit (`backend/README.md`, "Frontend on Vercel, and how it reaches the API").
+- The request header and origin checks of section 1.4 do not depend on `SameSite` and apply in every case.
 
 The token is 32 random bytes. The database stores an HMAC-SHA256 of it keyed with `SESSION_SECRET`, never the token itself. A session ends at its fixed expiry time (it is not extended by activity), at sign-out, or when it is revoked (section 2.4). MongoDB removes expired sessions through a TTL index.
 
@@ -203,7 +223,7 @@ Public. Needs `X-Requested-With`. Rate limited (section 2.5).
 }
 ```
 
-The response also sets the session cookie. Errors:
+The response also sets the session cookie, with the attributes of section 2.1. No token is in the body. Errors:
 
 - 401 `UNAUTHENTICATED`, message "The email or password is not correct. After five wrong attempts, sign-in for an account pauses for fifteen minutes.", for an unknown email, a wrong password, a disabled account and a paused account alike (section 2.3). The status, code and message are the same in all four cases, so the answer does not show whether an email has an account.
 - 429 `RATE_LIMITED` when the per-IP limit is reached.
@@ -212,7 +232,7 @@ The response also sets the session cookie. Errors:
 
 #### POST /api/auth/logout
 
-Signed-in users. Deletes the session on the server and clears the cookie.
+Signed-in users. Deletes the session on the server and clears the cookie, with the same attributes the sign-in sets (section 2.1).
 
 ```json
 { "success": true, "data": { "signedOut": true } }
@@ -258,7 +278,7 @@ A session is also rejected, and deleted, when its user no longer exists or is di
 
 ### 2.5 Rate limits
 
-Counted in memory, per server instance. Every limiter counts per client IP address, except the AI comparison limiter, which counts per signed-in user.
+Counted in memory, per server instance. Every limiter counts per client IP address, except the AI limiter, which counts per signed-in user. `GET /health` and `GET /ready` are outside `/api` and are answered before any limiter, so they are never rate limited.
 
 | Limiter | Applies to | Limit |
 | --- | --- | --- |
@@ -268,13 +288,13 @@ Counted in memory, per server instance. Every limiter counts per client IP addre
 | Public forms | The four submission endpoints together | 8 requests per 10 minutes |
 | Uploads | `POST /api/admin/media` | 60 requests per 10 minutes |
 | Downloads | The signed link endpoints and `GET /api/files/local/:token` | 120 requests per 10 minutes |
-| AI comparison | `POST /api/admin/ats-results/:id/ai-comparison` | 20 requests per 10 minutes, per signed-in user |
+| AI | The three AI routes together: `POST /api/admin/ats-results/:id/ai-comparison`, `POST /api/admin/jobs/:id/requirement-profile/ai-draft` and `POST /api/admin/jobs/:id/candidate-comparison` | 20 requests per 10 minutes, per signed-in user |
 
 Over the limit the response is 429 `RATE_LIMITED`. Standard `RateLimit` headers (draft 7) are sent. The limiters are skipped when `NODE_ENV=test` unless a test sets `RATE_LIMIT_IN_TESTS=1`.
 
 For the sign-in and password-change limiters only requests that end in an error (a status of 400 or above) are counted, so people who sign in normally from a shared address do not use up the limit. The per-account pause of section 2.3 is the second guard against guessing one account from many addresses.
 
-The AI comparison limiter is low because every comparison is a paid request to OpenAI. Its key is the id of the signed-in user, so two users behind one address each have their own count. It runs after the session check and before the permission check, and it counts requests, not comparisons: a request that is then refused or fails (403, 404, 409, 502, 503) is counted too.
+The AI limiter is low because every AI action is a paid request to OpenAI. The three AI routes share one count. Its key is the id of the signed-in user, so two users behind one address each have their own count. It runs after the session check and before the permission check, and it counts requests to the three routes, not requests that reached OpenAI: a request that is then refused or fails (400, 403, 404, 409, 502, 503) is counted too.
 
 Confirmation emails have their own cap, per recipient address and not per IP (section 6).
 
@@ -328,7 +348,7 @@ In short:
 
 Shortlisting has its own permission, `applications:shortlist`, because it changes an application's status and emails the candidate. `applications:write` alone does not allow it.
 
-`ats:run` covers both running the rule-based evaluation and starting an AI comparison (section 7.8). `ats:read` is enough to read a stored AI comparison, so a hiring manager can read one and cannot start one.
+`ats:run` covers running the rule-based evaluation (for one candidate, or again for every result of a job), starting either AI comparison (section 7.8) and reading the AI usage estimate (section 7.15). The AI draft of a requirement profile needs `ats:run` and `jobs:write` together (section 7.2). `ats:read` is enough to read a stored AI comparison, of one candidate or of several, so a hiring manager can read one and cannot start one. Saving or removing a job's requirement profile needs `jobs:write`.
 
 To change what a role can do, edit `ROLE_PERMISSIONS`. Nothing else needs to change.
 
@@ -336,9 +356,35 @@ To change what a role can do, edit `ROLE_PERMISSIONS`. Nothing else needs to cha
 
 ## 4. Health
 
+Three endpoints, all public. None needs a sign-in, a cookie or a request header, and none returns data about the system. The first two are outside `/api`: they do not use the response shape of section 1.2, they are answered before CORS, the rate limiters and the body parsers (`src/app.js`), and both are sent with `Cache-Control: no-store`.
+
+#### GET /health
+
+Liveness: is the process up. It needs no database and no other service, so it answers 200 whenever the process can answer at all. The body is fixed:
+
+```json
+{ "status": "ok", "service": "allsemis-api" }
+```
+
+It holds no version, no host name and no configuration. It is the endpoint for an uptime monitor. In production: `https://allsemi-backend.onrender.com/health`.
+
+#### GET /ready
+
+Readiness: can the process serve requests that need the database. 200 when the database connection is up:
+
+```json
+{ "status": "ready", "service": "allsemis-api" }
+```
+
+503 when it is not:
+
+```json
+{ "status": "unavailable", "service": "allsemis-api" }
+```
+
 #### GET /api/health
 
-Public. For the host's health check. Returns no data about the system.
+Unchanged. For the host's health check.
 
 ```json
 { "success": true, "data": { "status": "ok" } }
@@ -349,6 +395,8 @@ When the database connection is down the status is 503 and the body is the stand
 ```json
 { "success": false, "error": { "code": "DATABASE_UNAVAILABLE", "message": "The database is not reachable." } }
 ```
+
+The host's health check path (Render) can stay `/api/health` or be set to `/ready`: both answer 503 while the database connection is down. An uptime monitor should use `/health`.
 
 ---
 
@@ -390,6 +438,8 @@ Published jobs, featured first, then newest `publishedAt` first. At most 500.
 ```
 
 Dates are `YYYY-MM-DD` strings here.
+
+A job's requirement profile and its stored comparison of several candidates (sections 7.2 and 7.8) are for staff. They are not in the field list of the public job, so neither public job endpoint ever returns them.
 
 #### GET /api/public/jobs/:slug
 
@@ -586,7 +636,7 @@ Behaviour:
 - **A public submission never changes an existing candidate.** The form is not signed in and an email address is not a secret, so when a candidate with this email already exists the record is left exactly as it is: no empty field is filled in, no skills are merged, the name and `consentAt` are not touched, the resume on the profile is not replaced and no stored file is deleted. A recruiter sees the new application beside the existing profile and updates the profile in the admin if the details are right.
 - **Every submission creates a new application.** No earlier application is ever edited. The new application stores the message, its own resume and `submittedProfile`: the `name`, `phone`, `location`, `preferredLocation`, `headline`, `domain`, `experienceYears`, `skills`, `noticePeriod`, `expectedCompensation` and `profileUrl` as they were typed into the form for this application. A repeat for the same job (or a second general application) is still a new row, whatever the status or labels of the earlier one. It is only flagged in the audit metadata as `repeat: true`.
 - **An application always starts as `NEW`, with no labels and no shortlist details.** Nothing sent through the form can change that: a `status`, `labels` or `shortlist` value in the submission is dropped, and a new candidate record starts with no labels. An application never triggers the shortlist email. Only the shortlist action of a signed-in user changes the status (section 7.4).
-- With a job, the rule-based ATS runs for the candidate and the job straight away (section 9), but only when no ATS result exists yet for that candidate and job. A later public submission does not run it again and does not point the existing result at the new application, so a result a recruiter may already have reviewed is replaced only when staff run the evaluation themselves. If the evaluation fails, the application still stands and the failure is logged. The evaluation changes nothing on the application: it stays `NEW`. A submission never starts an AI comparison (section 9.6).
+- With a job, the rule-based ATS runs for the candidate and the job straight away (section 9), against the job's requirement profile when it has one, but only when no ATS result exists yet for that candidate and job. A later public submission does not run it again and does not point the existing result at the new application, so a result a recruiter may already have reviewed is replaced only when staff run the evaluation themselves. If the evaluation fails, the application still stands and the failure is logged. The evaluation changes nothing on the application: it stays `NEW`. A submission never calls a model: no AI action starts by itself (section 9.6).
 - The team notification shows the details submitted with this application and says when the address already had a candidate record (and that the existing profile was not changed).
 - Audit action: `application.submitted`, with metadata `candidateId`, `newCandidate` and `repeat`.
 
@@ -672,6 +722,11 @@ Any signed-in user. Returns the role and permission table for the admin UI.
 | `POST /api/admin/jobs` | `jobs:write` |
 | `PATCH /api/admin/jobs/:id` | `jobs:write` |
 | `DELETE /api/admin/jobs/:id` | `jobs:delete` |
+| `PUT /api/admin/jobs/:id/requirement-profile` | `jobs:write` |
+| `DELETE /api/admin/jobs/:id/requirement-profile` | `jobs:write` |
+| `POST /api/admin/jobs/:id/requirement-profile/ai-draft` | `jobs:write` and `ats:run` |
+
+The last three are described under "The requirement profile of a job" at the end of this section. Three more routes under `/api/admin/jobs/:id` belong to the ATS and are in section 7.8: `POST .../ats/re-run`, and `GET` and `POST .../candidate-comparison`.
 
 List: search fields `title`, `category`, `department`, `location`. Filters `status` (`draft`, `published`, `archived`) and `category`. Sortable `createdAt`, `updatedAt`, `title`, `publishedAt`. Default order `-updatedAt`.
 
@@ -719,7 +774,8 @@ Body for create. `PATCH` takes the same fields, all optional, and changes only t
     "applicationEnabled": true,
     "publishedAt": null,
     "createdAt": "2026-10-04T10:00:00.000Z",
-    "updatedAt": "2026-10-04T10:00:00.000Z"
+    "updatedAt": "2026-10-04T10:00:00.000Z",
+    "requirementProfile": null
   }
 }
 ```
@@ -735,6 +791,158 @@ Notable behaviour:
 - Only `published` jobs appear on the public endpoints. Moving a job back to `draft` or to `archived` removes it from them.
 - `createdBy` and `updatedBy` are recorded on the server and are not returned.
 - A job that has applications cannot be deleted: `DELETE` answers 409 `CONFLICT` ("Archive it instead of deleting it."). Set its status to `archived` instead. Deleting a job that has no applications removes the job and any ATS results stored for it.
+- `requirementProfile` is always present on a job returned by the admin API, in the list and on its own: `null`, or the profile described below. It is not a field of `POST` or `PATCH`: a `requirementProfile` sent with either is dropped like any other unknown field. It is changed only through its own routes.
+- A stored comparison of several candidates (section 7.8) is kept on the job document and is never returned with the job. It is read through its own endpoint.
+
+#### The requirement profile of a job
+
+A requirement profile is a structured list of what one job asks for: skills, tools, domains, experience, education, certifications, seniority, location, work arrangement, responsibilities and other conditions, with optional weights for the rule-based score. A recruiter writes it. The model can draft one from the job's own text when a recruiter asks, and a draft is stored only after a recruiter has read it and saved it.
+
+- **It is optional.** A job without one is evaluated by the rule-based ATS exactly as before, with the baseline weights. A job with one is evaluated against it (section 9.1), and the two AI comparisons are given it as the list of requirements (sections 9.6 and 9.8).
+- **It is for staff only.** It is never part of the public API (section 5).
+- **Saving or removing it does not change the job's `updatedAt`**, which is the "updated" date a visitor sees on the job. `updatedBy` is not changed either.
+- **Saving or removing it does not run the rules again.** ATS results that already exist keep their scores until the rules are run again, with `POST /api/admin/jobs/:id/ats/re-run` for every result of the job or with `POST /api/admin/ats/run` for one (section 7.8). An evaluation made after the save uses the profile.
+- The publish rule of the job routes above is not applied here: the profile is not part of what is published, so `jobs:write` is enough on a published job as well.
+
+`requirementProfile` as it is returned:
+
+| Field | Type | Rules and meaning |
+| --- | --- | --- |
+| `requiredSkills` | string list | At most 40 items of at most 80 characters. The technical skills the job requires. |
+| `preferredSkills` | string list | Same limits. The technical skills the job prefers. |
+| `tools` | string list | Same limits. Tools and technologies. |
+| `domains` | string list | Same limits. Industries or application areas. |
+| `requiredExperience` | string | Multi-line. At most 400. The experience the job requires, in words. |
+| `minYears` | number or null | 0 to 50. The minimum years of experience. `null` when not given. |
+| `preferredExperience` | string | Multi-line. At most 400. Experience the job prefers. |
+| `preferredYears` | number or null | 0 to 50. The preferred years of experience. `null` when not given. |
+| `education` | line list | At most 20 items of at most 300 characters. Degrees or fields of study. |
+| `certifications` | line list | Same limits. Certifications or licences. |
+| `seniority` | string | At most 120. |
+| `location` | string | At most 120. Where the role is based. |
+| `workArrangement` | string | Empty, `ON_SITE`, `HYBRID` or `REMOTE`. |
+| `responsibilities` | line list | At most 20 items of at most 300 characters. The key responsibilities. |
+| `niceToHave` | line list | Same limits. Anything else that is a bonus and not a skill. |
+| `constraints` | line list | Same limits. Other explicit conditions of the job. |
+| `weights` | object or null | The job's own weights for the rule-based score: `{ skills, experience, preferredSkills, tools, domain, location, completeness }`, each a whole number from 0 to 100, not all 0. They do not have to add up to 100: the score is worked out from their proportions. `null` means the profile default weights (section 9.1). |
+| `source` | string | Set by the server. `MANUAL`: typed by a recruiter. `AI_REVIEWED`: filled from an AI draft, then read and saved by a recruiter. |
+| `model` | string or null | Set by the server. The model name of the draft when `source` is `AI_REVIEWED`, otherwise `null`. |
+| `savedAt` | date | Set by the server. When the profile was last saved. |
+| `savedByName` | string | Set by the server. The name of the user who saved it. That user's id is kept on the server and is not returned. |
+
+How each field is used by the rule-based ATS, and which fields are listed without being scored, is in section 9.1. The limits are `REQUIREMENT_PROFILE_LIMITS` in `src/config/constants.js`.
+
+**PUT /api/admin/jobs/:id/requirement-profile** saves the profile. Permission `jobs:write`. The body holds the first seventeen fields of the table, all optional, and two more:
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `fromAiDraft` | boolean | Optional. Default `false`. `true` says the form was filled from an AI draft before the recruiter saved it: the profile is then stored with `source: "AI_REVIEWED"`. It changes nothing else. |
+| `aiModel` | string | Optional. At most 100. The `model` the draft endpoint returned. It is stored only when `fromAiDraft` is `true`. |
+
+- The save replaces the whole profile. A field that is left out is saved empty (an empty list, an empty text, `null` for a number and for `weights`).
+- The lists follow the list rules of section 1.6: an array of strings, or one string that is split (string lists on commas and line breaks, line lists on line breaks).
+- In `weights`, a key that is not one of the seven is a validation error, a key that is left out counts as 0, and weights that are all 0 are refused ("Give at least one part a weight above 0.").
+- `source`, `model`, `savedAt` and `savedByName` cannot be sent: they are dropped like any other unknown field.
+- Errors: 400 `BAD_REQUEST` for an id that is not valid, 400 `VALIDATION_ERROR` for the body, 404 `NOT_FOUND` when the job does not exist.
+- Audit action: `job.requirements_saved` (section 10.2).
+
+Returns 200 with the saved profile and how the job is scored now:
+
+```json
+{
+  "success": true,
+  "data": {
+    "requirementProfile": {
+      "requiredSkills": ["SystemVerilog", "UVM"],
+      "preferredSkills": ["Python"],
+      "tools": ["VCS"],
+      "domains": ["Semiconductor"],
+      "requiredExperience": "",
+      "minYears": 5,
+      "preferredExperience": "",
+      "preferredYears": null,
+      "education": [],
+      "certifications": [],
+      "seniority": "",
+      "location": "",
+      "workArrangement": "",
+      "responsibilities": [],
+      "niceToHave": [],
+      "constraints": [],
+      "weights": null,
+      "source": "MANUAL",
+      "model": null,
+      "savedAt": "2026-10-06T10:00:00.000Z",
+      "savedByName": "Sample Recruiter"
+    },
+    "scoring": {
+      "weights": { "skills": 40, "experience": 20, "preferredSkills": 10, "tools": 10, "domain": 10, "location": 5, "completeness": 5 },
+      "source": "PROFILE",
+      "baseline": { "skills": 45, "experience": 20, "preferredSkills": 10, "domain": 10, "location": 10, "completeness": 5 },
+      "profileDefaults": { "skills": 40, "experience": 20, "preferredSkills": 10, "tools": 10, "domain": 10, "location": 5, "completeness": 5 }
+    }
+  }
+}
+```
+
+`scoring.weights` are the weights the rules use for this job now, and `scoring.source` says where they come from: `BASELINE` (the job has no profile), `PROFILE` (a profile without weights of its own, so the profile default weights) or `JOB` (the weights saved in the profile). `baseline` and `profileDefaults` are the two fixed sets, for the editor to show.
+
+**DELETE /api/admin/jobs/:id/requirement-profile** removes the profile. Permission `jobs:write`. Returns 200 with `{ "requirementProfile": null, "scoring": { ... } }`, where `scoring.source` is `BASELINE`. A job that has no profile gets the same answer, and then nothing is written and no audit entry is made. Errors: 400 `BAD_REQUEST` for an id that is not valid, 404 `NOT_FOUND` when the job does not exist. Audit action: `job.requirements_removed`.
+
+**POST /api/admin/jobs/:id/requirement-profile/ai-draft** is "Draft with AI". It asks OpenAI to turn the job's own text into a draft requirement profile and returns the draft. **It stores nothing.** The job keeps the profile it had, or none, until a recruiter saves one with the `PUT` above. It needs `jobs:write` and `ats:run` together, takes no request body, and runs only when a signed-in user calls it. Section 9.7 describes what is sent to OpenAI.
+
+The checks run in this order, and the first one that fails gives the answer:
+
+1. The checks every admin route has: the general API rate limit, the `X-Requested-With` header and the origin (403), a valid session (401), and a password that is no longer temporary (403 `PASSWORD_CHANGE_REQUIRED`).
+2. The AI rate limit: 20 requests per 10 minutes per signed-in user, shared by the three AI routes (429 `RATE_LIMITED`, section 2.5).
+3. The `jobs:write` and `ats:run` permissions (403 `FORBIDDEN`).
+4. The id in the URL is a valid id (400 `BAD_REQUEST`).
+5. `OPENAI_API_KEY` and `OPENAI_MODEL` are both set (503 `AI_NOT_CONFIGURED`).
+6. No draft is already running for this job in this server process (409 `AI_IN_PROGRESS`).
+7. The job exists (404 `NOT_FOUND`).
+8. The job has a description, a summary or at least one responsibility to draft from (400 `BAD_REQUEST`).
+9. One request goes to OpenAI. There is no retry. A quota or billing refusal answers 503 `AI_QUOTA_EXCEEDED`, any other failure 502 `AI_FAILED`, and an answer that does not pass validation 502 `AI_INVALID_RESPONSE`.
+10. The audit entry `job.requirements_ai_drafted` is written (section 10.2).
+
+Returns 200:
+
+```json
+{
+  "success": true,
+  "data": {
+    "draft": {
+      "requiredSkills": ["SystemVerilog", "UVM"],
+      "preferredSkills": ["Python"],
+      "tools": [],
+      "domains": ["Semiconductor"],
+      "requiredExperience": "Block-level verification experience.",
+      "minYears": 5,
+      "preferredExperience": "",
+      "preferredYears": null,
+      "education": [],
+      "certifications": [],
+      "seniority": "",
+      "location": "Bangalore",
+      "workArrangement": "",
+      "responsibilities": ["Own the verification plan"],
+      "niceToHave": [],
+      "constraints": [],
+      "weights": { "skills": 45, "experience": 20, "preferredSkills": 10, "tools": 0, "domain": 10, "location": 10, "completeness": 5 },
+      "uncertainties": ["The description does not say whether the role is on site."]
+    },
+    "model": "<the-model-name-openai-reported>",
+    "saved": false
+  }
+}
+```
+
+The text of the example is made up to show the shape. It is not the output of a real model.
+
+- `draft` holds the sixteen requirement fields of the profile, with the same limits, and two more. `weights` are the weights the model suggests, each a whole number from 0 to 100, or `null` when the suggested weights add up to 0. `uncertainties` (at most 20 items of at most 300 characters) lists what the description leaves vague, contradictory or unsaid, for the recruiter to settle before saving. `uncertainties` is not part of a stored profile.
+- `minYears` and `preferredYears` are whole numbers from 0 to 50, or `null` when the job's text states no number. `workArrangement` is empty when the text does not state one.
+- `saved` is always `false`.
+- To keep a draft, the recruiter reads it, corrects it and sends it with the `PUT` above, with `fromAiDraft: true` and the returned `model` as `aiModel`.
+- The request stays open until OpenAI answers or 60 seconds have passed.
 
 ### 7.3 Candidates
 
@@ -1125,8 +1333,12 @@ The object: `id`, `name`, `email`, `phone`, `company`, `type`, `subject`, `messa
 | `POST /api/admin/ats/run` | `ats:run` |
 | `PATCH /api/admin/ats-results/:id/review` | `ats:review` |
 | `POST /api/admin/ats-results/:id/ai-comparison` | `ats:run` |
+| `POST /api/admin/jobs/:id/ats/re-run` | `ats:run` |
+| `GET /api/admin/jobs/:id/candidate-comparison` | `ats:read` |
+| `POST /api/admin/jobs/:id/candidate-comparison` | `ats:run` |
+| `GET /api/admin/ai/usage` | `ats:run` |
 
-Section 9 explains the engine and the AI comparison.
+Section 9 explains the engine, the three AI actions and the usage ledger. The requirement profile of a job is in section 7.2.
 
 **GET /api/admin/ats/engine** describes the engine so the admin can label it truthfully, and says whether the AI comparison can be used on this server.
 
@@ -1136,14 +1348,18 @@ Section 9 explains the engine and the AI comparison.
   "data": {
     "engine": "RULE_BASED",
     "label": "RULE-BASED ATS",
-    "version": "1",
+    "version": "2",
     "weights": { "skills": 45, "experience": 20, "preferredSkills": 10, "domain": 10, "location": 10, "completeness": 5 },
+    "profileWeights": { "skills": 40, "experience": 20, "preferredSkills": 10, "tools": 10, "domain": 10, "location": 5, "completeness": 5 },
+    "weightKeys": ["skills", "experience", "preferredSkills", "tools", "domain", "location", "completeness"],
     "ai": { "available": true, "keyConfigured": true, "model": "<your-openai-model>", "reason": "AI comparison is available. It is advisory and runs only when a recruiter asks for it." }
   }
 }
 ```
 
-`ai` is the status of the AI comparison (`aiStatus()` in `src/services/aiService.js`). `GET /api/admin/settings` returns the same object as `system.ai` (section 7.11).
+`weights` is the baseline: the weights of every job without a requirement profile. `profileWeights` is what a job with a profile starts from until it has weights of its own, and `weightKeys` lists the parts a job can weight (section 9.1).
+
+`ai` is the status of the AI actions (`aiStatus()` in `src/services/aiService.js`). `GET /api/admin/settings` returns the same object as `system.ai` (section 7.11).
 
 | Field | Type | Meaning |
 | --- | --- | --- |
@@ -1184,21 +1400,26 @@ Returns 201 with the result. With `applicationId`, the candidate and job are tak
     "jobId": "665f1c2e9b3a4d0012ab34aa",
     "applicationId": null,
     "engine": "RULE_BASED",
-    "engineVersion": "1",
+    "engineVersion": "2",
     "totalScore": 84,
     "skillScore": 75,
     "preferredSkillScore": 50,
+    "toolScore": null,
     "experienceScore": 100,
     "domainScore": 100,
     "locationScore": 100,
     "completenessScore": 100,
     "weights": { "skills": 45, "experience": 20, "preferredSkills": 10, "domain": 10, "location": 10, "completeness": 5 },
+    "weightSource": "BASELINE",
+    "usedRequirementProfile": false,
     "band": "Good match",
     "requiredSkills": ["SystemVerilog", "UVM", "Functional Coverage", "Assertions"],
     "matchedSkills": ["SystemVerilog", "UVM", "Functional Coverage"],
     "missingSkills": ["Assertions"],
     "preferredMatched": ["Python"],
     "preferredMissing": ["Formal Verification"],
+    "toolsMatched": [],
+    "toolsMissing": [],
     "checks": [
       { "rule": "Required skills", "result": "review", "detail": "3 of 4 required skills found by name.", "score": 75, "weight": 45 }
     ],
@@ -1210,6 +1431,10 @@ Returns 201 with the result. With `applicationId`, the candidate and job are tak
 }
 ```
 
+`weights` holds the weights this result was scored with (only the parts that applied). `weightSource` says where they came from: `BASELINE` (the job has no requirement profile), `PROFILE` (it has one, with the default weights of a profile) or `JOB` (the profile carries the job's own weights). `usedRequirementProfile` is `true` for the last two. `toolScore`, `toolsMatched` and `toolsMissing` are filled only for a job whose profile lists tools. A check that is listed and not scored has `score` and `weight` `null`. A check whose part has weight 0 for the job has `weight` 0.
+
+**POST /api/admin/jobs/:id/ats/re-run** runs the rules again for every ATS result the job already has, for example after its requirement profile changed. No body. It is rule based only: no model is called, no result is created, and no application, candidate, label, review or stored AI comparison is changed. Returns `{ "evaluated": 3, "total": 3 }`. A result whose candidate no longer exists is left as it is and is not counted in `evaluated`. Audit entry `ats.job_reevaluated`.
+
 **PATCH /api/admin/ats-results/:id/review** records a person's decision on the result.
 
 | Field | Type | Rules |
@@ -1219,7 +1444,7 @@ Returns 201 with the result. With `applicationId`, the candidate and job are tak
 
 Returns the result with `review` updated (`state`, `note`, `reviewerName`, `updatedAt`). The review states are a note on the result and nothing else. Neither running an evaluation nor reviewing one changes an application: not its status and not its labels. A review of `ADVANCE` does not shortlist and a review of `REJECT` does not label. Shortlisting is always the separate action of a signed-in user (section 7.4).
 
-**POST /api/admin/ats-results/:id/ai-comparison** is "Compare with AI". It asks OpenAI for an advisory comparison of the candidate and the job of one existing ATS result, validates the answer and stores it in `aiComparison` on that result. It is the only route that calls a model, and it runs only when a signed-in user with `ats:run` calls it. `:id` is the id of the ATS result. There is no request body: the server reads the candidate, the job and the linked application itself. Section 9.6 describes what is sent to OpenAI and what is not.
+**POST /api/admin/ats-results/:id/ai-comparison** is "Compare with AI". It asks OpenAI for an advisory comparison of the candidate and the job of one existing ATS result, validates the answer and stores it in `aiComparison` on that result. It is one of the three routes that call a model (the others are the requirement profile draft of section 7.2 and the comparison of several candidates below), and it runs only when a signed-in user with `ats:run` calls it. `:id` is the id of the ATS result. There is no request body: the server reads the candidate, the job and the linked application itself. Section 9.6 describes what is sent to OpenAI and what is not.
 
 The checks run in this order, and the first one that fails gives the answer:
 
@@ -1230,7 +1455,7 @@ The checks run in this order, and the first one that fails gives the answer:
 5. `OPENAI_API_KEY` and `OPENAI_MODEL` are both set (503 `AI_NOT_CONFIGURED`). This comes before anything is read from the database, so nothing is loaded or sent when AI is not set up.
 6. No comparison is already running for this result (409 `AI_IN_PROGRESS`).
 7. The result exists, and so do its candidate and its job (404 `NOT_FOUND`).
-8. One request goes to OpenAI. A failure answers 502 `AI_FAILED`. An answer that does not pass validation answers 502 `AI_INVALID_RESPONSE`.
+8. One request goes to OpenAI. A quota or billing refusal answers 503 `AI_QUOTA_EXCEEDED`, any other failure 502 `AI_FAILED`, and an answer that does not pass validation 502 `AI_INVALID_RESPONSE`. Whatever the outcome, the request is written to the usage ledger (section 9.9).
 9. The validated answer is written to `aiComparison` on the result, and to no other field. If the result was deleted while the comparison ran (for example with its candidate), the answer is 404 and the result is not created again.
 10. The audit entry `ats.ai_compared` is written (section 10.2).
 
@@ -1253,6 +1478,14 @@ Returns 200 with the whole ATS result, including the new `aiComparison`. The rul
     "aiComparison": {
       "overallMatch": 72,
       "summary": "The stated skills cover most of what the role asks for.",
+      "strongMatches": ["UVM testbench work is stated"],
+      "partialMatches": ["Coverage closure is mentioned without detail"],
+      "missingRequirements": ["Formal verification is not stated"],
+      "domainRelevance": "The stated domain is semiconductor verification, which is the domain of the role.",
+      "transferableSkills": ["Python scripting carries over to regression tooling"],
+      "evidence": [{ "requirement": "UVM", "evidence": "Lists UVM among the skills and describes block-level testbench work." }],
+      "uncertainties": ["Whether the coverage closure was owned or assisted is not stated: ask in the interview."],
+      "usedRequirementProfile": false,
       "matchedSkills": ["UVM", "SystemVerilog"],
       "missingSkills": ["Formal Verification"],
       "relevantExperience": "Six years of block-level verification are stated.",
@@ -1269,12 +1502,19 @@ Returns 200 with the whole ATS result, including the new `aiComparison`. The rul
 }
 ```
 
-`aiComparison` is `null` until a comparison has been stored, and then holds ten fields from the model's answer and three the server adds:
+`aiComparison` is `null` until a comparison has been stored, and then holds seventeen fields from the model's answer and four the server adds:
 
 | Field | Type | Limits and meaning |
 | --- | --- | --- |
 | `overallMatch` | whole number | 0 to 100. The model's estimate of how well the stated profile meets the stated requirements of the job. It is not the rule-based `totalScore` and does not change it. |
-| `summary` | string | At most 1200 characters. How the candidate compares with the job. |
+| `summary` | string | At most 1200 characters. How the candidate compares with the job. With `overallMatch` this is the overall fit. |
+| `strongMatches` | string list | At most 10 items of at most 300 characters. Requirements the candidate data clearly meets. |
+| `partialMatches` | string list | At most 10 items of at most 300 characters. Requirements met in part or only by a related skill, with what is missing. |
+| `missingRequirements` | string list | At most 10 items of at most 300 characters. Requirements the candidate data does not state. |
+| `domainRelevance` | string | At most 800 characters. How the stated domain and industry experience relate to the job's. |
+| `transferableSkills` | string list | At most 10 items of at most 300 characters. Stated skills or experience that would carry over, with the requirement they relate to. |
+| `evidence` | list of `{ requirement, evidence }` | At most 12 items. `requirement` at most 160 characters, `evidence` at most 300. What the candidate data states that supports the reading of a requirement. It comes from the typed profile and the cover note: the resume file is not read (section 9.6). |
+| `uncertainties` | string list | At most 10 items of at most 300 characters. What the model could not judge from the data, with what the recruiter could ask or check. |
 | `matchedSkills` | string list | At most 60 items of at most 80 characters. Skills the job asks for that the candidate data states. |
 | `missingSkills` | string list | At most 60 items of at most 80 characters. Skills the job asks for that the candidate data does not state. |
 | `relevantExperience` | string | At most 1200 characters. |
@@ -1283,6 +1523,7 @@ Returns 200 with the whole ATS result, including the new `aiComparison`. The rul
 | `strengths` | string list | At most 10 items of at most 300 characters. |
 | `concerns` | string list | At most 10 items of at most 300 characters. Points the recruiter may want to check. |
 | `recommendation` | string | At most 800 characters. Advice on what to check or do next. It is not a decision. |
+| `usedRequirementProfile` | boolean | Added by the server. Whether the job had a requirement profile when the comparison ran, and so whether the analysis was made against it. |
 | `model` | string | Added by the server. At most 100 characters. The model name OpenAI reported in its answer, or the value of `OPENAI_MODEL` when the answer names none. |
 | `comparedAt` | date | Added by the server. When the comparison was stored. |
 | `comparedByName` | string | Added by the server. The name of the user who asked. That user's id is kept on the server and is not returned. |
@@ -1291,7 +1532,8 @@ The limits are `AI_COMPARISON_LIMITS` in `src/config/constants.js`. `matchedSkil
 
 How the answer is validated before anything is stored:
 
-- It must be a JSON object with exactly the ten keys of the first ten rows. A missing key, an extra key or a value of the wrong type makes the whole answer invalid.
+- It must be a JSON object with exactly the seventeen keys of the first seventeen rows. A missing key, an extra key or a value of the wrong type makes the whole answer invalid.
+- A comparison stored before the seven newer fields existed (`strongMatches`, `partialMatches`, `missingRequirements`, `domainRelevance`, `transferableSkills`, `evidence`, `uncertainties`) is returned with those lists empty and `domainRelevance` `""`.
 - `overallMatch` must be a number from 0 to 100. A decimal is rounded. A number outside that range, a string or `null` makes the answer invalid.
 - A text is cleaned like any other text (section 1.6: control characters, HTML tags and angle brackets removed, whitespace collapsed) and cut to its limit. A text that is empty after cleaning makes the answer invalid.
 - A list is cleaned item by item: each item is cut to its length, empty items and repeats (compared without regard to case) are dropped, and the list keeps its first items up to the limit.
@@ -1321,6 +1563,97 @@ Errors of this endpoint:
 | 502 | `AI_FAILED` | OpenAI could not be reached, did not answer within 60 seconds or answered with an error status. The message says which kind it was in the API's own words: a general failure, credentials that OpenAI did not accept (its 401 or 403), a model name it does not know (its 404), a busy service or a usage limit (its 429), or an answer that took too long. OpenAI's own error text is never passed on. |
 | 502 | `AI_INVALID_RESPONSE` | OpenAI answered, and the answer did not pass the validation above. |
 | 503 | `AI_NOT_CONFIGURED` | `OPENAI_API_KEY` or `OPENAI_MODEL` is not set. |
+| 503 | `AI_QUOTA_EXCEEDED` | OpenAI refused the request because the account has no credit left, has reached its spend limit or has no active billing. Nothing is retried and nothing is stored. |
+
+#### Comparing several candidates of one job
+
+**POST /api/admin/jobs/:id/candidate-comparison** is "Compare candidates with AI". A recruiter chooses two to five evaluated candidates of one job, and OpenAI is asked once for an advisory comparison of them with each other, against the same requirements. Permission `ats:run`, behind the same AI rate limit (20 requests per 10 minutes per signed-in user, shared by the three AI routes). `:id` is the id of the job.
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `resultIds` | list of ids | Required. Two to five ids of ATS results of this job, each once, each for a different candidate. |
+
+- Fewer than two ids, more than five or a repeated id answers 400 `VALIDATION_ERROR`. A result that is not an evaluation of this job answers 400 `BAD_REQUEST`. Neither sends anything to OpenAI.
+- The candidates are sent under the labels "Candidate A", "Candidate B" and so on, in the order chosen, each reduced and scrubbed exactly as for the single comparison (section 9.6): no name, email address, phone number or link. The job is sent with its requirement profile when it has one.
+- The answer must hold exactly one entry for every label that was sent. An answer that drops a candidate, repeats a label, names a candidate that was not sent or carries any other key is refused whole (502 `AI_INVALID_RESPONSE`) and the comparison stored before stays.
+- The validated answer is stored on the job and replaces the one stored before. One comparison is kept per job. It holds ids, not names, and it is removed when one of its candidates is deleted.
+- That one field is all that is written. No application, candidate, label, shortlist, review or ATS result is changed. The model is told not to say who should be chosen, and whatever it writes is text for the recruiter.
+- A second request for the same job while one is running answers 409 `AI_IN_PROGRESS`. The errors are those of the single comparison.
+- Audit entry `ats.ai_candidates_compared` (section 10.2).
+
+Returns 200 with `{ "comparison": { ... } }`. **GET /api/admin/jobs/:id/candidate-comparison** (permission `ats:read`) returns the stored comparison in the same shape, or `{ "comparison": null }`. Reading it calls no model.
+
+```json
+{
+  "success": true,
+  "data": {
+    "comparison": {
+      "jobId": "665f1c2e9b3a4d0012ab34aa",
+      "summary": "Candidate A states more of what the role asks for than Candidate B.",
+      "candidates": [
+        {
+          "resultId": "665f1c2e9b3a4d0012ab34cf",
+          "candidateId": "665f1c2e9b3a4d0012ab34cd",
+          "applicationId": "665f1c2e9b3a4d0012ab34ce",
+          "candidateName": "Sample Candidate",
+          "label": "Candidate A",
+          "overallFit": 80,
+          "standing": "States the required verification skills and the years the role asks for.",
+          "strengths": ["UVM"],
+          "gaps": [],
+          "transferableSkills": [],
+          "uncertainties": []
+        }
+      ],
+      "requirements": [{ "requirement": "UVM", "comparison": "Candidate A states it. Candidate B does not." }],
+      "considerations": ["Check the formal verification experience of both."],
+      "usedRequirementProfile": true,
+      "model": "<the-model-name-openai-reported>",
+      "comparedAt": "2026-10-06T10:00:00.000Z",
+      "comparedByName": "Sample Recruiter"
+    }
+  }
+}
+```
+
+`candidateName` is looked up when the comparison is read. `overallFit` is a whole number from 0 to 100 on the same scale for every candidate of the comparison. `summary` holds at most 1500 characters, `standing` 600, each list 8 items of 300 characters, and `requirements` 12 items (`CANDIDATE_COMPARISON_LIMITS` in `src/config/constants.js`). The example shows one of the candidates.
+
+#### AI usage
+
+**GET /api/admin/ai/usage** returns the figures of the AI usage panel on the dashboard. Permission `ats:run`: the roles that can start a paid AI request. It adds up the usage ledger of this backend (section 9.9). It never calls OpenAI and returns no credential.
+
+```json
+{
+  "success": true,
+  "data": {
+    "estimated": true,
+    "currency": "USD",
+    "timeZone": "UTC",
+    "generatedAt": "2026-10-06T10:00:00.000Z",
+    "model": "gpt-5.4-mini",
+    "service": { "state": "AVAILABLE", "message": "The last AI request worked.", "quotaExceeded": false },
+    "today": { "requests": 3, "succeeded": 3, "failed": 0, "inputTokens": 6000, "outputTokens": 1200, "estimatedSpendUsd": 0.0099, "unpricedRequests": 0, "from": "2026-10-06T00:00:00.000Z" },
+    "month": { "requests": 3, "succeeded": 3, "failed": 0, "inputTokens": 6000, "outputTokens": 1200, "estimatedSpendUsd": 0.0099, "unpricedRequests": 0, "from": "2026-10-01T00:00:00.000Z", "to": "2026-11-01T00:00:00.000Z" },
+    "budget": { "monthlyUsd": 20, "percentUsed": 0, "remainingUsd": 19.9901, "level": "healthy", "levelLabel": "Healthy", "thresholds": { "notice": 50, "warning": 75, "critical": 90 } },
+    "pricing": { "known": true, "source": "LIST", "inputPerMillionUsd": 0.75, "outputPerMillionUsd": 4.5 },
+    "lastRequest": { "id": "665f1c2e9b3a4d0012ab34d0", "at": "2026-10-06T09:58:00.000Z", "operation": "CANDIDATE_COMPARISON", "model": "gpt-5.4-mini-2026-03-17", "success": true, "errorCategory": null, "inputTokens": 2000, "outputTokens": 400, "estimatedCostUsd": 0.0033, "jobId": "665f1c2e9b3a4d0012ab34aa", "candidateId": "665f1c2e9b3a4d0012ab34cd", "applicationId": "665f1c2e9b3a4d0012ab34ce", "atsResultId": "665f1c2e9b3a4d0012ab34cf", "candidateCount": null, "actorName": "Sample Recruiter" }
+  }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `estimated` | Always `true`. Every money figure here is an estimate kept by ALLSEMIS, not a figure from OpenAI. |
+| `timeZone` | Always `UTC`. `today` and `month` are the UTC day and the UTC calendar month. |
+| `model` | The value of `OPENAI_MODEL`, or `null`. |
+| `service.state` | `NOT_CONFIGURED` (the key or the model is not set), `QUOTA_EXCEEDED` (the latest quota or billing refusal has not been followed by a request that worked), `ATTENTION` (the last request failed for another reason), `AVAILABLE` (the last request worked) or `NOT_USED_YET`. It describes the last request this server sent. It is not a live check. |
+| `today`, `month` | Requests sent, how many worked and failed, the token counts OpenAI reported, the estimated spend, and `unpricedRequests`: requests that used tokens and could not be priced. |
+| `budget.monthlyUsd` | `AI_MONTHLY_BUDGET_USD`, or `null` when it is not set. |
+| `budget.percentUsed`, `budget.remainingUsd` | The estimated spend of the month against the budget. `null` without a budget. |
+| `budget.level` | `healthy`, `notice`, `warning` or `critical`: at or above `thresholds.notice`, `.warning` and `.critical` percent of the budget (50, 75 and 90 unless changed). `null` without a budget. Always `critical` while `service.state` is `QUOTA_EXCEEDED`. |
+| `budget.levelLabel` | `Healthy`, `Notice`, `Warning`, `Critical` or `No budget set`. |
+| `pricing` | The price per million tokens used for the configured model, and where it comes from: `CONFIGURED` (the two price variables) or `LIST` (the list price the code knows). `known: false` when there is none, and then the spend cannot be estimated. |
+| `lastRequest` | The newest ledger entry, or `null`. Ids, numbers and the name of the member of staff who asked. No content. |
 
 ### 7.9 Content
 
@@ -1557,7 +1890,7 @@ Upload errors: 503 `MEDIA_NOT_CONFIGURED` when Cloudinary is the image store in 
 }
 ```
 
-`system` reports which driver each service is using (`fileStorage`: `b2`, `local` or `memory`; `mediaStorage`: `cloudinary`, `local` or `memory`; `email`: `resend`, `log` or `memory`) and whether each provider's credentials are complete, as booleans (`b2Configured` for Backblaze B2; the field was `r2Configured` while Cloudflare R2 was the provider). The driver follows the credentials (section 8.6). `system.ai` is the status of the AI comparison, the same object as `ai` on `GET /api/admin/ats/engine` (section 7.8): two booleans, the model name from `OPENAI_MODEL` (or `null`) and one sentence. `system` never contains a key, a secret or a connection string.
+`system` reports which driver each service is using (`fileStorage`: `b2`, `local` or `memory`; `mediaStorage`: `cloudinary`, `local` or `memory`; `email`: `resend`, `log` or `memory`) and whether each provider's credentials are complete, as booleans (`b2Configured` for Backblaze B2; the field was `r2Configured` while Cloudflare R2 was the provider). The driver follows the credentials (section 8.6). `system.ai` is the status of the AI comparison, the same object as `ai` on `GET /api/admin/ats/engine` (section 7.8): two booleans, the model name from `OPENAI_MODEL` (or `null`) and one sentence. `system` never contains a key, a secret or a connection string. It is a part of what the server logs once at start-up as `server.listening` (`describeConfig` in `src/config/env.js`). That log line also holds `nodeEnv`, `port`, `frontendUrls`, `trustProxy` (the number of proxies the server trusts) and `sessionCookie` (`httpOnly`, `secure`, `sameSite` and `domain`: how the session cookie is sent, never its value), and `openaiConfigured`. These are in the log only and are not returned by this endpoint.
 
 **PUT /api/admin/settings/contact** replaces the whole contact block. A field that is left out is saved empty.
 
@@ -1786,15 +2119,19 @@ The email drivers follow the same pattern: `resend` sends through Resend and is 
 
 ---
 
-## 9. The rule-based ATS and the AI comparison
+## 9. The rule-based ATS, the AI actions and the usage ledger
 
-The ATS evaluation is a set of fixed rules in `src/services/atsService.js`. It is not AI. It calls no model and needs no key, and the same candidate and job always give the same result. Every number in a result can be traced to an entry in `checks`.
+The ATS evaluation is a set of rules in `src/services/atsService.js`. It is not AI. It calls no model and needs no key, and the same candidate and job always give the same result. Every number in a result can be traced to an entry in `checks`.
 
-The AI comparison a recruiter can ask for is a separate, optional step, described in section 9.6. It does not replace these rules, and none of the scores, checks or skill lists of sections 9.1 to 9.4 come from it.
+What the job asks for can be written down per job as a requirement profile (section 7.2). A job without one is scored with the baseline below, exactly as before. A job with one is scored against its profile, with its own weights when it has them (section 9.1).
+
+The AI actions a recruiter can ask for are separate, optional steps: the comparison of one candidate with a job (section 9.6), the draft of a job's requirement profile (section 9.7) and the comparison of several candidates (section 9.8). They do not replace these rules, and none of the scores, checks or skill lists of sections 9.1 to 9.4 come from them. Every request they send is written to the usage ledger (section 9.9).
 
 It is decision support. It never changes an application: not its status and not its labels. It does not shortlist, label, advance or reject anyone. Shortlisting is always the action of a signed-in person (section 7.4).
 
 ### 9.1 Components and weights
+
+The baseline, used for every job without a requirement profile:
 
 | Component | Weight | How it is scored (0 to 100) |
 | --- | --- | --- |
@@ -1815,6 +2152,29 @@ Details:
 - **Completeness**: phone, location, current role, domain, experience, three or more skills, a stored resume, notice period. The check passes at 75 or more.
 - **Notice period** is reported as information and is not scored.
 
+**A job with a requirement profile** is scored by the same rules against the profile:
+
+| What the profile holds | What the rules do with it |
+| --- | --- |
+| `requiredSkills`, `preferredSkills` | Used in place of the job's own lists. When the profile leaves one empty, the job's own list is used. |
+| `minYears` | Replaces the minimum years of the job's level in the experience rule. |
+| `tools` | A component of its own, `tools` ("Tools and technologies"): the share of the tools found by name among the candidate's skills. `pass` when none is missing, otherwise `review`. |
+| `domains` | Checked first for domain relevance (100 when the candidate's domain matches one, 60 when only the current role relates to one), then the job category as in the baseline. |
+| `workArrangement`, `location` | `REMOTE` or `HYBRID` passes the location rule. Otherwise the profile's location is used, or the job's when the profile has none. |
+| `preferredYears` | Listed as the check "Preferred experience". Not scored. |
+| `education`, `certifications` | Listed as checks of their own, saying which items are named in what the candidate typed. `pass` or `review`, `score` and `weight` `null`. Not scored: a name match in free text is not reliable enough to move a score. |
+| `responsibilities`, `niceToHave`, `constraints` | Counted in one `info` check, "Other requirements". The rules do not evaluate them. The AI comparison reads them. |
+| `seniority`, `requiredExperience`, `preferredExperience` | Not used by the rules. Sent to the AI comparison. |
+
+The weights of a job with a profile:
+
+| `weightSource` | Weights |
+| --- | --- |
+| `PROFILE` | The profile has no weights: `skills` 40, `experience` 20, `preferredSkills` 10, `tools` 10, `domain` 10, `location` 5, `completeness` 5. |
+| `JOB` | The weights saved in the profile, each a whole number from 0 to 100. They need not add up to 100: section 9.2 uses their proportions. A weight of 0 keeps the check on the list, with `weight` 0 and a note in its detail, and leaves it out of the score. |
+
+A result is still deterministic: the same candidate, job and profile always give the same result. Changing a profile changes no stored result until the rules are run again (`POST /api/admin/ats/run` for one, `POST /api/admin/jobs/:id/ats/re-run` for all results of the job).
+
 ### 9.2 How the total is computed
 
 ```
@@ -1825,7 +2185,9 @@ over the components that apply. A component that does not apply is left out and 
 
 - a job with no required skills: `skills` is left out,
 - a job with no preferred skills: `preferredSkills` is left out,
-- a job with no location: `location` is left out.
+- a job with no location: `location` is left out,
+- a job whose requirement profile lists no tools, or a job without a profile: `tools` is left out,
+- a part the job's own weights set to 0 is left out.
 
 The result's `weights` object lists only the components that were used.
 
@@ -1864,12 +2226,12 @@ Where it sits in the recruitment flow:
 2. A candidate applies through the public form.
 3. The candidate record (if the email is new) and the application are created. The application is `NEW`.
 4. The rule-based ATS runs for the candidate and the job (when the application names a job and no result exists yet for that pair).
-5. Optional: a recruiter starts an AI comparison of the candidate with the job for that result (`POST /api/admin/ats-results/:id/ai-comparison`, section 9.6). It never starts by itself.
-6. A recruiter reviews the application, the ATS result and, when there is one, the AI comparison.
+5. A recruiter reviews the application and the ATS result.
+6. Optional: the recruiter starts an AI comparison of the candidate with the job for that result (`POST /api/admin/ats-results/:id/ai-comparison`, section 9.6), or of several candidates of the job (section 9.8), and reads the analysis. Neither ever starts by itself, and an application never causes a request to OpenAI.
 7. A recruiter shortlists the application (`POST /api/admin/applications/:id/shortlist`). It becomes `SHORTLISTED`.
 8. The candidate receives the shortlist email.
 
-Steps 4, 5 and 6 change nothing on the application. Step 7 happens only when a signed-in user with `applications:shortlist` calls the endpoint.
+Steps 4, 5 and 6 change nothing on the application: no status, no label, no shortlist. An AI analysis cannot reject, shortlist or select anyone. Step 7 happens only when a signed-in user with `applications:shortlist` calls the endpoint.
 
 ### 9.6 The AI comparison
 
@@ -1892,7 +2254,7 @@ The AI comparison is an optional second opinion on one ATS result. A recruiter s
 **The request to OpenAI**
 
 - One `POST` to `https://api.openai.com/v1/chat/completions` per comparison, made by the server with `fetch`.
-- The body holds three things: `model` (the value of `OPENAI_MODEL`), `messages` (a system message with the rules and a user message with the data) and `response_format` of type `json_schema`, with `strict: true` and a schema named `candidate_job_comparison` that requires the ten fields of section 7.8 and allows no other. No other option is sent: no temperature and no limit on output tokens.
+- The body holds three things: `model` (the value of `OPENAI_MODEL`), `messages` (a system message with the rules and a user message with the data) and `response_format` of type `json_schema`, with `strict: true` and a schema named `candidate_job_comparison` that requires the seventeen fields of section 7.8 and allows no other. No other option is sent: no temperature and no limit on output tokens.
 - The schema carries no length or range keywords. The limits of section 7.8 are written in the field descriptions the model reads, and the server enforces them when the answer arrives.
 - The request is given up after 60 seconds. There is no retry: a failed or invalid comparison is run again only when a person asks again.
 
@@ -1934,7 +2296,7 @@ This is pattern matching, not a guarantee. A detail written in a form the patter
 - The user message holds two marked blocks, `<job> ... </job>` and `<candidate_data> ... </candidate_data>`. Each block is one JSON document.
 - Angle brackets are removed from every text by the cleaning the rest of the API uses (section 1.6), and what a candidate typed sits inside JSON strings, so it cannot close its block or open another one.
 - The system message is fixed text in the code. It tells the model that everything inside the blocks is data and never an instruction, that the candidate block is untrusted, and to mention under `concerns` when a profile contains text addressed to an automated reader. It also tells the model to use only what the blocks state, to leave out personal characteristics that are not a requirement of the job, and to write advice, not decisions.
-- Whatever the model answers, the server accepts the ten fields and nothing else. An answer with any other key, a status for example, is refused whole, and no part of an answer is ever applied to an application.
+- Whatever the model answers, the server accepts the seventeen fields of section 7.8 and nothing else. An answer with any other key, a status for example, is refused whole, and no part of an answer is ever applied to an application.
 - The admin shows the answer as plain text. It is not rendered as HTML, and an address in it is not made a link.
 
 **The answer and the log**
@@ -1945,7 +2307,8 @@ This is pattern matching, not a guarantee. A detail written in a form the patter
 
 **Guards, and where they are kept**
 
-- The rate limit of 20 requests per 10 minutes per signed-in user (section 2.5).
+- One request per action and no retry. A failure of any kind, a quota or billing refusal included, ends with an error and nothing is sent again.
+- The rate limit of 20 requests per 10 minutes per signed-in user, shared by the three AI routes (section 2.5).
 - A second request for the same result while one is running answers 409 `AI_IN_PROGRESS`, so the same comparison is not paid for twice.
 - Both are kept in the memory of one server process. With more than one instance each instance counts for itself, and two instances could each run a comparison for the same result at the same moment.
 
@@ -1954,10 +2317,47 @@ This is pattern matching, not a guarantee. A detail written in a form the patter
 - The real OpenAI API was never called in the environment where this code was written: there was no network access and no key. Every automated test answers `api.openai.com` with a stand-in.
 - Whether the configured model accepts strict structured output with this schema is untested. The first real comparison shows it.
 - The quality of the analysis is unproven. The answer is a model's opinion and can be wrong.
-- The comparison uses the profile the candidate typed and the cover note, not the contents of the resume file.
+- The comparison, and the evidence it quotes, uses the profile the candidate typed and the cover note, not the contents of the resume file. Nothing in this backend reads text out of a resume.
 - There is no cap on output tokens. What bounds an answer is the schema, the 60 second time limit and the rate limit.
 - A comparison can take up to a minute, so a proxy in front of the API must allow a request to stay open that long.
 - Sending candidate profile data to OpenAI is a decision for ALLSEMIS and belongs in its privacy notice.
+
+**The requirement profile in the comparison.** When the job has a requirement profile, it is sent inside the `<job>` block as `requirementProfile` (its requirements, without its weights and without who saved it), and the model is told to analyse the candidate against it first, requirement by requirement. `usedRequirementProfile` on the stored comparison records that. Without a profile the value sent is `null` and the model works from the job description and its skill lists.
+
+### 9.7 The AI draft of a requirement profile
+
+"Draft with AI" (`POST /api/admin/jobs/:id/requirement-profile/ai-draft`, section 7.2) sends the job as it is written (title, category, department, location, level, summary, description, responsibilities and skill lists) to OpenAI once and asks for the requirements in a structured form, with suggested weights and a list of what the description leaves unclear. No candidate data is involved. The answer is validated like every other answer (exactly the keys of the schema, lists and texts cut to `REQUIREMENT_PROFILE_LIMITS`, years from 0 to 50, weights from 0 to 100) and returned to the form. Nothing is stored: a profile exists only after a recruiter has read the draft and saved it, and it is then marked `AI_REVIEWED`. The model is told to use only what the description states and to leave out any condition about a personal characteristic.
+
+### 9.8 The AI comparison of several candidates
+
+"Compare candidates with AI" (`POST /api/admin/jobs/:id/candidate-comparison`, section 7.8) sends one request with the same `<job>` block as the single comparison and a `<candidates>` block: one entry per chosen candidate, under the label "Candidate A", "Candidate B" and so on, each reduced and scrubbed exactly as in section 9.6. Every candidate is judged against the same requirements, the job's requirement profile when it has one. The model is told to refer to candidates by label only, to return one entry per label, not to say who should be chosen and not to put anyone out of consideration. The answer is stored on the job as its latest comparison and changes nothing else.
+
+### 9.9 The AI usage ledger
+
+Every request this backend sends to OpenAI is written once to the `aiusages` collection (`src/models/AiUsage.js`), by the one function that sends them (`request()` in `src/services/aiService.js`), whether it worked, failed at the provider, never arrived or came back with an answer that could not be used. A request that is refused before anything is sent (not configured, not permitted, not valid, already running) writes nothing.
+
+| Field | Meaning |
+| --- | --- |
+| `at` | When the request ended. |
+| `operation` | `CANDIDATE_COMPARISON`, `JOB_REQUIREMENTS` or `CANDIDATE_RANKING` (the comparison of several candidates). |
+| `aiModel` | The model OpenAI said answered, or the configured one. Returned by the API as `model`. |
+| `success` | Whether a validated answer came back. |
+| `errorCategory` | Empty for a success. Otherwise `quota`, `rate_limit`, `auth`, `model`, `bad_request`, `timeout`, `network`, `provider`, `invalid_response` or `refused`. |
+| `httpStatus` | OpenAI's status, or `null` when there was no answer. |
+| `inputTokens`, `outputTokens` | `usage.prompt_tokens` and `usage.completion_tokens` from OpenAI's answer. `null` when the answer carried none. Recorded for an unusable answer too: it was paid for. |
+| `estimatedCostUsd` | See below. `null` without token counts or without a price. |
+| `durationMs` | How long the request took. |
+| `jobId`, `candidateId`, `applicationId`, `atsResultId` | The records the request was about. Ids only. |
+| `candidateCount` | For a comparison of several candidates: how many. |
+| `actorId`, `actorName` | The member of staff who started it. |
+
+It never holds the prompt, the answer, a candidate's name, email address or phone number, resume text or any other content, the API key or OpenAI's error message. Entries are not changed after they are written and are not removed automatically.
+
+**The estimate.** `estimatedCostUsd = (inputTokens x input price + outputTokens x output price) / 1,000,000`, rounded to six decimal places, with prices in US dollars per million tokens. The price is `OPENAI_INPUT_COST_PER_1M_TOKENS` and `OPENAI_OUTPUT_COST_PER_1M_TOKENS` when both are set. Otherwise it is the list price the code knows for the model (`MODEL_LIST_PRICES` in `src/config/constants.js`): 0.75 input and 4.50 output for `gpt-5.4-mini` and its dated versions, checked on 2026-10-06. For any other model without configured prices no cost is estimated. Prices change, so the list price should be checked against OpenAI's pricing page and overridden with the two variables when it differs. Cached input tokens are counted at the full input price, so the estimate errs on the high side. The cost is stored with the request at the price in force at that moment and is not rewritten later.
+
+**What it is not.** The figures of `GET /api/admin/ai/usage` are an internal estimate kept by ALLSEMIS. They are not read from OpenAI's billing, they are not the prepaid balance, and they do not include requests made with the same key from anywhere else. No OpenAI administrator key is used or needed.
+
+**Billing and quota errors.** When OpenAI refuses a request with the error code or type `insufficient_quota`, `billing_hard_limit_reached`, `billing_not_active` or `quota_exceeded`, the action answers 503 `AI_QUOTA_EXCEEDED` with a sentence the admin shows. Nothing is retried, nothing is stored on the result or the job, and no application or candidate is touched. The ledger records the request with `errorCategory` `quota`, and until a later request works the usage answer reports `service.state` `QUOTA_EXCEEDED` and the level `critical`, whatever the estimated spend is. The rest of the backend is not affected: applications, the rule-based ATS and shortlisting need no model.
 
 ---
 
@@ -2019,6 +2419,11 @@ ATS, media and settings:
 | `ats.evaluated` | An evaluation is run from the admin. (The automatic run with the first public application to a job writes no separate entry.) | `candidateId`, `jobId`, `totalScore` |
 | `ats.reviewed` | A review decision is saved. | `from`, `to`, `candidateId`, `jobId` |
 | `ats.ai_compared` | An AI comparison was validated and stored (`POST /api/admin/ats-results/:id/ai-comparison`). A failed or invalid comparison writes no entry. | `candidateId`, `jobId`, `model` (the model name stored with the comparison), `overallMatch` (the model's number) |
+| `ats.ai_candidates_compared` | An AI comparison of several candidates was validated and stored for a job. Written on the job. A failed or invalid comparison writes no entry. | `model`, `candidates` (how many), `resultIds` |
+| `ats.job_reevaluated` | The rules were run again for the existing results of a job. Written on the job. | `evaluated`, `total` |
+| `job.requirements_saved` | A job's requirement profile was added or updated. | `source`, `ownWeights` |
+| `job.requirements_removed` | A job's requirement profile was removed. | none |
+| `job.requirements_ai_drafted` | An AI draft of a requirement profile was returned to the form. Nothing was stored. | `model` |
 | `media.uploaded` | An image is uploaded. | `format`, `bytes` |
 | `media.removed` | An uploaded image is removed through the media endpoint. | none |
 | `settings.contact_updated` | The public contact details are saved. | none |

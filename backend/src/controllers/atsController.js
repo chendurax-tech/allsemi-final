@@ -3,8 +3,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError, notFound, badRequest } from '../utils/AppError.js';
 import { pagination, equalityFilters, assertObjectId } from '../utils/query.js';
 import { ATSResult, Application, Candidate, Job } from '../models/index.js';
-import { ATS_REVIEW_STATES, ATS_ENGINE } from '../config/constants.js';
-import { runEvaluation, WEIGHTS, ENGINE_VERSION } from '../services/atsService.js';
+import { ATS_REVIEW_STATES, ATS_ENGINE, ATS_WEIGHT_KEYS } from '../config/constants.js';
+import { runEvaluation, WEIGHTS, PROFILE_DEFAULT_WEIGHTS, ENGINE_VERSION } from '../services/atsService.js';
 import { aiStatus, assertAiConfigured, compareCandidateToJob } from '../services/aiService.js';
 import { record } from '../services/auditService.js';
 
@@ -48,7 +48,18 @@ export const read = asyncHandler(async (req, res) => {
 // What the engine is and how it scores, and whether the AI comparison
 // can be used, for the admin to display. No credential is returned.
 export const engine = asyncHandler(async (req, res) => {
-  ok(res, { engine: ATS_ENGINE, label: 'RULE-BASED ATS', version: ENGINE_VERSION, weights: WEIGHTS, ai: aiStatus() });
+  ok(res, {
+    engine: ATS_ENGINE,
+    label: 'RULE-BASED ATS',
+    version: ENGINE_VERSION,
+    // The baseline: every job without a requirement profile.
+    weights: WEIGHTS,
+    // The starting weights of a job with a requirement profile, and the
+    // parts a job can weight for itself.
+    profileWeights: PROFILE_DEFAULT_WEIGHTS,
+    weightKeys: ATS_WEIGHT_KEYS,
+    ai: aiStatus(),
+  });
 });
 
 export const run = asyncHandler(async (req, res) => {
@@ -119,13 +130,19 @@ export const aiCompare = asyncHandler(async (req, res) => {
     // Only the cover note of this candidate's own application is used.
     const application = linked && String(linked.candidateId) === String(candidate._id) ? linked : null;
 
-    const { comparison, model } = await compareCandidateToJob({ candidate, job, application });
+    const { comparison, model } = await compareCandidateToJob({
+      candidate,
+      job,
+      application,
+      // Ids for the usage ledger. No content.
+      context: { atsResultId: result._id, actorId: req.user.id, actorName: req.user.name },
+    });
 
     // One field is written, and only if the result still exists: the
     // candidate may have been deleted while the comparison ran.
     const stored = await ATSResult.updateOne(
       { _id: result._id },
-      { $set: { aiComparison: { ...comparison, aiModel: model, comparedAt: new Date(), comparedById: req.user.id, comparedByName: req.user.name } } },
+      { $set: { aiComparison: { ...comparison, usedRequirementProfile: Boolean(job.requirementProfile), aiModel: model, comparedAt: new Date(), comparedById: req.user.id, comparedByName: req.user.name } } },
     );
     const saved = stored.matchedCount ? await ATSResult.findById(result._id) : null;
     if (!saved) throw notFound('That ATS result no longer exists. The comparison was not saved.');

@@ -1,4 +1,4 @@
-import { Candidate, Application, ATSResult, Referral } from '../models/index.js';
+import { Candidate, Application, ATSResult, Referral, Job } from '../models/index.js';
 import { removePrivateFile } from './storage/privateFiles.js';
 import { logger } from '../utils/logger.js';
 
@@ -128,6 +128,9 @@ export async function deleteCandidateCascade(candidate) {
   }
   await Application.deleteMany({ candidateId: candidate._id });
   await ATSResult.deleteMany({ candidateId: candidate._id });
+  // An AI comparison of several candidates is about all of them
+  // together: one that includes this candidate is removed with them.
+  await Job.updateMany({ 'candidateComparison.candidates.candidateId': candidate._id }, { $set: { candidateComparison: null } }, { timestamps: false });
   await Referral.updateMany({ candidateId: candidate._id }, { $set: { candidateId: null, resume: null } });
   await candidate.deleteOne();
   return { applications: applications.length, files: files.size };

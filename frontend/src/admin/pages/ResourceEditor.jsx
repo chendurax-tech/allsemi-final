@@ -8,6 +8,7 @@ import { PageHeader, Panel, Badge, Button, EmptyState, DefinitionList, Notice } 
 import ResourceForm, { SaveError, fieldsFor, missingRequired } from '../components/ResourceForm.jsx';
 import { formatDateTime } from '../lib/format.js';
 import { useArrivalNotice } from '../lib/useArrivalNotice.js';
+import RequirementProfile from '../components/RequirementProfile.jsx';
 
 /*
   ResourceEditor - the full-page create/edit screen for resources that
@@ -21,6 +22,9 @@ import { useArrivalNotice } from '../lib/useArrivalNotice.js';
 
   Controls a role cannot use are hidden. The server enforces the same
   permissions on every request regardless of what is shown here.
+
+  A job also shows its requirement profile below the form
+  (components/RequirementProfile.jsx). No other resource has one.
 */
 
 function EditorForm({ cfg, existing }) {
@@ -151,6 +155,14 @@ function EditorForm({ cfg, existing }) {
           )}
         </div>
       </div>
+
+      {/* Jobs only: the optional requirement profile. It has its own
+          save button and its own requests, apart from the form above. */}
+      {cfg.collection === 'jobs' && (
+        <div className="mt-6">
+          <RequirementProfile job={existing} />
+        </div>
+      )}
     </>
   );
 }

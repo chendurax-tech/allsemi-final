@@ -8,16 +8,20 @@ import { ATS_STAGES, ATS_STAGE_COLUMNS } from '../data/atsStages.js';
 import { ATS_REVIEW_STATES, label } from '../data/enums.js';
 import { formatDate } from '../lib/format.js';
 import { AtsScopeNotice } from '../components/AiComparison.jsx';
+import CandidateComparison from '../components/CandidateComparison.jsx';
 
 /*
   AtsOverview - how a result is produced, every evaluation so far, and
   the applications still waiting for one.
 
-  Every score and check listed here is rule based: deterministic
-  checks of the candidate's profile against the job. Nothing on this
-  screen is produced by an AI model. The optional AI comparison is
-  started and read on the result screen only; the notice at the top
-  says whether the server has it connected.
+  Every score and check listed in the evaluations is rule based:
+  deterministic checks of the candidate's profile against the job. The
+  optional AI comparison of one candidate is started and read on the
+  result screen; the notice at the top says whether the server has AI
+  connected. The last panel, "Compare candidates", is the optional AI
+  comparison of several candidates of one job
+  (components/CandidateComparison.jsx): it is advice, and it runs only
+  when a recruiter presses its button.
 */
 export default function AtsOverview() {
   const { state, status, errors, reload, put } = useAdminStore();
@@ -113,7 +117,7 @@ export default function AtsOverview() {
           </div>
           <div>
             <p className="text-sm font-semibold">Rules give the score</p>
-            <p className="mt-1 text-sm text-text-dim leading-relaxed">Required and preferred skills are matched by name, experience by the job level, then domain, location and how complete the profile is. Each part has a fixed weight.</p>
+            <p className="mt-1 text-sm text-text-dim leading-relaxed">Required and preferred skills are matched by name, experience by the job level, then domain, location and how complete the profile is. A job without a requirement profile uses the baseline weights. A job with one is scored against it, with its own weights when it has them.</p>
           </div>
           <div>
             <p className="text-sm font-semibold">A recruiter decides</p>
@@ -161,6 +165,12 @@ export default function AtsOverview() {
           )}
         </Panel>
       )}
+
+      {/* Several candidates of one job compared by AI. It asks for
+          nothing until a recruiter presses its button. */}
+      <div className="mt-6">
+        <CandidateComparison />
+      </div>
     </>
   );
 }

@@ -78,9 +78,65 @@ export const AI_COMPARISON_LIMITS = {
   relevantExperience: 1200,
   qualificationAssessment: 800,
   recommendation: 800,
+  domainRelevance: 800,
   skills: { maxItems: 60, maxLength: 80 }, // matchedSkills, missingSkills
-  points: { maxItems: 10, maxLength: 300 }, // experienceGaps, strengths, concerns
+  // experienceGaps, strengths, concerns, strongMatches, partialMatches,
+  // missingRequirements, transferableSkills, uncertainties
+  points: { maxItems: 10, maxLength: 300 },
+  evidence: { maxItems: 12, requirement: 160, text: 300 },
   model: 100,
+};
+
+/*
+  The requirement profile of a job (models/Job.js): what the job asks
+  for, in a structured form. The same limits apply to a profile a
+  recruiter types and to a draft the model returns.
+*/
+export const WORK_ARRANGEMENTS = ['', 'ON_SITE', 'HYBRID', 'REMOTE'];
+export const REQUIREMENT_PROFILE_SOURCES = ['MANUAL', 'AI_REVIEWED'];
+export const REQUIREMENT_PROFILE_LIMITS = {
+  skills: { maxItems: 40, maxLength: 80 }, // requiredSkills, preferredSkills, tools, domains
+  lines: { maxItems: 20, maxLength: 300 }, // education, certifications, responsibilities, niceToHave, constraints
+  text: 400, // requiredExperience, preferredExperience
+  short: 120, // seniority, location
+  years: 50,
+};
+// The parts of the rule-based score a job can weight, in the order they
+// are shown. `tools` only exists for a job with a requirement profile.
+export const ATS_WEIGHT_KEYS = ['skills', 'experience', 'preferredSkills', 'tools', 'domain', 'location', 'completeness'];
+
+// A comparison of several candidates for one job (models/Job.js).
+export const CANDIDATE_COMPARISON_LIMITS = {
+  minCandidates: 2,
+  maxCandidates: 5,
+  summary: 1500,
+  text: 600,
+  points: { maxItems: 8, maxLength: 300 },
+  requirements: { maxItems: 12, requirement: 160, note: 300 },
+};
+
+/*
+  The internal AI usage ledger (models/AiUsage.js).
+
+  AI_OPERATIONS: what the request was for.
+  AI_ERROR_CATEGORIES: why a request failed, as one word. `quota` is the
+  one that needs an administrator: the OpenAI account has no credit
+  left, has reached its spend limit or has no active billing.
+*/
+export const AI_OPERATIONS = ['CANDIDATE_COMPARISON', 'JOB_REQUIREMENTS', 'CANDIDATE_RANKING'];
+export const AI_ERROR_CATEGORIES = ['quota', 'rate_limit', 'auth', 'model', 'bad_request', 'timeout', 'network', 'provider', 'invalid_response', 'refused'];
+export const AI_USAGE_LEVELS = ['healthy', 'notice', 'warning', 'critical'];
+
+/*
+  List prices this code knows, in US dollars per million tokens, used
+  to ESTIMATE spend when OPENAI_INPUT_COST_PER_1M_TOKENS and
+  OPENAI_OUTPUT_COST_PER_1M_TOKENS are not set. A model name matches
+  when it is the entry or a dated version of it ("gpt-5.4-mini-2026-...").
+  Prices change: check them against OpenAI's pricing page and set the
+  two variables when they differ. gpt-5.4-mini checked on 2026-10-06.
+*/
+export const MODEL_LIST_PRICES = {
+  'gpt-5.4-mini': { input: 0.75, output: 4.5 },
 };
 
 // Upload limits and the document types each kind of upload accepts.

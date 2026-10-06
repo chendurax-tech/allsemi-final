@@ -6,6 +6,7 @@ import { getSiteSettings, updateContact } from '../services/settingsService.js';
 import { record } from '../services/auditService.js';
 import { describeConfig } from '../config/env.js';
 import { aiStatus } from '../services/aiService.js';
+import { usageSummary } from '../services/aiUsageService.js';
 
 // ---- settings ----
 export const getSettings = asyncHandler(async (req, res) => {
@@ -33,6 +34,14 @@ export const putContact = asyncHandler(async (req, res) => {
   const settings = await updateContact(req.body, req.user);
   await record({ req, action: 'settings.contact_updated', entityType: 'settings', entityId: 'site', summary: 'Updated public contact details' });
   ok(res, { contact: settings.toJSON().contact, updatedAt: settings.updatedAt, updatedByName: settings.updatedByName });
+});
+
+// ---- AI usage (the internal estimate) ----
+// Totals from the usage ledger for the dashboard. It adds up what this
+// server recorded: it never calls OpenAI and holds no credential.
+export const getAiUsage = asyncHandler(async (req, res) => {
+  const status = aiStatus();
+  ok(res, await usageSummary({ configured: status.available, model: status.model }));
 });
 
 // ---- audit log ----

@@ -10,7 +10,10 @@ The API behind the ALLSEMIS website and admin panel. It is a Node.js service bui
 - private storage for resumes and attachments, and public storage for website images,
 - notification and confirmation emails, and the shortlist email,
 - a rule-based ATS that scores a candidate against a job. It is not AI and calls no model. It never shortlists anyone: that is always a signed-in person's action,
-- an optional AI comparison of a candidate with a job, through OpenAI. It runs only when a recruiter clicks "Compare with AI" on an ATS result. It is advice: it changes no score and no application, and it never shortlists anyone either.
+- an optional requirement profile on a job: a structured list of what the job asks for, for staff only. A job that has one is scored against it, by the same kind of rules,
+- three optional AI actions, through OpenAI, each started by a recruiter by hand: a comparison of one candidate with one job ("Compare with AI" on an ATS result), a draft of a job's requirement profile ("Draft with AI") and a comparison of several candidates for one job ("Compare candidates with AI"). They are advice: they change no score and no application, and they never shortlist or reject anyone,
+- an internal estimate of AI usage and spend for the admin dashboard, worked out from the requests this backend sends to OpenAI,
+- two health endpoints outside `/api`, `GET /health` and `GET /ready`, beside `GET /api/health`.
 
 Reference documents:
 
@@ -25,7 +28,7 @@ Status: this service has not been run in production yet. The automated tests in 
 - npm.
 - A MongoDB database. MongoDB Atlas is assumed below. Any MongoDB reachable through a connection string works.
 - For production only: a Cloudinary account, a Backblaze B2 bucket and a Resend account. Local development needs none of them: until their credentials are filled in, files and images are kept under `backend/.data/` and emails are written to the server log. See "Connecting the services".
-- Optional: an OpenAI API key and a model name, for the AI comparison. Without them everything else works, and the AI comparison answers that it is not set up.
+- Optional: an OpenAI API key and a model name, for the three AI actions. Without them everything else works, and each AI action answers that it is not set up.
 
 ## Folder structure
 
@@ -42,10 +45,10 @@ backend/
     check-syntax.js       parses every source file (npm run check)
   src/
     server.js             entry point: validate config, connect, listen, shut down cleanly
-    app.js                the Express app: headers, CORS, rate limit, parsers, routes, errors
+    app.js                the Express app: headers, /health and /ready, CORS, rate limit, parsers, routes, errors
     config/
       env.js              the only place process.env is read; validateEnv()
-      constants.js        statuses, recruitment labels, shortlist email states, roles, upload limits, AI comparison limits, cookie name
+      constants.js        statuses, recruitment labels, shortlist email states, roles, upload limits, requirement profile and AI limits, AI list prices, cookie name
       permissions.js      the role and permission table
       db.js               MongoDB connection
     routes/
@@ -61,7 +64,8 @@ backend/
       authService.js      sign-in, sessions, the pause after repeated wrong passwords
       auditService.js     audit log writer
       atsService.js       the rule-based ATS
-      aiService.js        the AI comparison (OpenAI): the only file that calls a model
+      aiService.js        the three AI actions (OpenAI): the only file that calls a model
+      aiUsageService.js   the AI usage ledger and the estimate the dashboard shows
       candidateService.js find or create a candidate, link a candidate (staff), new applications, cascade delete
       shortlistService.js the shortlist action and its email: once per application
       recruitmentMigration.js  what the one-time migration changes on one stored record
@@ -109,7 +113,7 @@ Generate a session secret:
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-Leave the rest as it is in `.env.example`: `FRONTEND_URL=http://localhost:5173`, and the Cloudinary, B2 and Resend values empty. While they are empty the development fallbacks are used: uploaded files go to `backend/.data/` and emails are written to the server log instead of being sent. Filling in a provider's values switches that provider on (see "Connecting the services"). The two OpenAI values can stay empty as well: the AI comparison is then unavailable and nothing else is affected.
+Leave the rest as it is in `.env.example`: `FRONTEND_URL=http://localhost:5173`, and the Cloudinary, B2 and Resend values empty. While they are empty the development fallbacks are used: uploaded files go to `backend/.data/` and emails are written to the server log instead of being sent. Filling in a provider's values switches that provider on (see "Connecting the services"). The two OpenAI values can stay empty as well: the three AI actions are then unavailable and nothing else is affected. The six AI usage values are optional too.
 
 ### 4. MongoDB Atlas
 
@@ -181,7 +185,7 @@ npm run seed -- --reset
 
 For a database that is not on this machine, pass both options: `npm run seed -- --database=<database-name> --reset`.
 
-`--reset` deletes every document in every collection the application uses, including users, sessions and the audit log. That includes the website content: insights, stories, expertise, services, locations and the site settings are emptied and created again from the seed files, so every edit made in the admin is lost. **Do not run `npm run seed -- --reset` on a database whose content was edited in the admin.** To take demonstration recruitment records out of such a database, use `npm run clean:showcase` (see "Clean showcase state"), which leaves the users and the content as they are. `--reset` does not delete files under `backend/.data/`. The seed is for development only. Once it has run, the database is the source of truth and the seed files are not read again.
+`--reset` deletes every document in every collection the application uses, including users, sessions and the audit log. That includes the website content: insights, stories, expertise, services, locations and the site settings are emptied and created again from the seed files, so every edit made in the admin is lost. **Do not run `npm run seed -- --reset` on a database whose content was edited in the admin.** To take demonstration recruitment records out of such a database, use `npm run clean:showcase` (see "Clean showcase state"), which leaves the users and the content as they are. `--reset` does not delete files under `backend/.data/`. It does not empty the AI usage ledger either: the `AiUsage` collection is not in the list the seed empties, so its entries stay. The seed is for development only. Once it has run, the database is the source of truth and the seed files are not read again.
 
 ### 6. Start the API
 
@@ -189,11 +193,13 @@ For a database that is not on this machine, pass both options: `npm run seed -- 
 npm run dev
 ```
 
-The server restarts when a file changes. It listens on `http://localhost:4000`. On start it logs one JSON line, `server.listening`, that shows which driver each service is using (`fileStorage`, `mediaStorage`, `email`) and which integrations are configured (as true or false, never the values). With nothing filled in it reads `"fileStorage":"local","mediaStorage":"local","email":"log"`. Check it with:
+The server restarts when a file changes. It listens on `http://localhost:4000`. On start it logs one JSON line, `server.listening`, that shows which driver each service is using (`fileStorage`, `mediaStorage`, `email`) and which integrations are configured (as true or false, never the values). It also shows `trustProxy` (the number of proxies the server trusts) and `sessionCookie` (how the session cookie is sent: `httpOnly`, `secure`, `sameSite` and `domain`, never a cookie value). `aiMonthlyBudgetSet` is true when `AI_MONTHLY_BUDGET_USD` holds an amount above 0. With nothing filled in it reads `"fileStorage":"local","mediaStorage":"local","email":"log"`. Check it with:
 
 ```bash
 curl http://localhost:4000/api/health
 ```
+
+`curl http://localhost:4000/health` answers `{"status":"ok","service":"allsemis-api"}` whenever the process is up, without asking the database. `curl http://localhost:4000/ready` answers 200 only while the database connection is up. See "Health endpoints" under "Deployment".
 
 If a required variable is missing or invalid, the process logs `config.invalid` lines that name the problem and exits. Two more start-up rules:
 
@@ -340,13 +346,13 @@ Every variable in `.env.example`. "Required" means the server refuses to start w
 | --- | --- | --- | --- |
 | `PORT` | Port the server listens on. Default 4000. | No | `4000` |
 | `NODE_ENV` | `development`, `production` or `test`. Default `development`. Any other value stops the process at start-up. `test` is for the test suite: the server refuses to start with it. | No (set `production` in production) | `development` |
-| `TRUST_PROXY` | The exact number of proxies in front of this API, a whole number from 0 to 5. 0 locally. On Render: 1 when browsers call the Render address directly, 2 when the frontend host forwards `/api` to it. Do not set it higher than the real number: a larger number lets a visitor forge the address. | No (set it on Render; 0 in production logs a warning) | `0` |
+| `TRUST_PROXY` | The exact number of proxies in front of this API, a whole number from 0 to 5. 0 locally. On Render: 1 when browsers call the Render address directly, 2 when the frontend host forwards `/api` to it. Default when not set: 1 in production on Render (Render sets `RENDER=true`), 0 everywhere else. A value that is set always wins over the default. Do not set it higher than the real number: a larger number lets a visitor forge the address. | No (on Render in production the default is 1; set 2 when the frontend host forwards `/api`; 0 in production logs a warning) | `0` |
 | `LOG_LEVEL` | `debug`, `info`, `warn`, `error` or `silent`. Default `info`. | No | `info` |
 | `MONGODB_URI` | MongoDB connection string. | Yes | `mongodb+srv://<db-user>:<db-password>@<your-cluster-host>/<database-name>` |
 | `FRONTEND_URL` | Origin or origins allowed to call the API, comma separated, no trailing slash, no path. Used for CORS and the origin check. Defaults to `http://localhost:5173` outside production. | Yes in production (must be https) | `https://www.<your-domain>` |
 | `SESSION_SECRET` | Key for hashing session tokens and signing development download links. At least 32 characters. | Yes | `<random-string-of-32-or-more-characters>` |
 | `SESSION_TTL_HOURS` | Session lifetime in hours. Default 12. | No | `12` |
-| `COOKIE_SAMESITE` | `lax`, `strict` or `none`. Default `lax`. | No | `lax` |
+| `COOKIE_SAMESITE` | The `SameSite` value of the session cookie: `lax`, `strict` or `none`. Default `lax`. With `lax` the cookie is `Lax`, and `None` automatically for a sign-in that the browser reports as coming from another site. `none` is always `None`: use it to be explicit when the frontend calls the API on another domain. `strict` is never relaxed: signing in works only when the frontend and the API are on the same site. See "Frontend on Vercel, and how it reaches the API". | No | `lax` |
 | `COOKIE_DOMAIN` | Cookie domain, for an API on a subdomain of the site. | No | `.<your-domain>` |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name. | To use Cloudinary (all three) | `<your-cloud-name>` |
 | `CLOUDINARY_API_KEY` | Cloudinary API key. | To use Cloudinary (all three) | `<your-cloudinary-api-key>` |
@@ -364,17 +370,26 @@ Every variable in `.env.example`. "Required" means the server refuses to start w
 | `FILE_STORAGE_DRIVER` | Optional, normally left out. Private documents: `b2` or `local`. See "Which driver is used". | No | (left out) |
 | `MEDIA_STORAGE_DRIVER` | Optional, normally left out. Public images: `cloudinary` or `local`. | No | (left out) |
 | `EMAIL_DRIVER` | Optional, normally left out. `resend` or `log`. | No | (left out) |
-| `OPENAI_API_KEY` | OpenAI API key for the AI comparison of a candidate with a job. Used only when a recruiter clicks "Compare with AI". The rule-based ATS needs no key. Server only. | To use the AI comparison (both) | `<your-openai-api-key>` |
-| `OPENAI_MODEL` | The model the AI comparison calls. The code has no default: without it the AI comparison is unavailable. | To use the AI comparison (both) | `<a-model-name-from-your-openai-account>` |
+| `OPENAI_API_KEY` | OpenAI API key for the three AI actions. Used only when a recruiter starts one of them: "Compare with AI", "Draft with AI" or "Compare candidates with AI". The rule-based ATS needs no key. Server only. | To use the AI actions (both) | `<your-openai-api-key>` |
+| `OPENAI_MODEL` | The model the AI actions call. The code has no default: without it the AI actions are unavailable. Production uses `gpt-5.4-mini`. | To use the AI actions (both) | `gpt-5.4-mini` |
+| `AI_MONTHLY_BUDGET_USD` | What ALLSEMIS plans to spend on OpenAI in a calendar month (UTC), in US dollars. The AI usage estimate compares the estimated spend with it. Not a secret. Empty or 0: the spend is still estimated, without a level. | No (needed for the Healthy, Notice, Warning and Critical level on the dashboard) | (empty) |
+| `AI_USAGE_NOTICE_PERCENT` | The share of the monthly budget, in percent, at which the level becomes Notice. Default 50. Not a secret. | No | `50` |
+| `AI_USAGE_WARNING_PERCENT` | The share at which the level becomes Warning. Default 75. Not a secret. | No | `75` |
+| `AI_USAGE_CRITICAL_PERCENT` | The share at which the level becomes Critical. Default 90. Not a secret. | No | `90` |
+| `OPENAI_INPUT_COST_PER_1M_TOKENS` | The input price of the configured model in US dollars per million tokens, for the estimate. Not a secret. Used only together with the output price. Empty: the built-in list price is used when the code knows one for the model (`gpt-5.4-mini`: 0.75). | No (both, or neither) | (empty) |
+| `OPENAI_OUTPUT_COST_PER_1M_TOKENS` | The output price of the configured model in US dollars per million tokens. Not a secret. Used only together with the input price. Empty: the built-in list price is used when the code knows one for the model (`gpt-5.4-mini`: 4.50). | No (both, or neither) | (empty) |
 | `SEED_ADMIN_EMAIL` | Development seed only: email of the sample admin. Default `admin@example.com`. | No | `<you>@example.com` |
 | `SEED_ADMIN_PASSWORD` | Development seed only: one password for all four sample accounts. Empty means generate one per account and print it once. Must have at least 12 characters with a letter and a digit. | No | (empty) |
 
 Notes:
 
 - When `NODE_ENV=test`, the in-memory drivers are always used, whatever `.env` says, and `src/server.js` refuses to start. The tests import the app directly.
-- `TRUST_PROXY` outside 0 to 5 is a start-up failure. `TRUST_PROXY=0` with `NODE_ENV=production` is a `config.warning`: behind a hosting proxy every visitor then appears to come from the proxy address, so the rate limits are shared by everyone.
-- `OPENAI_API_KEY` and `OPENAI_MODEL` never stop the server from starting. With one of the two set and the other empty the server logs a `config.warning`, and the AI comparison stays unavailable until both are set.
-- Two more variables are read outside `.env.example`: `ADMIN_PASSWORD` (optional, by `npm run create-admin`) and `RATE_LIMIT_IN_TESTS` (by the tests).
+- `TRUST_PROXY` outside 0 to 5 is a start-up failure. `TRUST_PROXY=0` with `NODE_ENV=production` is a `config.warning`: behind a hosting proxy every visitor then appears to come from the proxy address, so the rate limits are shared by everyone. On Render in production the value is 1 when the variable is not set, so the warning appears there only when 0 is set by hand. In production on another host the value is 0 until the variable is set.
+- `COOKIE_SAMESITE=strict` is a `config.warning`: signing in then works only when the frontend and the API are on the same site. `COOKIE_SAMESITE=none` outside production is a `config.warning` too: `None` needs HTTPS, and a browser drops the session cookie on plain `http`.
+- An option line that is left empty means "not set", and the default is used: `COOKIE_SAMESITE=` or `LOG_LEVEL=` with nothing after it does not stop the server. An empty `FRONTEND_URL` outside production gives the default origin `http://localhost:5173`. In production an empty `FRONTEND_URL` is still a start-up failure.
+- `OPENAI_API_KEY` and `OPENAI_MODEL` never stop the server from starting. With one of the two set and the other empty the server logs a `config.warning`, and the AI actions stay unavailable until both are set.
+- The six AI usage variables (`AI_MONTHLY_BUDGET_USD`, the three `AI_USAGE_*_PERCENT` values and the two `OPENAI_*_COST_PER_1M_TOKENS` values) are all optional and none is a secret. The AI actions work without them. Only `AI_MONTHLY_BUDGET_USD` is needed for the level on the dashboard. The three percentages must be three rising whole numbers above 0: otherwise 50, 75 and 90 are used and the server logs a `config.warning`. One price set without the other is a `config.warning` too, and both are then ignored. A budget or a price that is not a number, or is negative, and a percentage that is not a number, stop the process when the configuration is loaded, with an error that names the variable. See "The AI usage estimate" under "OpenAI (the AI actions)".
+- Three more variables are read outside `.env.example`: `ADMIN_PASSWORD` (optional, by `npm run create-admin`), `RATE_LIMIT_IN_TESTS` (by the tests) and `RENDER` (set by Render itself to `true`, and read only to choose the `TRUST_PROXY` default). Do not set `RENDER` by hand.
 - The `R2_*` variables of the earlier provider (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`) are no longer read. If one of them is still set, the server logs a `config.warning` at start-up saying that the lines can be removed.
 
 ### Which driver is used
@@ -396,13 +411,13 @@ The rule (`resolveDriver` in `src/config/env.js`): **the credentials decide.** W
 - `FILE_STORAGE_DRIVER=r2` is a value of the earlier provider. It is treated as not set, so it does not stop the server, and a `config.warning` at start-up says the line can be removed. Any other unknown value stops the process.
 - In production nothing falls back by itself. With no credentials the provider is still selected and reported as not configured. `local` storage asked for by name stops the server at start-up. `EMAIL_DRIVER=log` without Resend credentials is accepted with a warning: no email is sent.
 - `NODE_ENV=test` always uses the in-memory drivers.
-- The AI comparison is not one of these three services. It has no driver and no fallback: it is available when `OPENAI_API_KEY` and `OPENAI_MODEL` are both set, and unavailable otherwise.
+- OpenAI is not one of these three services. It has no driver and no fallback: the three AI actions are available when `OPENAI_API_KEY` and `OPENAI_MODEL` are both set, and unavailable otherwise.
 
 ## Connecting the services
 
 Each service is connected the same way: put its values in the backend's environment (`backend/.env` locally, the host's environment settings in production), restart the server, and read the `server.listening` line it logs. Nothing in the frontend changes, and no frontend variable is involved.
 
-**Secrets stay on the server.** The Cloudinary API secret, the B2 application key, the Resend key and the OpenAI key are read by the backend only. Never put any of them in the frontend, in a `VITE_` variable (every `VITE_` variable is compiled into the public site), in git, or in a message or ticket. No API response contains them: `GET /api/admin/settings` reports true or false for each service and, for the AI comparison, the model name and one sentence. It never holds a key.
+**Secrets stay on the server.** The Cloudinary API secret, the B2 application key, the Resend key and the OpenAI key are read by the backend only. Never put any of them in the frontend, in a `VITE_` variable (every `VITE_` variable is compiled into the public site), in git, or in a message or ticket. No API response contains them: `GET /api/admin/settings` reports true or false for each service and, for the AI actions, the model name and one sentence. It never holds a key. `GET /api/admin/ai/usage` holds numbers, ids and the model name, and no key either.
 
 ### Cloudinary (public website images)
 
@@ -538,55 +553,109 @@ Notes:
 - The shortlist email and the application confirmation ask the reader to reply if they did not apply, and the shortlist email has no reply-to. A reply therefore goes to the `EMAIL_FROM` address, so use an address that someone reads, or one that forwards.
 - The API key is sent to Resend in the `Authorization` header only. It is never logged and never returned.
 
-### OpenAI (the AI comparison)
+### OpenAI (the AI actions)
 
 Variables:
 
 ```
 OPENAI_API_KEY=<your-openai-api-key>
 OPENAI_MODEL=<a-model-name-from-your-openai-account>
+AI_MONTHLY_BUDGET_USD=
+AI_USAGE_NOTICE_PERCENT=50
+AI_USAGE_WARNING_PERCENT=75
+AI_USAGE_CRITICAL_PERCENT=90
+OPENAI_INPUT_COST_PER_1M_TOKENS=
+OPENAI_OUTPUT_COST_PER_1M_TOKENS=
 ```
 
 Where the values come from:
 
-1. Create an API key in your OpenAI account. Every comparison is a request OpenAI charges for.
-2. `OPENAI_MODEL` is the name of the model to call, written exactly as OpenAI lists it for your account. **The code has no default model.** The request asks for structured output with a strict JSON schema, so the model has to be one that supports that.
+1. Create an API key in your OpenAI account. Every AI action is a request OpenAI charges for.
+2. `OPENAI_MODEL` is the name of the model to call, written exactly as OpenAI lists it for your account. **The code has no default model.** Production uses `OPENAI_MODEL=gpt-5.4-mini`. Each request asks for structured output with a strict JSON schema, so the model has to be one that supports that.
+3. The other six values are for the AI usage estimate (see "The AI usage estimate" below). They are optional, none is a secret, and the AI actions work without them.
 
-Both values are needed. With either one empty the AI comparison is unavailable, and one set without the other logs a `config.warning` at start-up. Unlike the three services above there is no fallback and no driver: OpenAI is optional, and everything else works without it.
+The key and the model are both needed. With either one empty the AI actions are unavailable, and one set without the other logs a `config.warning` at start-up. Unlike the three services above there is no fallback and no driver: OpenAI is optional, and everything else works without it.
 
-How it is used: a recruiter opens an ATS result in the admin and clicks "Compare with AI". The browser calls this API (`POST /api/admin/ats-results/:id/ai-comparison`, permission `ats:run`). The server sends one request to OpenAI's chat completions endpoint with the job and the candidate's stated profile, waits up to 60 seconds, validates the answer, stores it on the ATS result as `aiComparison`, writes the audit entry `ats.ai_compared` and returns the result. There is no retry. Running it again replaces the stored comparison.
+How it is used: there are three AI actions, and a recruiter starts each one by hand in the admin. The browser calls this API, never OpenAI.
 
-What it never does: it is never called when a page loads, by the rule-based evaluation, by shortlisting or by a label. It never changes an application's status, never shortlists and never sends an email. Shortlisting is still the only workflow action, and the recruiter decides.
+| Action | Endpoint | Permission | What happens |
+| --- | --- | --- | --- |
+| "Compare with AI", on one ATS result | `POST /api/admin/ats-results/:id/ai-comparison` | `ats:run` | One candidate is compared with one job. The validated answer is stored on the ATS result as `aiComparison` and audited as `ats.ai_compared`. Running it again replaces the stored comparison. |
+| "Draft with AI", on a job's requirement profile | `POST /api/admin/jobs/:id/requirement-profile/ai-draft` | `jobs:write` and `ats:run` | A draft requirement profile is made from the job's own text and returned to the form. Nothing is stored on the job until a recruiter saves the profile. Audited as `job.requirements_ai_drafted`. |
+| "Compare candidates with AI", for one job | `POST /api/admin/jobs/:id/candidate-comparison` | `ats:run` | Two to five evaluated candidates of one job are compared with each other. The validated answer is stored on the job, replaces the previous one and is audited as `ats.ai_candidates_compared`. |
 
-What is sent, in short (`docs/API.md`, section 9.6, has the full list and the size limits):
+Each action sends one request to OpenAI's chat completions endpoint, waits up to 60 seconds and validates the answer on the server before anything is stored or returned. There is no retry: a request that fails ends with an error, and it runs again only when a person asks again. The three routes share one rate limit: 20 AI requests per 10 minutes per signed-in user.
 
-- Sent: the job's title, category, department, location, type, level, summary, description, responsibilities and skills, and the candidate's current role, domain, years of experience, skills, summary, cover note, work history and education (without the year).
-- Never sent: the candidate's name, email, phone and profile link, the resume file or anything read from it, notes, labels, the notice period and the expected compensation.
-- Email addresses, links, phone numbers and the candidate's own name are also removed from the text the candidate typed, as far as a pattern can find them. A single part of the name is removed only where it is written with a capital first letter.
-- The candidate's location is sent only when the job is tied to a place, and then without house numbers or postal codes.
-- What a candidate typed is sent as data inside a marked block, and the instructions tell the model to treat it as data. The answer can only fill ten fixed fields and is validated on the server before it is stored.
+Where the AI comparison sits in the recruitment flow:
+
+1. A job is published.
+2. A candidate applies through the public form.
+3. The rule-based ATS evaluates the candidate against the job. No model is involved.
+4. A recruiter reviews the application and the rule-based result.
+5. The recruiter can start the AI comparison for that result. Nothing else starts it.
+6. The model compares the candidate with the job, and the validated analysis is stored beside the rule-based result.
+7. The recruiter decides. Shortlisting is still the recruiter's own action.
+
+What AI never does: no AI action is called when a page loads, when a candidate applies, by the rule-based evaluation, by shortlisting or by a label. No AI action changes an application's status, a candidate record, the shortlist state, a label, the recruiter's review or a rule-based score, and none sends an email. AI never shortlists and never rejects. Shortlisting is still the only workflow action, and the recruiter decides.
+
+What is sent, in short (`docs/API.md`, sections 9.6 to 9.8, has the full list and the size limits):
+
+- Sent about the job: its title, category, department, location, type, level, summary, description, responsibilities and skills. When the job has a requirement profile, the two comparisons also send the profile's requirements, without its weights and without who saved it.
+- Sent about a candidate, by the two comparisons: the current role, domain, years of experience, skills, summary, cover note, work history and education (without the year). In the comparison of several candidates each candidate is sent under a label, "Candidate A", "Candidate B" and so on, and the model is told to refer to candidates by that label only.
+- The draft of a requirement profile sends the job's own text and nothing about any candidate.
+- Never sent: a candidate's name, email, phone and profile link, the resume file or anything read from it, notes, labels, the notice period and the expected compensation.
+- Email addresses, links, phone numbers and the candidate's own name are also removed from the text the candidate typed, as far as a pattern can find them. A single part of the name is removed only where it is written with a capital first letter. The same removal is applied to every candidate in the comparison of several candidates.
+- A candidate's location is sent only when the job is tied to a place, and then without house numbers or postal codes.
+- What a candidate typed is sent as data inside a marked block, and the instructions tell the model to treat it as data. An answer can only fill the fixed fields of its action (17 for the comparison of one candidate with one job) and is validated on the server before it is stored.
+
+Where the evidence comes from: the profile the candidate typed and the cover note of the application. **The resume file is not read.** No resume text extraction exists in this code, so an analysis says nothing about what is written only in the resume.
+
+Errors the three AI routes can answer with (`docs/API.md`, section 1.3):
+
+| Status | Code | When |
+| --- | --- | --- |
+| 503 | `AI_NOT_CONFIGURED` | `OPENAI_API_KEY` or `OPENAI_MODEL` is not set. Nothing is sent to OpenAI. |
+| 503 | `AI_QUOTA_EXCEEDED` | OpenAI refused the request because the account has no credit left, has reached its spend limit or has no active billing. Trying again does not help until that is fixed on the OpenAI account. Nothing was changed. |
+| 502 | `AI_FAILED` | Any other failure at OpenAI, a network failure or no answer within 60 seconds. |
+| 502 | `AI_INVALID_RESPONSE` | OpenAI answered, and the answer was a refusal, was cut off or did not pass validation. Nothing is stored. |
+| 409 | `AI_IN_PROGRESS` | The same AI action is already running for the same ATS result or the same job in this server process. |
+| 429 | `RATE_LIMITED` | More than 20 AI requests in 10 minutes by the same signed-in user. |
+
+The AI usage estimate:
+
+- Every request this backend actually sends to OpenAI is written to the `AiUsage` collection, once, whether it succeeded or failed (`src/services/aiService.js` writes it, `src/services/aiUsageService.js` adds it up). An entry holds the time, the action, the model, the outcome, the token counts OpenAI reported, the estimated cost and the ids of the records it was about. It never holds a prompt, an answer, a name, an email address, a phone number, resume text, the API key or OpenAI's error message.
+- The cost of one request is `(input tokens x input price + output tokens x output price) / 1,000,000`, in US dollars, rounded to six decimals. The price is the pair `OPENAI_INPUT_COST_PER_1M_TOKENS` and `OPENAI_OUTPUT_COST_PER_1M_TOKENS` when both are set. Otherwise it is the list price the code knows for the model (`MODEL_LIST_PRICES` in `src/config/constants.js`). The only model in that list is `gpt-5.4-mini`: 0.75 USD per million input tokens and 4.50 USD per million output tokens, checked on 2026-10-06. For any other model without the two variables, the cost is not estimated.
+- **Prices change.** Check the built-in price against OpenAI's pricing page, and set the two variables when it differs. Cached input tokens are counted at the full input price, so the estimate errs on the high side.
+- `GET /api/admin/ai/usage` (permission `ats:run`: super admin and recruiter) returns the totals for today and for the current month, the budget and its level, the price in use and the last request. The admin dashboard reads it. It reads the ledger only: opening the dashboard never calls OpenAI.
+- Days and months are counted in UTC.
+- With `AI_MONTHLY_BUDGET_USD` set, the month's estimated spend is shown as a share of it, with a level: Healthy below `AI_USAGE_NOTICE_PERCENT` (50), Notice from there, Warning from `AI_USAGE_WARNING_PERCENT` (75) and Critical from `AI_USAGE_CRITICAL_PERCENT` (90). Without a budget the spend is still estimated and the level reads "No budget set".
+- The service state describes the last request this backend made: `NOT_CONFIGURED`, `QUOTA_EXCEEDED`, `ATTENTION` (the last request failed for another reason), `AVAILABLE` or `NOT_USED_YET`. While the state is `QUOTA_EXCEEDED`, which lasts until a later request succeeds, the level is Critical whatever the estimate says.
+- **It is an internal estimate kept by ALLSEMIS.** It is not OpenAI's billing and it is not the prepaid balance of the OpenAI account. It only knows the requests made by this backend: a request made with the same key from anywhere else is not in it. No OpenAI administrator key is used or needed. The OpenAI account's own usage page is the place for the real figures.
+- Entries are not deleted automatically. There is no retention job, and deleting a candidate or a job does not remove the entries that refer to it by id.
 
 Check after starting the server:
 
-1. The `server.listening` line shows `"openaiConfigured":true`, and there is no `config.warning` that names `OPENAI_API_KEY` or `OPENAI_MODEL`.
+1. The `server.listening` line shows `"openaiConfigured":true`, and there is no `config.warning` that names `OPENAI_API_KEY` or `OPENAI_MODEL`. `"aiMonthlyBudgetSet"` is true when a monthly budget is set.
 2. In the admin, Settings, AI and ATS shows the AI comparison as Enabled, OpenAI as Connected, the model name, and the API key as Set. This says that the two values are set. It does not say that OpenAI accepts them: the server does not contact OpenAI to show this screen.
 3. Open the ATS result of a test application and click "Compare with AI" once. Use a made-up profile for this first run, not a real person's. It can take up to a minute. The "AI comparison" panel then shows the result, and the button reads "Compare again".
 4. Read the line under the comparison. "Model:" shows the model name OpenAI reported for the answer, which can be a dated version of the name in `OPENAI_MODEL`. The same name is stored as `aiComparison.model` and in the metadata of the `ats.ai_compared` audit entry.
 5. Read the server log for that request. It holds the usual `http.request` line (method, path, status 200, duration, user id) and nothing of the comparison itself: no prompt, no candidate text, no answer and no key. After a failure there is one `ai.request_failed` or `ai.invalid_response` line with a status and a short error identifier.
 6. Check that nothing else changed: the application has the status it had, the rule-based score is the same, and no email was sent.
+7. Call `GET /api/admin/ai/usage` as a recruiter or super admin, or open the dashboard: today and the month each count one request, with the token counts OpenAI reported and, for a model with a known price, an estimated cost.
 
 Notes:
 
-- **The real OpenAI API was never called where this code was written.** There was no network access and no key. Every automated test answers `api.openai.com` with a stand-in, so the first real comparison is the first time OpenAI sees this request.
-- **Whether the configured model accepts strict structured output with this schema is untested.** If it does not, OpenAI answers with an error, the admin shows the 502 `AI_FAILED` sentence, and the `ai.request_failed` log line carries the status OpenAI returned.
-- **The quality of the analysis is unproven.** The answer is a model's opinion and can be wrong. Read the first comparisons against the profile and the job before anyone relies on them.
-- **The resume file is not read.** The comparison uses the profile the candidate typed and the cover note. No resume text extraction exists in this code.
-- **There is no cap on output tokens.** The request sets no limit on the length of the answer. What bounds it is the schema, the 60 second time limit, and the rate limit of 20 requests per 10 minutes per signed-in user.
-- **A comparison can take up to a minute.** A proxy in front of the API (the frontend host's `/api` rewrite, the backend host's own) must allow a request to stay open that long. The server does not stop a comparison when the browser's connection ends, so a comparison that outlasted a proxy may still be stored and show after a reload.
-- The rate limit, and the guard that refuses a second comparison for the same result while one is running (409 `AI_IN_PROGRESS`), are kept in memory per server process.
+- **The real OpenAI API was never called where this code was written.** There was no network access and no key. Every automated test answers `api.openai.com` with a stand-in, so the first real request of each action is the first time OpenAI sees it.
+- **Whether the configured model accepts strict structured output with these schemas is untested.** If it does not, OpenAI answers with an error, the admin shows the 502 `AI_FAILED` sentence, and the `ai.request_failed` log line carries the status OpenAI returned.
+- **The quality of the analysis is unproven.** The answer is a model's opinion and can be wrong. Read the first comparisons against the profile and the job before anyone relies on them, and read a draft requirement profile against the job description before saving it.
+- **The resume file is not read.** The comparisons use the profile the candidate typed and the cover note. No resume text extraction exists in this code.
+- **There is no cap on output tokens.** A request sets no limit on the length of the answer. What bounds it is the schema, the 60 second time limit, and the rate limit of 20 AI requests per 10 minutes per signed-in user.
+- **An AI request can take up to a minute.** A proxy in front of the API (the frontend host's `/api` rewrite, the backend host's own) must allow a request to stay open that long. The server does not stop a request when the browser's connection ends, so a comparison that outlasted a proxy may still be stored and show after a reload.
+- The rate limit, and the guards that refuse a second request while one is running (409 `AI_IN_PROGRESS`: per ATS result for the comparison of one candidate, per job for the draft and for the comparison of several candidates), are kept in memory per server process.
 - **Sending candidate profile data to OpenAI is a decision for ALLSEMIS**, and it belongs in the privacy notice. Until that is decided, leave the two values empty.
-- Emptying either value switches the AI comparison off again. Comparisons already stored stay on their ATS results and can still be read.
+- Emptying either value switches the AI actions off again. Comparisons already stored stay where they are and can still be read, and so do saved requirement profiles and the usage ledger.
 - The API key is sent to OpenAI in the `Authorization` header only. It is never logged and never returned. OpenAI's error messages are not read, because they can repeat part of the key.
+- A ledger entry that cannot be written does not fail the AI request it describes: the server logs `ai.usage_not_recorded` and the request goes on.
 
 ## Creating the first production user
 
@@ -619,7 +688,7 @@ Run it where the production variables are available: in a shell on the hosted se
 | `npm run create-admin` | Creates a user from the command line. Pass options after `--`. |
 | `npm run migrate:recruitment` | One-time migration of recruitment records saved by an earlier version: older application statuses become `NEW` or `SHORTLISTED` plus a label, and the candidate status is removed. Without options it is a dry run that changes nothing. `npm run migrate:recruitment -- --apply` makes the changes. Sends no email, deletes no record, safe to run twice. See "Upgrading an existing database". |
 | `npm run clean:showcase` | Takes demonstration recruitment data out of an existing development or showcase database. Without options it is a dry run that changes nothing. `npm run clean:showcase -- --apply` removes the demonstration records, the files they point at and the audit entries about them. With `--apply`, `--all` removes every record in the seven recruitment collections and `--unreferenced-files` also removes stored files that no record points at. `--list` prints every record. With `--apply`, a database that is not on this machine also needs `--database=<name>`. Never touches users or website content. Refuses to run in production. See "Clean showcase state". |
-| `npm test` | Runs the automated tests in `tests/` (`node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js`). |
+| `npm test` | Runs the automated tests in `tests/` (`node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js tests/session.test.js`). |
 | `npm run check` | Parses every `.js` file in `src`, `scripts` and `tests` with `node --check`. Needs no database. |
 
 ## Tests
@@ -631,11 +700,13 @@ npm test
 
 The suite starts the real Express app on a free port against an in-memory MongoDB (`mongodb-memory-server`), with the in-memory storage and email drivers. It needs no Atlas, Cloudinary, Backblaze B2, Resend or OpenAI account. It does need the real npm packages installed, and `mongodb-memory-server` downloads a MongoDB binary the first time it runs, so the first run needs network access and takes longer.
 
-One file is different. `providers.test.js` runs as a development server with made-up credentials filled in, which is the case the other files never see. It replaces `fetch` with a stand-in that records each request, and hands the B2 driver a stand-in for the AWS SDK, so it shows what this code sends to Resend, Cloudinary and Backblaze B2 and how it reads their answers. **It does not contact any of them, and it does not load the AWS SDK.** Whether the real services accept those requests is only shown by one real run of each (the checks under "Connecting the services"). It sets every variable itself, so a `.env` on the machine does not change what it tests. It writes a few small sample files under `backend/.data/` and removes them again.
+Two files are different. `providers.test.js` runs as a development server with made-up credentials filled in, which is the case the other files never see. It replaces `fetch` with a stand-in that records each request, and hands the B2 driver a stand-in for the AWS SDK, so it shows what this code sends to Resend, Cloudinary and Backblaze B2 and how it reads their answers. **It does not contact any of them, and it does not load the AWS SDK.** Whether the real services accept those requests is only shown by one real run of each (the checks under "Connecting the services"). It sets every variable itself, so a `.env` on the machine does not change what it tests. It writes a few small sample files under `backend/.data/` and removes them again.
 
-The AI comparison tests in `admin.test.js` work the same way for OpenAI. Each one replaces `fetch` so that a request to `https://api.openai.com/` is recorded and answered by a stand-in, while every other request goes to the real `fetch`. The key and the model name are made-up values set in `tests/helpers.js`. **No request reaches OpenAI.** The tests show what this code sends and how it treats an answer. They do not show that OpenAI accepts the request, that the configured model supports the schema, or that the analysis is any good. The full list of what has not been shown is in the notes under "OpenAI (the AI comparison)" in "Connecting the services".
+`session.test.js` is the other one. The configuration is read once, when the application is first imported, so a production configuration cannot be loaded inside the test process. Each of its tests therefore starts the real application in a separate process (`tests/support/session-flow.js`), in production mode or in development mode, against its own in-memory MongoDB, and sends it the requests a browser sends: the CORS preflight, the sign-in, authenticated requests with the cookie the sign-in set, and the sign-out. It sets every variable the application reads itself (to empty unless the test gives a value), so a `.env` on the machine does not change what it tests. **No browser is involved.** The test reads the `Set-Cookie` header the API sends and returns the cookie as a browser that accepted it would. Whether a real browser keeps that cookie is the browser's part and is not shown by it.
 
-The `test` script in `package.json` is `node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js`. The six files are named one by one, so the command does not depend on the shell expanding a pattern and runs the same way on Windows, macOS and Linux. There are 114 tests in six files: 20 in `unit.test.js`, 14 in `auth.test.js`, 17 in `forms.test.js`, 35 in `admin.test.js`, 22 in `providers.test.js` and 6 in `showcase.test.js`.
+The AI tests in `admin.test.js`, `requirements.test.js` and `ai-usage.test.js` work the same way for OpenAI. Each one replaces `fetch` so that a request to `https://api.openai.com/` is recorded and answered by a stand-in, while every other request goes to the real `fetch`. The key and the model name are made-up values set in `tests/helpers.js`. **No request reaches OpenAI.** The tests show what this code sends and how it treats an answer. They do not show that OpenAI accepts the request, that the configured model supports the schema, or that the analysis is any good. The full list of what has not been shown is in the notes under "OpenAI (the AI actions)" in "Connecting the services".
+
+The `test` script in `package.json` is `node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js tests/session.test.js tests/health.test.js tests/requirements.test.js tests/ai-usage.test.js`. The ten files are named one by one, so the command does not depend on the shell expanding a pattern and runs the same way on Windows, macOS and Linux. There are 165 tests in ten files: 26 in `unit.test.js`, 14 in `auth.test.js`, 17 in `forms.test.js`, 35 in `admin.test.js`, 22 in `providers.test.js`, 6 in `showcase.test.js`, 6 in `session.test.js`, 6 in `health.test.js`, 20 in `requirements.test.js` and 13 in `ai-usage.test.js`.
 
 The tests have to be run locally. Nothing in this repository proves they pass on your machine until you run them. In the environment where this code was written the npm registry was unreachable, so the tests were run against local stand-ins for express, mongoose and the other packages, not the real packages. They must be run with the real dependencies (`npm install && npm test`) before deployment.
 
@@ -652,10 +723,16 @@ What the tests cover:
   - Private documents: the store is written on the record when a file is stored; a file marked `local` is served through a signed local link while B2 is the active store, with the right headers, and an altered link or the bare key fails; a record from before the marker is found on the local disk, or else in the active store; a marker wins over what is on the disk; a key that tries to leave the storage folder is not found; a record of the earlier provider (marker `r2`) answers 404 and B2 is not asked about it; production never looks at the local disk, and a production server answers 404 to a validly signed local link and to `/media` where a development server answers 200.
   - The B2 driver, against a stand-in for the AWS SDK: one client on the endpoint and region from the environment with `forcePathStyle` and checksums only when required, the credentials, the bucket, key and content type of an upload (and no option that could make an object public), a presigned GET with `expiresIn` equal to `SIGNED_URL_TTL_SECONDS`, PDFs inline and Word files as attachments, a file name that cannot break out of the header, the listing (every key the bucket holds in any version, hidden ones included, read page by page), and the delete: every version of the key is deleted by its version id, an earlier hide marker included, another file whose key starts with the same text is left alone, when the bucket lists no version of the key nothing is sent after the versions were asked for, and when the versions cannot be listed the file is hidden, nothing is thrown and `storage.b2_hidden_not_deleted` is logged.
 - **`showcase.test.js`** (the seed and the showcase cleanup, with the files in the in-memory store): the seed creates the four users and the website content (14 insights, 3 stories, 8 expertise sectors, 3 services, 3 locations, the site settings) and no job or recruitment record, stores no sample resume, the public site shows its content and no vacancy, and the seeded administrator signs in and finds the seven recruitment lists empty; the demonstration records (10 jobs, 8 candidates, 10 applications, 5 requirements, 3 referrals, 5 enquiries, 10 ATS results and one sample resume per sample candidate) are created only when they are asked for; an address on a domain reserved for examples and tests is recognised, and an address that only looks similar is not; a dry run of the cleanup decides record by record (the seed's records and the records typed in with an example address would be removed, a candidate with an address of their own is kept with their application and files, the demo job that candidate applied to is kept with the reason, a job added in the admin is kept) and changes no record, no file and no audit entry; applying it removes the demonstration records, their files and the audit entries about them, leaves the users and the website content exactly as they were, keeps the files of kept records stored and openable, keeps the sign-in entries, adds one `system.showcase_cleanup` entry with the numbers and without any address, finds nothing more to do when planned again, and reports a stored file that no record points at without removing it until that is asked for; with `all`, every recruitment record and every file goes, no audit entry about a recruitment record is left, the public site and the admin work on the empty lists, and afterwards a job can be created and published and an application to it is accepted.
+- **`session.test.js`** (the session cookie between the frontend and this API, with the application started in a separate process, see above): in production mode on Render with the frontend on another site (`https://allsemi.vercel.app` as the only allowed origin), the preflight is answered with that exact origin and with credentials, never a wildcard; there is no session before sign-in; the sign-in sets a cookie that is `HttpOnly`, `Secure`, `SameSite=None` and `Partitioned`, with `Path=/`, no `Domain` and the session lifetime, and its body carries the user and no token; the requests that follow with that cookie are signed in, and a request without it is not; sign-out clears the cookie with the same attributes and ends the session on the server; the proxy count is 1 without `TRUST_PROXY` being set, and the sign-in is recorded under the visitor's forwarded address; the start-up configuration describes the cookie and contains no secret; `COOKIE_SAMESITE=lax` still gives `SameSite=None` for a cross-site sign-in, and `COOKIE_SAMESITE=none` gives it for every sign-in; a sign-in the browser reports as same-origin or same-site, or one without the `Sec-Fetch-Site` header, keeps `SameSite=Lax`; `COOKIE_SAMESITE=strict` is never relaxed and is named in a start-up warning; `COOKIE_DOMAIN` is added when set; any other origin (another site, `localhost`, the same host on plain `http`, a look-alike host, another Vercel address) gets no CORS permission, cannot sign in and is given no cookie; several allowed origins are each answered with themselves; the proxy count is 0 off Render and in development, and a `TRUST_PROXY` value that is set wins; in development mode `http://localhost:5173` is the default origin, the cookie is `SameSite=Lax` and not `Secure`, the same sequence of requests works, and the production origin is refused; the frontend API client (`frontend/src/lib/api/client.js`) sends credentials with every `fetch` and with the upload request, sends `X-Requested-With`, and uses no browser storage, no `document.cookie` and no `Authorization` header, and the admin's auth provider goes through that client only (this last test is skipped when the frontend sources are not next to the backend).
+- **`health.test.js`**: `GET /health` answers 200 with the fixed body `{"status":"ok","service":"allsemis-api"}`, with no session, cookie, `Origin` or `X-Requested-With`, sets no cookie and is not cached; nothing in its body or headers is a secret or names the infrastructure; it is not a route for `POST`; it is outside the API rate limit; with the database connection down it still answers 200 while `GET /ready` and `GET /api/health` answer 503, and `GET /ready` answers 200 when the connection is up.
+- **`requirements.test.js`** (no request reaches OpenAI, see above): a job without a requirement profile is scored with the baseline weights, with a hand-computed total, the same result twice and the matched and missing skills listed; a job with a profile is scored against it (its skills, minimum years, tools, domains and work arrangement, the default weights of a profile or the job's own, a weight of 0, and the checks that are listed and not scored); every field of a profile is stored and returned to staff, the public API never returns it and the job's "updated" date does not move; values that make no sense are refused; access is checked as on the neighbouring routes; running the rules again for a job updates the existing results only, calls no model and keeps reviews and AI comparisons; the AI draft is one request with the job only, returns a validated draft and stores nothing, and an invalid answer is refused; an application, the rules and every read make no request to OpenAI, and only the three AI routes do, once each; the single comparison sends the profile without its weights and returns the seventeen fields, and a comparison stored in the earlier ten-field shape is still returned; the comparison of several candidates sends labels instead of names, refuses an answer that drops, repeats or invents a candidate, validates the choice, is removed when one of its candidates is deleted and refuses a second request while one runs; whatever the model answers, no application, candidate, label, shortlist, review or rule-based score changes and no email is sent; after every kind of AI failure on each AI route, applications, the rules, shortlisting and `/health` keep working.
+- **`ai-usage.test.js`** (no request reaches OpenAI, see above): every request to OpenAI is recorded once with the model, the operation, the tokens and the ids, on success and on every kind of failure (quota, rate limit, credentials, model, bad request, provider error, network, timeout, an unusable answer, a refusal), with one request each time and no retry; what is refused before anything is sent records nothing; tokens are recorded when OpenAI reports them and left empty when it does not; the estimated cost from the configured price and from the list price of `gpt-5.4-mini`, with worked numbers, and no estimate for a model without a price; the dashboard figures for today and this month in UTC, including the day and month boundaries; the thresholds at 50, 75 and 90 percent, other thresholds, and the level against a budget; the variables as the server reads them (defaults, values that do not rise, a value that is not an amount); a billing or quota refusal answers 503 `AI_QUOTA_EXCEEDED` with one request, changes nothing, turns the dashboard Critical until a request works again, and is told apart from a plain rate limit; the ledger holds exactly its documented fields and no key, prompt, answer, name, email address, phone number or anything a candidate wrote; the usage figures are for the roles that can start an AI request and reading them never calls OpenAI.
 
 ## Deployment
 
 The planned setup: the frontend on Vercel, this API on Render, the database on MongoDB Atlas, images on Cloudinary, private documents on Backblaze B2, email through Resend.
+
+The current production layout: the frontend at `https://allsemi.vercel.app` calls the API at `https://allsemi-backend.onrender.com` directly. That is option C under "Frontend on Vercel, and how it reaches the API", and the exact variables for it are listed there.
 
 ### Backend on Render
 
@@ -667,7 +744,7 @@ The planned setup: the frontend on Vercel, this API on Render, the database on M
 | Root directory | `backend` |
 | Build command | `npm install` |
 | Start command | `npm start` |
-| Health check path | `/api/health` |
+| Health check path | `/api/health` (it can stay as it is, or be `/ready`: see "Health endpoints" below) |
 
 3. Make sure the service runs Node 20.11 or newer.
 4. Add the environment variables:
@@ -681,13 +758,30 @@ SESSION_SECRET=<random-string-of-32-or-more-characters>
 COOKIE_SAMESITE=lax
 ```
 
-plus the Cloudinary, B2 and Resend variables from "Connecting the services", including `ADMIN_NOTIFICATION_EMAIL`. Add `OPENAI_API_KEY` and `OPENAI_MODEL` only if the AI comparison is to be used. The three `*_DRIVER` variables are not needed: in production private documents always use B2 and images always use Cloudinary. Do not set the `SEED_*` variables. The server listens on `PORT` when the host sets it, otherwise on 4000.
+`FRONTEND_URL`, `COOKIE_SAMESITE` and `TRUST_PROXY` depend on how the frontend reaches the API. The values for each option, and for the current production layout, are under "Frontend on Vercel, and how it reaches the API" below.
+
+Add the Cloudinary, B2 and Resend variables from "Connecting the services", including `ADMIN_NOTIFICATION_EMAIL`. Add `OPENAI_API_KEY` and `OPENAI_MODEL` only if the AI actions are to be used. With them, set `AI_MONTHLY_BUDGET_USD` as well to get the Healthy, Notice, Warning or Critical level of the AI usage estimate on the dashboard. The other five AI usage variables have working defaults and can be left out. The three `*_DRIVER` variables are not needed: in production private documents always use B2 and images always use Cloudinary. Do not set the `SEED_*` variables. The server listens on `PORT` when the host sets it, otherwise on 4000.
 
 5. In Atlas **Network Access**, allow the addresses the Render service connects from.
-6. Deploy, open `https://<your-backend-host>/api/health`, and read the `server.listening` line in the service's log: it must show `"fileStorage":"b2"`, `"mediaStorage":"cloudinary"`, `"email":"resend"` and `true` for `b2Configured`, `cloudinaryConfigured` and `resendConfigured`. `openaiConfigured` is `true` only when both OpenAI values are set. Then create the first user (see above) and run the checks under "Connecting the services" once against the deployed service.
+6. Deploy, open `https://<your-backend-host>/health` and `https://<your-backend-host>/api/health`, and read the `server.listening` line in the service's log: it must show `"nodeEnv":"production"`, `"fileStorage":"b2"`, `"mediaStorage":"cloudinary"`, `"email":"resend"` and `true` for `b2Configured`, `cloudinaryConfigured` and `resendConfigured`. `openaiConfigured` is `true` only when both OpenAI values are set, and `aiMonthlyBudgetSet` is `true` only when `AI_MONTHLY_BUDGET_USD` holds an amount above 0. The same line shows `frontendUrls`, `trustProxy` and `sessionCookie`: compare them with the option in use (see below). Then create the first user (see above) and run the checks under "Connecting the services" once against the deployed service.
 7. If the database already holds applications or candidates saved by an earlier version of this code, run the recruitment migration against it (see "Upgrading an existing database"). The server logs a `migration.needed` warning on start while applications with an older status exist.
+8. Nothing has to be migrated for the requirement profile, the comparison of several candidates or the AI usage ledger. The new fields on a job and on an ATS result are optional: a record saved by an earlier version is read as having none, and a job without a requirement profile is scored with the baseline weights as before. The `AiUsage` collection is created by MongoDB when the first AI request is recorded.
+9. Point the uptime monitor at `https://<your-backend-host>/health` (see "Health endpoints" below).
 
-`TRUST_PROXY=1` tells Express there is one proxy in front of the app, so the client address used for rate limits and stored on audit entries is the one that proxy forwards, not the proxy's own. Set it to the exact number of proxies in front of this API: 1 when browsers call the Render address directly, 2 when the frontend host forwards `/api` to it. Do not set it higher than the real count: a larger number lets a visitor forge the address. With `TRUST_PROXY=0` in production the server logs a warning, because behind a hosting proxy every visitor then appears to come from the proxy address and the rate limits are shared by everyone. The server shuts down cleanly on `SIGTERM`, which is what a deploy sends.
+`TRUST_PROXY=1` tells Express there is one proxy in front of the app, so the client address used for rate limits and stored on audit entries is the one that proxy forwards, not the proxy's own. On Render in production 1 is also the value when the variable is not set (Render sets `RENDER=true`, and the code reads it). On any other host the value is 0 until the variable is set. Set it to the exact number of proxies in front of this API: 1 when browsers call the Render address directly, 2 when the frontend host forwards `/api` to it. Do not set it higher than the real count: a larger number lets a visitor forge the address. With `TRUST_PROXY=0` in production the server logs a warning, because behind a hosting proxy every visitor then appears to come from the proxy address and the rate limits are shared by everyone. The server shuts down cleanly on `SIGTERM`, which is what a deploy sends.
+
+**Health endpoints.** Three paths answer without a sign-in. The first two are outside `/api`.
+
+| Path | What it is for | Answer |
+| --- | --- | --- |
+| `GET /health` | Liveness: is the process up. For an uptime monitor. | Always 200 with the fixed body `{"status":"ok","service":"allsemis-api"}`. |
+| `GET /ready` | Readiness: can the process serve requests that need the database. | 200 `{"status":"ready","service":"allsemis-api"}` when the database connection is up, 503 `{"status":"unavailable","service":"allsemis-api"}` when it is not. |
+| `GET /api/health` | Unchanged. | 200 `{ "success": true, "data": { "status": "ok" } }` when the database connection is up, 503 `DATABASE_UNAVAILABLE` when it is not. |
+
+- `GET /health` needs no sign-in, no cookie, no database and no other service. It is answered before CORS, the rate limiter and the body parsers, so a monitor that calls it every minute is never refused. It says that the process answers and nothing else: no version, no host name and no configuration.
+- Both `/health` and `/ready` are sent with `Cache-Control: no-store`.
+- Render's health check path can stay `/api/health`, or be set to `/ready`. Both answer 503 while the database connection is down.
+- An uptime monitor should use `/health`. In production that is `https://allsemi-backend.onrender.com/health`.
 
 **What `NODE_ENV=production` enforces** (`validateEnv` in `src/config/env.js`). `NODE_ENV` itself must be spelt exactly `production`: a value that is not `development`, `test` or `production` stops the process. The server refuses to start unless:
 
@@ -700,15 +794,17 @@ plus the Cloudinary, B2 and Resend variables from "Connecting the services", inc
 - private documents use B2 and images use Cloudinary. That is the case unless `FILE_STORAGE_DRIVER` or `MEDIA_STORAGE_DRIVER` is set to `local` (or `memory`) while the credentials are incomplete,
 - `EMAIL_DRIVER` is not `memory`.
 
-There is no fallback to local storage in production. The code also: sets the session cookie `Secure`, sends an HSTS header, returns a generic message for unexpected errors, does not serve `/media`, and answers 404 on `GET /api/files/local/:token`. Incomplete B2, Cloudinary or Resend credentials are warnings, not start-up failures: the server starts and the affected feature reports that it is not configured (uploads answer 503, emails are not sent). `EMAIL_DRIVER=log` without Resend credentials is accepted in production with a warning, so read the start-up line: `"email":"resend"` and `"resendConfigured":true` are what you want to see if you expect email to be sent. The OpenAI values are never required: with either one missing the AI comparison answers 503 `AI_NOT_CONFIGURED` and everything else works.
+There is no fallback to local storage in production. The code also: sets the session cookie `Secure`, sends an HSTS header, returns a generic message for unexpected errors, does not serve `/media`, and answers 404 on `GET /api/files/local/:token`. Incomplete B2, Cloudinary or Resend credentials are warnings, not start-up failures: the server starts and the affected feature reports that it is not configured (uploads answer 503, emails are not sent). `EMAIL_DRIVER=log` without Resend credentials is accepted in production with a warning, so read the start-up line: `"email":"resend"` and `"resendConfigured":true` are what you want to see if you expect email to be sent. The OpenAI values are never required: with either one missing the three AI routes answer 503 `AI_NOT_CONFIGURED` and everything else works. The six AI usage variables are never required either.
 
 ### Frontend on Vercel, and how it reaches the API
 
 The frontend calls `/api/...`. There are three ways to connect it to the backend. Option A is recommended.
 
+Production uses option C now: `VITE_API_BASE_URL` is set on Vercel, and `frontend/vercel.json` has no `/api` rewrite, only the catch-all rewrite to `/index.html`.
+
 #### Option A (recommended): a rewrite on the frontend host
 
-The browser calls `/api` on the site's own origin and Vercel forwards it to Render. The session cookie is first-party and no CORS exception is involved.
+The browser calls `/api` on the site's own origin and Vercel forwards it to Render. The session cookie is first-party and no CORS exception is involved. A browser that blocks third-party cookies does not affect it, which is why this layout remains the recommended one.
 
 Edit `frontend/vercel.json`. The `/api` rewrite must come **before** the existing catch-all rewrite to `/index.html`, otherwise the catch-all answers first and API calls return the HTML page.
 
@@ -721,13 +817,13 @@ Edit `frontend/vercel.json`. The `/api` rewrite must come **before** the existin
 }
 ```
 
-Backend variables: `FRONTEND_URL=https://www.<your-domain>` (the site origin the browser uses), `COOKIE_SAMESITE=lax`, `COOKIE_DOMAIN` empty. Do not set `VITE_API_BASE_URL` on the frontend.
+Backend variables: `FRONTEND_URL=https://www.<your-domain>` (the site origin the browser uses), `COOKIE_SAMESITE=lax`, `COOKIE_DOMAIN` empty, `TRUST_PROXY=2` (see the third check below). Do not set `VITE_API_BASE_URL` on the frontend. The browser reports these requests as same-origin, so the cookie stays `SameSite=Lax`.
 
 Three things to check after deploying with option A:
 
 - Uploads of up to 5 MB pass through the frontend host. Confirm that its proxy accepts request bodies of that size.
-- An AI comparison can keep a request open for up to 60 seconds. If the AI comparison is used, confirm that the frontend host's proxy waits that long for the API.
-- There is now one more proxy between the visitor and the API. Rate limits are per client address, and the address depends on `TRUST_PROXY`. Submit a form from two different networks and look at the `ip` stored on the audit entries in the `auditlogs` collection. If every visitor shows the same address, the forwarding chain is longer than `TRUST_PROXY` says and the value needs to be raised to match. Never raise it above the real number of proxies: a larger number lets a visitor forge the address.
+- An AI request (a comparison or a draft) can keep a request open for up to 60 seconds. If the AI actions are used, confirm that the frontend host's proxy waits that long for the API.
+- There is now one more proxy between the visitor and the API. Rate limits are per client address, and the address depends on `TRUST_PROXY`. Submit a form from two different networks and look at the `ip` stored on the audit entries in the `auditlogs` collection. If every visitor shows the same address, the forwarding chain is longer than `TRUST_PROXY` says and the value needs to be raised to match. On Render the value is 1 when `TRUST_PROXY` is not set, which counts Render's own proxy and not the frontend host's, so set it by hand for this option. Never raise it above the real number of proxies: a larger number lets a visitor forge the address.
 
 #### Option B: the API on a subdomain of the same site
 
@@ -740,17 +836,69 @@ Requests are cross-origin, so they rely on the CORS allow-list. `FRONTEND_URL` m
 
 #### Option C: unrelated domains
 
-For example the site on a Vercel domain and the API on a Render domain.
+For example the site on a Vercel domain and the API on a Render domain. The browser calls the API directly on the other domain, so every request is cross-site. This is the layout production uses now: the frontend at `https://allsemi.vercel.app` and the API at `https://allsemi-backend.onrender.com`.
 
-- Frontend build: `VITE_API_BASE_URL=https://<your-backend-host>`
-- Backend: `FRONTEND_URL=https://<your-frontend-host>`, `COOKIE_SAMESITE=none`
+How the session cookie is sent (`sessionSameSite` and `cookieOptions` in `src/services/authService.js`). A browser refuses a `SameSite=Lax` cookie that arrives in a cross-site response. With `Lax` in this layout the sign-in is accepted, the cookie is not kept, and the next request arrives without a session and is answered 401. The `SameSite` value is therefore decided for each sign-in request:
 
-With `none` the cookie is always marked `Secure`. Caveat: the session cookie is then a third-party cookie. Some browsers block third-party cookies, by default or by user setting, and in those browsers sign-in may fail. Use option A or B for anything staff rely on.
+- `COOKIE_SAMESITE=none` or `COOKIE_SAMESITE=strict` is used as given.
+- With `COOKIE_SAMESITE=lax` (the default) the cookie is `Lax` when the browser reports the request as same-origin or same-site, and `None` when it reports cross-site. The browser reports this in the `Sec-Fetch-Site` request header, which a page cannot set. A request without that header gets the configured value.
+- The cookie is always `HttpOnly`. It is `Secure` always in production, and whenever `SameSite` is `None`. It has `Path=/`, it is host-only unless `COOKIE_DOMAIN` is set, and it is `Partitioned` when `SameSite` is `None`.
+- Sign-out clears the cookie with the same attributes.
+
+Nothing else about sessions is different in this layout: the session is stored on the server in MongoDB, the cookie holds a random token, and no token is in a response body or in browser storage. CORS is the same too: only the exact origins in `FRONTEND_URL`, with credentials, never a wildcard. The `X-Requested-With` header and the exact `Origin` allow-list are checked whatever `SameSite` is. The `SameSite` layer of the CSRF protection applies only when the frontend and the API are on the same site, so in this layout those two checks are what protects state-changing requests.
+
+Variables for the current production layout. On Render:
+
+```
+NODE_ENV=production
+FRONTEND_URL=https://allsemi.vercel.app
+COOKIE_SAMESITE=none
+COOKIE_DOMAIN=
+TRUST_PROXY=1
+```
+
+- `FRONTEND_URL` is the exact origin of the site: `https`, the host, no path. A trailing slash is removed if one is written, so none is needed. Any other origin gets no CORS permission and cannot sign in.
+- `COOKIE_SAMESITE=none` is recommended, to be explicit. `lax` also works now, because of the automatic rule above.
+- `COOKIE_DOMAIN` stays empty: the cookie belongs to the API host only.
+- `TRUST_PROXY=1` can also be left unset on Render, where 1 is the default in production.
+- Production mode needs the other variables it already needed (see "What `NODE_ENV=production` enforces" above): `MONGODB_URI` and a `SESSION_SECRET` of at least 32 characters, without which the server refuses to start, and the B2 variables (`B2_ENDPOINT`, `B2_BUCKET_NAME`, `B2_ACCESS_KEY_ID`, `B2_SECRET_ACCESS_KEY`, and `B2_REGION` when the endpoint does not name the region) and the Cloudinary variables (`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`). Production always uses B2 and Cloudinary: while their values are incomplete the server starts with a `config.warning` and uploads are refused.
+
+On Vercel:
+
+```
+VITE_API_BASE_URL=https://allsemi-backend.onrender.com
+```
+
+This is a URL, not a secret. It is read when the frontend is built, so changing it needs a new Vercel build before it takes effect.
+
+The admin screens are part of the frontend build. After a backend version that adds admin features is deployed on Render (the requirement profile, the comparison of several candidates, the AI usage estimate on the dashboard), Vercel needs the new frontend build as well before those screens appear.
+
+Check after deploying: the `server.listening` line shows `"nodeEnv":"production"`, `"frontendUrls":["https://allsemi.vercel.app"]`, `"trustProxy":1` and `"sessionCookie":{"httpOnly":true,"secure":"always","sameSite":"none","domain":"(the API host only)"}`. With `COOKIE_SAMESITE=lax` or no value, `sameSite` reads `"lax, or none when the sign-in comes from another site"`.
+
+**The limit of this layout.** With the frontend and the API on different sites the session cookie is a third-party cookie. Browsers that block third-party cookies (Safari and other WebKit browsers by default, Brave, Chrome in Incognito or with the setting switched on) may refuse it even with `SameSite=None`. The `Partitioned` attribute is meant to keep the cookie working where the browser supports it. That was not verified in those browsers. Option A does not have this limit, because the `/api` rewrite on the frontend host makes the cookie first-party, and it remains the recommended layout.
+
+### Troubleshooting: "Your session ended. Sign in again." right after signing in
+
+What it means: the API accepted the email and password, and a request that followed was answered 401 because it carried no session cookie. The admin shows this message whenever a request is answered 401 while it holds a signed-in user. Right after signing in, that means the browser did not keep the cookie, or did not send it back.
+
+What to look at:
+
+- The `server.listening` line in the backend's log: `nodeEnv` must be `production`, and `sessionCookie` shows how the cookie is sent. A line without `sessionCookie` comes from a build older than this change.
+- In the browser's developer tools, on the Network tab: the response to `POST /api/auth/login` must have a `Set-Cookie` header for `allsemis_sid` that shows `Secure` and `SameSite=None` (with `HttpOnly` and `Partitioned` beside them), and the next request to the API must carry the cookie in its `Cookie` request header.
+
+Causes, most likely first:
+
+1. An older backend build is running with `COOKIE_SAMESITE` left at `lax`. Before this change `lax` always gave `SameSite=Lax`, which a browser refuses in a cross-site response. Deploy the current code, or set `COOKIE_SAMESITE=none`.
+2. `NODE_ENV` is not `production` on the backend. The server then runs with the development defaults: the cookie is `Secure` only when `SameSite` is `None`, the proxy count is 0, and an empty `FRONTEND_URL` means `http://localhost:5173`. Set `NODE_ENV=production`. With the current code a cross-site sign-in is given `Secure` and `SameSite=None` in that mode as well, so if the message stays, go on to the next cause.
+3. `FRONTEND_URL` is not exactly the site origin (`https://allsemi.vercel.app`). The usual sign of this is different: the sign-in itself fails, with a 403 or with a CORS error in the browser's console, because the origin is not allowed.
+4. The browser blocks third-party cookies (see "The limit of this layout" above). Try a browser that allows them to confirm. The fix that does not depend on the browser is option A.
 
 ## Security notes for operators
 
 - **Do not commit secrets.** `.env` and `.env.*` are ignored by git (only `.env.example` is tracked). Keep it that way. Never put a key in the frontend: every `VITE_` variable is public. The Cloudinary secret, the B2 application key, the Resend key and the OpenAI key exist only in the backend's environment. They are not logged (the start-up line and `GET /api/admin/settings` report true or false, and for the AI comparison the model name) and no API response contains them.
-- **The AI comparison sends candidate profile text to OpenAI.** It does so only when a recruiter asks for a comparison, and without the name, email, phone, profile link or resume file. What is sent and what is removed is listed in `docs/API.md`, section 9.6. Whether to use it, and what the privacy notice says about it, is a decision for ALLSEMIS. The request and the answer are never written to the server log.
+- **The two AI comparisons send candidate profile text to OpenAI.** They do so only when a recruiter asks for a comparison, and without the name, email, phone, profile link or resume file. In the comparison of several candidates each candidate is sent as "Candidate A", "Candidate B" and so on. The AI draft of a requirement profile sends the job's own text and no candidate data. What is sent and what is removed is listed in `docs/API.md`, sections 9.6 to 9.8. Whether to use them, and what the privacy notice says about it, is a decision for ALLSEMIS. The request and the answer are never written to the server log.
+- **AI is advice.** No AI action changes an application's status, a candidate record, the shortlist state, a label or the recruiter's review, and none shortlists or rejects anyone. A recruiter starts each one and makes every decision.
+- **The AI usage figures are an internal estimate.** They are worked out by this backend from the requests it sent, with a price per million tokens. They are not OpenAI's billing and not the prepaid balance, and no OpenAI administrator key is used. The ledger holds numbers and ids only, never a prompt, an answer or candidate content. Its entries are not deleted automatically.
 - **Rotating `SESSION_SECRET` signs everyone out.** Session tokens are stored as an HMAC keyed with it, so existing sessions stop matching. Rotate it if it may have leaked.
 - **The B2 bucket must stay private.** Its type must be Private ("Files in bucket are: Private"). The code makes no object public and never builds a public address of one. Documents are reachable only through signed links that expire after `SIGNED_URL_TTL_SECONDS`, issued after a permission check, and each access is audited.
 - **The `local` and `log` drivers are for development.** Local storage is refused in production because a host's disk is not private and is wiped on deploy. `backend/.data/` is ignored by git and must not be deployed. Files and images stored there are not copied to B2 or Cloudinary when those are connected: they stay on that machine.

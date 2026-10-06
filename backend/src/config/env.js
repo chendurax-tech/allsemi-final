@@ -32,8 +32,19 @@ function int(name, fallback) {
   return value;
 }
 
+// A money amount or a price: a number that is not negative. Empty or
+// absent means not set.
+function amount(name) {
+  const raw = str(name);
+  if (!raw) return null;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) throw new Error(`Environment variable ${name} must be a number that is not negative.`);
+  return value;
+}
+
 function oneOf(name, allowed, fallback) {
-  const value = str(name, fallback).toLowerCase();
+  // An empty line (COOKIE_SAMESITE= with nothing after it) means not set.
+  const value = (str(name) || fallback).toLowerCase();
   if (!allowed.includes(value)) {
     throw new Error(`Environment variable ${name} must be one of: ${allowed.join(', ')}. Received "${value}".`);
   }
@@ -41,7 +52,7 @@ function oneOf(name, allowed, fallback) {
 }
 
 function list(name, fallback = '') {
-  return str(name, fallback).split(',').map((item) => item.trim().replace(/\/+$/, '')).filter(Boolean);
+  return (str(name) || fallback).split(',').map((item) => item.trim().replace(/\/+$/, '')).filter(Boolean);
 }
 
 // A driver variable is optional. Empty or absent means "decide from the
@@ -78,6 +89,41 @@ const emailFrom = str('EMAIL_FROM');
 const openai = {
   apiKey: str('OPENAI_API_KEY'),
   model: str('OPENAI_MODEL'),
+};
+
+/*
+  The internal AI usage estimate (services/aiUsageService.js). None of
+  these is a credential and none is needed for the AI features to work.
+
+  - AI_MONTHLY_BUDGET_USD: what ALLSEMIS plans to spend on OpenAI in a
+    calendar month. The dashboard compares the estimated spend with it.
+    Not set: spend is still estimated, without a level.
+  - OPENAI_INPUT_COST_PER_1M_TOKENS / OPENAI_OUTPUT_COST_PER_1M_TOKENS:
+    the price of the configured model in US dollars per million tokens.
+    Set both to override the list price the code knows for a model
+    (MODEL_LIST_PRICES in config/constants.js), or to price a model it
+    does not know.
+  - AI_USAGE_NOTICE_PERCENT, AI_USAGE_WARNING_PERCENT,
+    AI_USAGE_CRITICAL_PERCENT: the share of the budget at which the
+    dashboard shows Notice, Warning and Critical.
+*/
+const USAGE_THRESHOLD_DEFAULTS = { notice: 50, warning: 75, critical: 90 };
+const requestedThresholds = {
+  notice: int('AI_USAGE_NOTICE_PERCENT', USAGE_THRESHOLD_DEFAULTS.notice),
+  warning: int('AI_USAGE_WARNING_PERCENT', USAGE_THRESHOLD_DEFAULTS.warning),
+  critical: int('AI_USAGE_CRITICAL_PERCENT', USAGE_THRESHOLD_DEFAULTS.critical),
+};
+// Three steps that rise, each above 0. Anything else is a typing
+// mistake: the defaults are used and start-up says so.
+const thresholdsValid = requestedThresholds.notice > 0
+  && requestedThresholds.notice < requestedThresholds.warning
+  && requestedThresholds.warning < requestedThresholds.critical;
+const aiUsage = {
+  monthlyBudgetUsd: amount('AI_MONTHLY_BUDGET_USD'),
+  inputCostPerMillion: amount('OPENAI_INPUT_COST_PER_1M_TOKENS'),
+  outputCostPerMillion: amount('OPENAI_OUTPUT_COST_PER_1M_TOKENS'),
+  thresholds: thresholdsValid ? requestedThresholds : USAGE_THRESHOLD_DEFAULTS,
+  thresholdsValid,
 };
 
 // "Configured" means every value the provider needs is present.
@@ -153,7 +199,11 @@ export const env = {
   isProduction,
   isTest,
   port: int('PORT', 4000),
-  trustProxy: int('TRUST_PROXY', 0),
+  // The number of proxies in front of this API. On Render there is
+  // always one (Render ends HTTPS and forwards the request), so that is
+  // the default there in production; anywhere else the default is 0.
+  // An explicit TRUST_PROXY always wins.
+  trustProxy: int('TRUST_PROXY', isProduction && str('RENDER').toLowerCase() === 'true' ? 1 : 0),
   logLevel: oneOf('LOG_LEVEL', ['debug', 'info', 'warn', 'error', 'silent'], isTest ? 'silent' : 'info'),
 
   mongodbUri: str('MONGODB_URI'),
@@ -161,6 +211,9 @@ export const env = {
 
   sessionSecret: str('SESSION_SECRET'),
   sessionTtlHours: int('SESSION_TTL_HOURS', 12),
+  // lax (default): Lax, and None for a sign-in that comes from another
+  // site, where Lax cannot work (see sessionSameSite in
+  // services/authService.js). none and strict are used as they are.
   cookieSameSite: oneOf('COOKIE_SAMESITE', ['lax', 'strict', 'none'], 'lax'),
   cookieDomain: str('COOKIE_DOMAIN'),
 
@@ -181,6 +234,7 @@ export const env = {
   adminNotificationEmail: str('ADMIN_NOTIFICATION_EMAIL'),
 
   openai,
+  aiUsage,
 
   seed: {
     adminEmail: str('SEED_ADMIN_EMAIL'),
@@ -215,6 +269,9 @@ export function validateEnv() {
   if (env.trustProxy < 0 || env.trustProxy > 5) problems.push('TRUST_PROXY must be the number of proxies in front of this API (0 to 5).');
   if (env.cookieSameSite === 'none' && !env.isProduction) {
     warnings.push('COOKIE_SAMESITE=none needs HTTPS; browsers will drop the session cookie on plain http.');
+  }
+  if (env.cookieSameSite === 'strict') {
+    warnings.push('COOKIE_SAMESITE=strict: signing in only works when the frontend and this API are on the same site. If the frontend calls this API on another domain, remove the line or set it to "none".');
   }
 
   if (env.isProduction) {
@@ -263,6 +320,13 @@ export function validateEnv() {
     warnings.push(`${env.openai.apiKey ? 'OPENAI_API_KEY is set but OPENAI_MODEL is not' : 'OPENAI_MODEL is set but OPENAI_API_KEY is not'}. The AI comparison needs both and stays unavailable until both are set.`);
   }
 
+  if (!env.aiUsage.thresholdsValid) {
+    warnings.push('AI_USAGE_NOTICE_PERCENT, AI_USAGE_WARNING_PERCENT and AI_USAGE_CRITICAL_PERCENT must be three rising whole numbers above 0. The defaults (50, 75, 90) are used.');
+  }
+  if ((env.aiUsage.inputCostPerMillion === null) !== (env.aiUsage.outputCostPerMillion === null)) {
+    warnings.push('OPENAI_INPUT_COST_PER_1M_TOKENS and OPENAI_OUTPUT_COST_PER_1M_TOKENS are used together. Only one is set, so both are ignored.');
+  }
+
   return { problems, warnings };
 }
 
@@ -280,6 +344,14 @@ export function describeConfig() {
     nodeEnv: env.NODE_ENV,
     port: env.port,
     frontendUrls: env.frontendUrls,
+    trustProxy: env.trustProxy,
+    // How the session cookie is sent. No value of a cookie is here.
+    sessionCookie: {
+      httpOnly: true,
+      secure: env.isProduction || env.cookieSameSite === 'none' ? 'always' : 'when the sign-in comes from another site',
+      sameSite: env.cookieSameSite === 'lax' ? 'lax, or none when the sign-in comes from another site' : env.cookieSameSite,
+      domain: env.cookieDomain || '(the API host only)',
+    },
     fileStorage: env.fileStorageDriver,
     mediaStorage: env.mediaStorageDriver,
     email: env.emailDriver,
@@ -287,5 +359,6 @@ export function describeConfig() {
     b2Configured: integrations.b2(),
     resendConfigured: integrations.resend(),
     openaiConfigured: integrations.openai(),
+    aiMonthlyBudgetSet: env.aiUsage.monthlyBudgetUsd !== null && env.aiUsage.monthlyBudgetUsd > 0,
   };
 }

@@ -8,10 +8,11 @@ import { PERMISSIONS as P } from '../config/permissions.js';
 import * as resources from '../controllers/resources.js';
 import * as recruitment from '../controllers/recruitmentController.js';
 import * as ats from '../controllers/atsController.js';
+import * as jobRequirements from '../controllers/jobRequirementsController.js';
 import * as media from '../controllers/mediaController.js';
 import * as system from '../controllers/systemController.js';
 import * as auth from '../controllers/authController.js';
-import { jobCreateSchema, jobUpdateSchema } from '../validators/jobs.js';
+import { jobCreateSchema, jobUpdateSchema, requirementProfileSchema, candidateComparisonSchema } from '../validators/jobs.js';
 import {
   candidateUpdateSchema, noteSchema, applicationUpdateSchema, requirementCreateSchema, requirementUpdateSchema,
   referralUpdateSchema, enquiryUpdateSchema, atsRunSchema, atsReviewSchema,
@@ -49,6 +50,12 @@ router.get('/jobs/:id', can(P.JOBS_READ), resources.jobs.read);
 router.post('/jobs', can(P.JOBS_WRITE), validate(jobCreateSchema), resources.jobs.create);
 router.patch('/jobs/:id', can(P.JOBS_WRITE), validate(jobUpdateSchema), resources.jobs.update);
 router.delete('/jobs/:id', can(P.JOBS_DELETE), resources.jobs.remove);
+// The job's requirement profile: what the job asks for, structured.
+// Saving and removing are plain edits. The draft calls OpenAI, only
+// when a recruiter asks, and stores nothing.
+router.put('/jobs/:id/requirement-profile', can(P.JOBS_WRITE), validate(requirementProfileSchema), jobRequirements.saveProfile);
+router.delete('/jobs/:id/requirement-profile', can(P.JOBS_WRITE), jobRequirements.removeProfile);
+router.post('/jobs/:id/requirement-profile/ai-draft', aiLimiter, can(P.JOBS_WRITE, P.ATS_RUN), jobRequirements.draftProfile);
 
 // ---- candidates ----
 router.get('/candidates', can(P.CANDIDATES_READ), resources.candidates.list);
@@ -97,9 +104,21 @@ router.get('/ats-results', can(P.ATS_READ), ats.list);
 router.get('/ats-results/:id', can(P.ATS_READ), ats.read);
 router.post('/ats/run', can(P.ATS_RUN), validate(atsRunSchema), ats.run);
 router.patch('/ats-results/:id/review', can(P.ATS_REVIEW), validate(atsReviewSchema), ats.review);
-// "Compare with AI": the only route that calls OpenAI, and only when a
-// recruiter asks. Advisory: it shortlists nobody.
+// "Compare with AI": one of the three routes that call OpenAI (all
+// behind aiLimiter), and only when a recruiter asks. Advisory: it
+// shortlists nobody.
 router.post('/ats-results/:id/ai-comparison', aiLimiter, can(P.ATS_RUN), ats.aiCompare);
+// Rule-based only: runs the rules again for a job's existing results.
+router.post('/jobs/:id/ats/re-run', can(P.ATS_RUN), jobRequirements.reevaluate);
+// Several candidates of one job compared with each other by AI, when a
+// recruiter asks. Advisory: it changes no status and shortlists nobody.
+router.get('/jobs/:id/candidate-comparison', can(P.ATS_READ), jobRequirements.readComparison);
+router.post('/jobs/:id/candidate-comparison', aiLimiter, can(P.ATS_RUN), validate(candidateComparisonSchema), jobRequirements.compareForJob);
+
+// ---- AI usage: the internal estimate shown on the dashboard ----
+// For the roles that can start a paid AI request. Reads the ledger
+// only: it never calls OpenAI.
+router.get('/ai/usage', can(P.ATS_RUN), system.getAiUsage);
 
 // ---- website content ----
 function content(path, controller, createSchema, updateSchema) {
