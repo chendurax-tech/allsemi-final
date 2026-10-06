@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
   accent, turquoise) plus electric blue, used here with fixed meanings
   so colour carries information rather than decoration:
     lilac  primary action, selection, brand
-    blue   system and AI-produced data, in-progress states
+    blue   system-produced data, in-progress states
     teal   confirmed, passed, published
     amber  needs a person's attention
     red    rejected, failed, destructive
@@ -15,6 +15,10 @@ import { Link } from 'react-router-dom';
 export function cx(...parts) {
   return parts.filter(Boolean).join(' ');
 }
+
+// One look for every labelled input, select and text area.
+export const inputCls = 'w-full bg-bg border border-line-strong px-3 py-2 text-sm text-text placeholder:text-text-faint focus:outline-none focus:border-accent transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
+export const labelCls = 'block font-mono text-[0.65rem] uppercase tracking-[0.14em] text-text-dim mb-1.5';
 
 const TONES = {
   teal: 'text-turquoise border-turquoise/40 bg-turquoise/10',
@@ -25,16 +29,19 @@ const TONES = {
   dim: 'text-text-dim border-line-strong bg-transparent',
 };
 
+// Badges take their colour from the text they show. The keys are the
+// readable labels in lower case (see label() in data/enums.js).
 const TONE_BY_VALUE = {
-  published: 'teal', active: 'teal', open: 'teal', shortlisted: 'teal', offer: 'teal', pass: 'teal', match: 'teal',
-  'strong match': 'teal', complete: 'teal', office: 'teal', shown: 'teal', 'reviewed: advance': 'teal', done: 'teal',
-  new: 'blue', screening: 'blue', interview: 'blue', 'in progress': 'blue', listed: 'blue', network: 'blue',
-  'good match': 'blue', candidate: 'blue', medium: 'blue',
-  draft: 'amber', 'pending review': 'amber', 'needs review': 'amber', 'on hold': 'amber', review: 'amber',
-  'partial match': 'amber', planned: 'amber', 'reviewed: hold': 'amber', 'not evaluated': 'amber',
-  rejected: 'red', fail: 'red', 'low match': 'red', 'reviewed: reject': 'red',
-  archived: 'dim', closed: 'dim', inactive: 'dim', hidden: 'dim', low: 'dim', filled: 'dim', general: 'dim',
-  high: 'lilac', employer: 'lilac', featured: 'lilac',
+  published: 'teal', active: 'teal', shortlisted: 'teal', selected: 'teal', converted: 'teal', pass: 'teal',
+  'strong match': 'teal', office: 'teal', shown: 'teal', advance: 'teal', enabled: 'teal', configured: 'teal',
+  new: 'blue', interviewed: 'blue', 'in progress': 'blue', reviewing: 'blue', contacted: 'blue',
+  listed: 'blue', network: 'blue', 'good match': 'blue', medium: 'blue', career: 'blue',
+  draft: 'amber', pending: 'amber', hold: 'amber', review: 'amber', 'partial match': 'amber', planned: 'amber',
+  'not evaluated': 'amber', 'temporary password': 'amber', 'not configured': 'amber',
+  rejected: 'red', reject: 'red', fail: 'red', 'low match': 'red', disabled: 'red',
+  archived: 'dim', closed: 'dim', inactive: 'dim', hidden: 'dim', low: 'dim', general: 'dim', other: 'dim',
+  info: 'dim', 'not connected': 'dim', 'not enabled': 'dim',
+  high: 'lilac', featured: 'lilac', hiring: 'lilac', partnership: 'lilac',
 };
 
 export function toneFor(value) {

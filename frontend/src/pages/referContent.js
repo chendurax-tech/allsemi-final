@@ -52,32 +52,39 @@ export const REFERRABLE_ROLES = [
   'Other specialist engineering professionals',
 ];
 
-// Field definitions for the referral form. `type` maps to a small set
-// of input treatments in Refer.jsx (text / email / tel / url / file /
-// textarea / checkbox); nothing about validation or layout logic is
-// hardcoded to a specific field name, so adding or removing a field
-// later is a data change here.
+// Field definitions for the referral form. `id` is the exact field
+// name the backend's referral schema accepts (POST /api/referrals), so
+// the values are sent as they are keyed here. `type` picks the input
+// treatment in Refer.jsx (text / email / tel / url / select / file /
+// textarea) and the matching format check; `required` fields carry the
+// message shown when they are left empty. Candidate fields switch
+// browser autofill off, because it would offer the referrer's own
+// details. Adding or removing a field the backend accepts is a data
+// change here.
 export const REFERRER_FIELDS = [
-  { id: 'referrerName', label: 'Your name', type: 'text', required: true },
-  { id: 'referrerEmail', label: 'Your email', type: 'email', required: true },
-  { id: 'referrerPhone', label: 'Your phone', type: 'tel', required: false },
+  { id: 'referrerName', label: 'Your name', type: 'text', required: 'Enter your name.', maxLength: 120, autoComplete: 'name' },
+  { id: 'referrerEmail', label: 'Your email', type: 'email', required: 'Enter your email address.', maxLength: 254, autoComplete: 'email' },
+  { id: 'referrerPhone', label: 'Your phone', type: 'tel', maxLength: 25, autoComplete: 'tel' },
+  { id: 'relationship', label: 'How you know them', type: 'text', maxLength: 160, placeholder: 'e.g. Worked on the same team' },
 ];
 
 export const CANDIDATE_FIELDS = [
-  { id: 'candidateName', label: 'Candidate name', type: 'text', required: true },
-  { id: 'candidateEmail', label: 'Candidate email', type: 'email', required: false },
-  { id: 'candidatePhone', label: 'Candidate phone', type: 'tel', required: false },
-  { id: 'currentCompany', label: 'Current company', type: 'text', required: false },
-  { id: 'currentRole', label: 'Current role', type: 'text', required: false },
-  { id: 'linkedin', label: 'LinkedIn URL', type: 'url', required: false },
-  { id: 'resume', label: 'Resume', type: 'file', required: false },
+  { id: 'candidateName', label: 'Candidate name', type: 'text', required: 'Enter the name of the person you are referring.', maxLength: 120, autoComplete: 'off' },
+  { id: 'candidateEmail', label: 'Candidate email', type: 'email', maxLength: 254, autoComplete: 'off' },
+  { id: 'candidatePhone', label: 'Candidate phone', type: 'tel', maxLength: 25, autoComplete: 'off' },
+  { id: 'candidateRole', label: 'Current role', type: 'text', maxLength: 160, autoComplete: 'off' },
+  { id: 'candidateProfileUrl', label: 'LinkedIn or portfolio', type: 'url', maxLength: 300, placeholder: 'https://', autoComplete: 'off' },
+  { id: 'domain', label: 'Engineering domain', type: 'select', placeholder: 'Select a domain' },
+  { id: 'resume', label: 'Resume', type: 'file', wide: true },
 ];
 
 export const FIT_FIELD = {
-  id: 'fitReason',
+  id: 'message',
   label: 'Why do you think this person is a strong fit?',
   type: 'textarea',
-  required: true,
+  required: 'Tell us why you rate this person.',
+  maxLength: 4000,
+  wide: true,
 };
 
 export const CONSENT_FIELD = {

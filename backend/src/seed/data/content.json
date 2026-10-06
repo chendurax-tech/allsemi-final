@@ -1,0 +1,2157 @@
+{
+  "jobs": [
+    {
+      "slug": "rtl-design-engineer",
+      "title": "RTL Design Engineer",
+      "category": "Semiconductor",
+      "department": "Chip Design",
+      "location": "Bangalore, IN",
+      "employmentType": "Full-time",
+      "experienceLevel": "Mid-Senior",
+      "summary": "RTL design for a digital ASIC/SoC programme, from micro-architecture through synthesis handoff.",
+      "description": "This representative role sits inside a digital design team responsible for RTL implementation of a complex ASIC or SoC block, working from architectural specification through to a synthesis-ready netlist.",
+      "responsibilities": [
+        "Author and maintain RTL in Verilog or SystemVerilog against a micro-architecture specification",
+        "Work closely with verification to close functional coverage on owned blocks",
+        "Support synthesis, timing closure, and CDC signoff for RTL handoff",
+        "Participate in design and code reviews across the team"
+      ],
+      "requiredSkills": [
+        "Verilog",
+        "SystemVerilog",
+        "RTL Design",
+        "Digital Logic Design"
+      ],
+      "preferredSkills": [
+        "Low Power Design",
+        "CDC",
+        "Synthesis Constraints"
+      ],
+      "keywords": [
+        "RTL",
+        "Verilog",
+        "SystemVerilog",
+        "ASIC",
+        "SoC"
+      ],
+      "status": "published",
+      "publishedAt": "2026-08-01",
+      "featured": true,
+      "applicationEnabled": true
+    },
+    {
+      "slug": "design-verification-engineer",
+      "title": "Design Verification Engineer",
+      "category": "Semiconductor",
+      "department": "Verification",
+      "location": "Bangalore, IN",
+      "employmentType": "Full-time",
+      "experienceLevel": "Mid-Senior",
+      "summary": "UVM-based verification for block and SoC-level testbenches, driving functional coverage closure.",
+      "description": "This representative role covers verification of digital design blocks and SoC-level integration, using a UVM methodology to build reusable, coverage-driven testbenches.",
+      "responsibilities": [
+        "Develop and maintain UVM testbenches at block and SoC level",
+        "Write test plans and drive functional coverage to closure",
+        "Debug RTL and testbench issues in collaboration with design",
+        "Contribute to verification methodology and reuse across projects"
+      ],
+      "requiredSkills": [
+        "SystemVerilog",
+        "UVM",
+        "Functional Coverage",
+        "Assertions"
+      ],
+      "preferredSkills": [
+        "VCS",
+        "Xcelium",
+        "Questa",
+        "Formal Verification"
+      ],
+      "keywords": [
+        "Verification",
+        "UVM",
+        "SystemVerilog",
+        "Coverage"
+      ],
+      "status": "published",
+      "publishedAt": "2026-08-03",
+      "featured": true,
+      "applicationEnabled": true
+    },
+    {
+      "slug": "dft-engineer",
+      "title": "DFT Engineer",
+      "category": "Semiconductor",
+      "department": "DFT",
+      "location": "Bangalore, IN",
+      "employmentType": "Full-time",
+      "experienceLevel": "Mid-Senior",
+      "summary": "Design-for-test insertion and ATPG pattern generation across a digital SoC design.",
+      "description": "This representative role covers scan insertion, ATPG pattern generation, and DFT signoff for a digital SoC, working closely with physical design and verification teams.",
+      "responsibilities": [
+        "Implement scan chain insertion and DFT architecture across the design",
+        "Generate and validate ATPG patterns for stuck-at and transition fault coverage",
+        "Support MBIST and boundary scan integration",
+        "Work with physical design on DFT-related timing and routing constraints"
+      ],
+      "requiredSkills": [
+        "Scan Insertion",
+        "ATPG",
+        "DFT Architecture"
+      ],
+      "preferredSkills": [
+        "MBIST",
+        "JTAG",
+        "Tessent",
+        "DFTMAX"
+      ],
+      "keywords": [
+        "DFT",
+        "ATPG",
+        "Scan",
+        "MBIST"
+      ],
+      "status": "published",
+      "publishedAt": "2026-07-28",
+      "featured": false,
+      "applicationEnabled": true
+    },
+    {
+      "slug": "physical-design-engineer",
+      "title": "Physical Design Engineer",
+      "category": "Semiconductor",
+      "department": "Physical Design",
+      "location": "Bangalore, IN",
+      "employmentType": "Full-time",
+      "experienceLevel": "Senior",
+      "summary": "Place-and-route and timing closure for a digital SoC block through to tape-out.",
+      "description": "This representative role owns physical implementation of a digital block from floorplan through place-and-route to final timing and physical verification signoff.",
+      "responsibilities": [
+        "Own floorplanning, placement, and clock tree synthesis for assigned blocks",
+        "Drive static timing analysis and close setup/hold timing across corners",
+        "Coordinate with DFT and verification on physical-aware constraints",
+        "Support physical verification (DRC/LVS) signoff through tape-out"
+      ],
+      "requiredSkills": [
+        "Place and Route",
+        "STA",
+        "Timing Closure",
+        "Physical Implementation"
+      ],
+      "preferredSkills": [
+        "Innovus",
+        "ICC2",
+        "PrimeTime",
+        "Low Power Physical Design"
+      ],
+      "keywords": [
+        "Physical Design",
+        "PnR",
+        "STA",
+        "Tape-out"
+      ],
+      "status": "published",
+      "publishedAt": "2026-07-20",
+      "featured": false,
+      "applicationEnabled": true
+    },
+    {
+      "slug": "embedded-software-engineer",
+      "title": "Embedded Software Engineer",
+      "category": "Automotive",
+      "department": "Embedded Systems",
+      "location": "Hybrid",
+      "employmentType": "Full-time",
+      "experienceLevel": "Mid-Senior",
+      "summary": "Embedded C/C++ development for automotive-grade control and sensor systems.",
+      "description": "This representative role covers embedded software development for automotive control systems, working within an AUTOSAR-adjacent environment on safety-relevant components.",
+      "responsibilities": [
+        "Develop and maintain embedded C/C++ software for automotive control units",
+        "Work within AUTOSAR or comparable automotive software architectures",
+        "Support unit and integration testing against automotive quality standards",
+        "Collaborate with systems and hardware teams on sensor and actuator interfaces"
+      ],
+      "requiredSkills": [
+        "Embedded C",
+        "C++",
+        "RTOS",
+        "Automotive Software"
+      ],
+      "preferredSkills": [
+        "AUTOSAR",
+        "CAN/LIN",
+        "ISO 26262 Awareness"
+      ],
+      "keywords": [
+        "Embedded",
+        "Automotive",
+        "C/C++",
+        "RTOS"
+      ],
+      "status": "published",
+      "publishedAt": "2026-08-05",
+      "featured": false,
+      "applicationEnabled": true
+    },
+    {
+      "slug": "adas-engineer",
+      "title": "ADAS Engineer",
+      "category": "Automotive",
+      "department": "ADAS",
+      "location": "Hybrid",
+      "employmentType": "Full-time",
+      "experienceLevel": "Mid-Senior",
+      "summary": "Sensor fusion and perception algorithm development for driver-assistance systems.",
+      "description": "This representative role covers algorithm and systems development for ADAS features, spanning sensor fusion, perception, and integration with vehicle control systems.",
+      "responsibilities": [
+        "Develop and tune sensor fusion algorithms across camera, radar, and lidar inputs",
+        "Support perception pipeline development and validation",
+        "Work with systems engineering on ADAS feature integration",
+        "Contribute to validation test design for driver-assistance functions"
+      ],
+      "requiredSkills": [
+        "Sensor Fusion",
+        "C++",
+        "ADAS Systems"
+      ],
+      "preferredSkills": [
+        "Python",
+        "ROS",
+        "Computer Vision"
+      ],
+      "keywords": [
+        "ADAS",
+        "Sensor Fusion",
+        "Automotive",
+        "Perception"
+      ],
+      "status": "published",
+      "publishedAt": "2026-08-08",
+      "featured": true,
+      "applicationEnabled": true
+    },
+    {
+      "slug": "functional-safety-engineer",
+      "title": "Functional Safety Engineer",
+      "category": "Automotive",
+      "department": "Safety Engineering",
+      "location": "Hybrid",
+      "employmentType": "Full-time",
+      "experienceLevel": "Senior",
+      "summary": "ISO 26262 functional safety process ownership for automotive electronic control systems.",
+      "description": "This representative role owns functional safety analysis and process compliance for automotive electronic systems, working under ISO 26262 across the development lifecycle.",
+      "responsibilities": [
+        "Lead hazard analysis and risk assessment (HARA) for assigned systems",
+        "Own safety case documentation and ISO 26262 process compliance",
+        "Work with design and verification teams on safety requirement traceability",
+        "Support functional safety audits and assessments"
+      ],
+      "requiredSkills": [
+        "ISO 26262",
+        "Functional Safety",
+        "Hazard Analysis"
+      ],
+      "preferredSkills": [
+        "ASIL Decomposition",
+        "FMEA",
+        "Safety Case Documentation"
+      ],
+      "keywords": [
+        "Functional Safety",
+        "ISO 26262",
+        "Automotive"
+      ],
+      "status": "published",
+      "publishedAt": "2026-07-25",
+      "featured": false,
+      "applicationEnabled": true
+    },
+    {
+      "slug": "rf-systems-engineer",
+      "title": "RF Systems Engineer",
+      "category": "Aerospace",
+      "department": "RF Engineering",
+      "location": "Bangalore, IN",
+      "employmentType": "Full-time",
+      "experienceLevel": "Senior",
+      "summary": "RF front-end and systems engineering for aerospace communications hardware.",
+      "description": "This representative role covers RF systems engineering for aerospace and satellite communications hardware, from front-end design through system-level integration.",
+      "responsibilities": [
+        "Design and analyze RF front-end circuits for communications hardware",
+        "Support link budget analysis and system-level RF performance validation",
+        "Work with embedded and systems teams on integration of RF subsystems",
+        "Support qualification testing for high-reliability aerospace environments"
+      ],
+      "requiredSkills": [
+        "RF Design",
+        "Link Budget Analysis",
+        "Systems Engineering"
+      ],
+      "preferredSkills": [
+        "Satellite Communications",
+        "Antenna Design",
+        "ADS/Microwave Office"
+      ],
+      "keywords": [
+        "RF",
+        "Aerospace",
+        "Communications",
+        "Satellite"
+      ],
+      "status": "published",
+      "publishedAt": "2026-07-15",
+      "featured": false,
+      "applicationEnabled": true
+    },
+    {
+      "slug": "cloud-platform-engineer",
+      "title": "Cloud Platform Engineer",
+      "category": "AI & Cloud",
+      "department": "Infrastructure",
+      "location": "Remote (India)",
+      "employmentType": "Full-time",
+      "experienceLevel": "Mid-Senior",
+      "summary": "Distributed infrastructure engineering for large-scale AI compute platforms.",
+      "description": "This representative role covers infrastructure engineering for large-scale AI compute platforms, spanning orchestration, scheduling, and platform reliability.",
+      "responsibilities": [
+        "Build and operate distributed infrastructure for large-scale compute workloads",
+        "Support GPU scheduling and resource orchestration at scale",
+        "Own platform reliability, monitoring, and incident response",
+        "Collaborate with ML engineering on infrastructure requirements"
+      ],
+      "requiredSkills": [
+        "Kubernetes",
+        "Distributed Systems",
+        "Cloud Infrastructure"
+      ],
+      "preferredSkills": [
+        "GPU Scheduling",
+        "Terraform",
+        "Python or Go"
+      ],
+      "keywords": [
+        "Cloud",
+        "Infrastructure",
+        "Kubernetes",
+        "AI Platform"
+      ],
+      "status": "published",
+      "publishedAt": "2026-08-10",
+      "featured": true,
+      "applicationEnabled": true
+    },
+    {
+      "slug": "medical-device-engineer",
+      "title": "Medical Device Engineer",
+      "category": "Healthcare",
+      "department": "Device Engineering",
+      "location": "Bangalore, IN",
+      "employmentType": "Full-time",
+      "experienceLevel": "Mid-Senior",
+      "summary": "Embedded and signal-processing engineering for diagnostic medical device hardware.",
+      "description": "This representative role covers embedded and signal-processing engineering for diagnostic medical devices, operating within a regulated development process.",
+      "responsibilities": [
+        "Develop embedded firmware and signal-processing algorithms for diagnostic hardware",
+        "Support design controls and documentation under a regulated quality process",
+        "Work with regulatory and quality teams on verification and validation activities",
+        "Collaborate on hardware/firmware integration and test"
+      ],
+      "requiredSkills": [
+        "Embedded C",
+        "Signal Processing",
+        "Medical Device Development"
+      ],
+      "preferredSkills": [
+        "ISO 13485",
+        "FDA 510(k) Awareness",
+        "DSP"
+      ],
+      "keywords": [
+        "Healthcare",
+        "Medical Device",
+        "Embedded",
+        "Signal Processing"
+      ],
+      "status": "published",
+      "publishedAt": "2026-07-30",
+      "featured": false,
+      "applicationEnabled": true
+    }
+  ],
+  "insights": [
+    {
+      "category": "Semiconductor",
+      "tags": [
+        "RTL",
+        "Synthesis",
+        "Physical Design",
+        "Signoff"
+      ],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "From RTL to GDSII: the flow and the roles behind it | ALLSEMIS Insights",
+      "seoDescription": "A plain walk through the digital implementation flow, and which engineering role owns each stage.",
+      "slug": "rtl-to-gdsii-the-flow-and-the-roles-behind-it",
+      "title": "From RTL to GDSII: the flow and the roles behind it",
+      "excerpt": "A plain walk through the digital implementation flow, and which engineering role owns each stage.",
+      "topics": [
+        "SEMICONDUCTOR",
+        "HIRING"
+      ],
+      "date": "2026-09-24",
+      "readTime": "7 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "A digital chip starts as a description of behaviour and ends as a set of geometric layers a foundry can manufacture. Between those two points sits a long chain of specialised work. Each link has its own tools, its own vocabulary and its own kind of engineer, which is why a hiring brief that says only \"VLSI engineer\" rarely lands on the right person."
+        },
+        {
+          "type": "h2",
+          "text": "Specification and RTL"
+        },
+        {
+          "type": "p",
+          "text": "Architects turn product requirements into a micro-architecture: blocks, interfaces, clocking and power intent. RTL design engineers then describe that architecture in Verilog or SystemVerilog. Good RTL is not only functionally correct. It is written with synthesis, timing and testability in mind, because every later stage inherits its decisions."
+        },
+        {
+          "type": "h2",
+          "text": "Verification runs alongside, not after"
+        },
+        {
+          "type": "p",
+          "text": "Design verification engineers build the testbenches, checkers and coverage models that prove the RTL does what the specification says. On most programmes this work starts as early as the design itself and continues until tape-out."
+        },
+        {
+          "type": "h2",
+          "text": "Synthesis, DFT and physical implementation"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Synthesis converts RTL into a gate-level netlist against a target library, guided by timing constraints.",
+            "Design-for-test engineers insert scan chains and memory test logic so that manufactured parts can be screened.",
+            "Physical design engineers floorplan the chip, place cells, build the clock tree and route the wires.",
+            "Static timing analysis and physical verification confirm the layout meets timing and foundry rules before signoff."
+          ]
+        },
+        {
+          "type": "quote",
+          "text": "Every stage of the flow consumes the output of the one before it. That is why engineers who understand their neighbours in the flow are so valuable."
+        },
+        {
+          "type": "h2",
+          "text": "What this means for a hiring brief"
+        },
+        {
+          "type": "p",
+          "text": "Name the stage. A brief that states where in the flow the role sits, which tools the team uses and what the handoffs look like will reach the right engineers faster than a general title ever will."
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/5554948/pexels-photo-5554948.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Organized electronic circuit boards in a production setting"
+      }
+    },
+    {
+      "category": "Semiconductor",
+      "tags": [
+        "Verification",
+        "UVM",
+        "SystemVerilog",
+        "Coverage"
+      ],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "What design verification engineers actually do | ALLSEMIS Insights",
+      "seoDescription": "Verification is its own discipline with its own craft. Here is what the work involves day to day.",
+      "slug": "what-design-verification-engineers-actually-do",
+      "title": "What design verification engineers actually do",
+      "excerpt": "Verification is its own discipline with its own craft. Here is what the work involves day to day.",
+      "topics": [
+        "SEMICONDUCTOR",
+        "TALENT"
+      ],
+      "date": "2026-09-17",
+      "readTime": "6 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "A silicon bug found after manufacture cannot be patched with a software update. Finding it beforehand is the job of design verification, and on a complex chip that job is at least as large as the design work itself."
+        },
+        {
+          "type": "h2",
+          "text": "Planning before simulation"
+        },
+        {
+          "type": "p",
+          "text": "Verification starts with a plan: a list of every feature, mode and corner case the design must handle, each tied to a way of proving it. The plan is the contract. Everything that follows is measured against it."
+        },
+        {
+          "type": "h2",
+          "text": "Building the environment"
+        },
+        {
+          "type": "p",
+          "text": "Most teams use SystemVerilog with the Universal Verification Methodology. A verification engineer builds reusable components that drive stimulus into the design, monitor what comes out and check it against a reference. Constrained-random stimulus explores combinations a person would not think to write by hand, and assertions watch for protocol violations as they happen."
+        },
+        {
+          "type": "h2",
+          "text": "Closing coverage"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Functional coverage shows which planned scenarios have actually been exercised.",
+            "Code coverage shows which parts of the RTL were never touched by any test.",
+            "Regression suites rerun the full test set as the design changes.",
+            "Debug, the least visible part of the work, is where much of the time goes."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Formal verification and emulation extend the same goal with different techniques. Formal tools prove properties mathematically for suitable blocks, while emulation runs real software on the design long before silicon exists."
+        },
+        {
+          "type": "h2",
+          "text": "Signals to look for when hiring"
+        },
+        {
+          "type": "p",
+          "text": "Strong verification engineers can explain how they decided a block was done, not only which tools they used. Ask about a bug they found late, how it escaped earlier tests, and what they changed afterwards."
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/6636463/pexels-photo-6636463.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Close-up of a microprocessor on a motherboard"
+      }
+    },
+    {
+      "category": "Semiconductor",
+      "tags": [
+        "DFT",
+        "Scan",
+        "ATPG",
+        "MBIST"
+      ],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "Design for test, explained for hiring managers | ALLSEMIS Insights",
+      "seoDescription": "DFT is a small discipline with a large effect on yield and cost. A short primer on what the role covers.",
+      "slug": "design-for-test-explained-for-hiring-managers",
+      "title": "Design for test, explained for hiring managers",
+      "excerpt": "DFT is a small discipline with a large effect on yield and cost. A short primer on what the role covers.",
+      "topics": [
+        "SEMICONDUCTOR",
+        "HIRING"
+      ],
+      "date": "2026-09-10",
+      "readTime": "5 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "No manufacturing process is perfect. Some fraction of every wafer will contain defective parts, and the only way to find them is to test each one. Design for test is the practice of building structures into the chip that make that testing possible, fast and thorough."
+        },
+        {
+          "type": "h2",
+          "text": "The main techniques"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Scan design links the flip-flops in a chip into shift chains, so internal state can be controlled and observed from the pins.",
+            "Automatic test pattern generation produces the patterns that expose manufacturing faults through those chains.",
+            "Memory built-in self-test adds logic that lets embedded memories test themselves.",
+            "Boundary scan, standardised as JTAG, gives access to the pins and to on-chip test and debug features."
+          ]
+        },
+        {
+          "type": "h2",
+          "text": "Why it is a specialism"
+        },
+        {
+          "type": "p",
+          "text": "DFT engineers work at the junction of design, physical implementation and the test floor. They trade test coverage against area, power and test time, and they need to understand how their structures behave through synthesis and layout. Compression architectures, at-speed testing and low-power test all add depth."
+        },
+        {
+          "type": "quote",
+          "text": "A DFT engineer is judged on parts that never reach a customer."
+        },
+        {
+          "type": "h2",
+          "text": "Reading a DFT profile"
+        },
+        {
+          "type": "p",
+          "text": "Look for the full loop: architecture decisions, insertion, pattern generation, simulation of those patterns and support during silicon bring-up. Experience limited to running a tool flow is useful, but it is a different level from owning the test strategy for a chip."
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/9242271/pexels-photo-9242271.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Electronics engineer assembling a circuit board with precision"
+      }
+    },
+    {
+      "category": "Semiconductor",
+      "tags": [
+        "Physical Design",
+        "STA",
+        "Timing Closure",
+        "Place and Route"
+      ],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "Timing closure and the physical design skill set | ALLSEMIS Insights",
+      "seoDescription": "Why the last stretch before tape-out depends on a narrow and hard-won set of skills.",
+      "slug": "timing-closure-and-the-physical-design-skill-set",
+      "title": "Timing closure and the physical design skill set",
+      "excerpt": "Why the last stretch before tape-out depends on a narrow and hard-won set of skills.",
+      "topics": [
+        "SEMICONDUCTOR",
+        "TALENT"
+      ],
+      "date": "2026-09-03",
+      "readTime": "6 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "Physical design turns a netlist into a layout. The work is often summarised as place and route, but the part that decides schedules is timing closure: getting every path in the design to meet its timing requirement across every operating condition the chip must support."
+        },
+        {
+          "type": "h2",
+          "text": "What the work involves"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Floorplanning decides where major blocks, memories and pins sit, which shapes everything after it.",
+            "Placement and clock tree synthesis position the cells and distribute the clock with controlled skew.",
+            "Routing connects the design while managing congestion and signal integrity.",
+            "Static timing analysis checks setup and hold across process, voltage and temperature corners."
+          ]
+        },
+        {
+          "type": "h2",
+          "text": "Why closure is hard"
+        },
+        {
+          "type": "p",
+          "text": "Fixing one path can break another. Power, area, timing and routability pull against each other, and the engineer has to judge which change is worth its side effects. At advanced nodes, effects such as on-chip variation and crosstalk make that judgement harder."
+        },
+        {
+          "type": "p",
+          "text": "This is experience that accumulates slowly. An engineer learns it by taking blocks, and eventually whole chips, through signoff."
+        },
+        {
+          "type": "h2",
+          "text": "What to ask in an interview"
+        },
+        {
+          "type": "p",
+          "text": "Ask a candidate to describe the hardest timing problem they closed and how they found the cause. The answer shows whether they understand the design or only the tool."
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/3862632/pexels-photo-3862632.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Engineer working at a technical workstation surrounded by lab equipment"
+      }
+    },
+    {
+      "category": "Hiring",
+      "tags": [
+        "Job Description",
+        "VLSI",
+        "Hiring Process"
+      ],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "Writing a VLSI job description that engineers respond to | ALLSEMIS Insights",
+      "seoDescription": "Specific briefs attract specific people. A practical checklist for semiconductor hiring teams.",
+      "slug": "writing-a-vlsi-job-description-engineers-respond-to",
+      "title": "Writing a VLSI job description that engineers respond to",
+      "excerpt": "Specific briefs attract specific people. A practical checklist for semiconductor hiring teams.",
+      "topics": [
+        "HIRING",
+        "SEMICONDUCTOR"
+      ],
+      "date": "2026-08-27",
+      "readTime": "5 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "Experienced chip engineers read job descriptions the way they read specifications. Vague ones get skipped. A brief that reads like it was written by someone who knows the work gets a reply."
+        },
+        {
+          "type": "h2",
+          "text": "Be exact about the work"
+        },
+        {
+          "type": "list",
+          "items": [
+            "State where the role sits in the flow: architecture, RTL, verification, DFT, physical design or signoff.",
+            "Name the tools and methodologies the team actually uses.",
+            "Describe the scope: block level, subsystem or full chip.",
+            "Say what stage the programme is in, since joining at specification is different from joining before tape-out."
+          ]
+        },
+        {
+          "type": "h2",
+          "text": "Separate required from preferred"
+        },
+        {
+          "type": "p",
+          "text": "A long list of required skills filters out good candidates who match most of it. Keep the required list to what the engineer must have on day one, and move the rest to preferred."
+        },
+        {
+          "type": "h2",
+          "text": "Describe the team and the handoffs"
+        },
+        {
+          "type": "p",
+          "text": "Who does this engineer receive work from, and who do they hand it to? Engineers judge a role by its neighbours as much as by its title."
+        },
+        {
+          "type": "quote",
+          "text": "The best briefs could only describe one job. If yours would fit ten different roles, it will attract none of the people you want."
+        },
+        {
+          "type": "p",
+          "text": "A precise brief also makes screening fairer. When the requirements are explicit, every candidate is measured against the same list."
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/5554948/pexels-photo-5554948.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Organized electronic circuit boards in a production setting"
+      }
+    },
+    {
+      "category": "Semiconductor",
+      "tags": [
+        "Analog",
+        "Mixed-Signal",
+        "Talent"
+      ],
+      "author": "ALLSEMIS Editorial",
+      "status": "draft",
+      "seoTitle": "Analog and mixed-signal: notes on a small talent pool | ALLSEMIS Insights",
+      "seoDescription": "Why analog design experience is scarce, and what a realistic search looks like.",
+      "slug": "analog-and-mixed-signal-notes-on-a-small-talent-pool",
+      "title": "Analog and mixed-signal: notes on a small talent pool",
+      "excerpt": "Why analog design experience is scarce, and what a realistic search looks like.",
+      "topics": [
+        "SEMICONDUCTOR",
+        "TALENT"
+      ],
+      "date": "2026-10-01",
+      "readTime": "4 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "Analog and mixed-signal design is learned slowly, through silicon results and years beside experienced designers. That apprenticeship model keeps the talent pool small in every market."
+        },
+        {
+          "type": "h2",
+          "text": "What a realistic search looks like"
+        },
+        {
+          "type": "p",
+          "text": "Draft. Outline: circuit families and why they do not transfer cleanly, the role of layout, and how to read an analog profile."
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/3862632/pexels-photo-3862632.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Engineer working at a technical workstation surrounded by lab equipment"
+      }
+    },
+    {
+      "category": "Semiconductor",
+      "tags": [],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "",
+      "seoDescription": "",
+      "slug": "semiconductor-engineering-talent-trends",
+      "title": "Semiconductor engineering talent trends",
+      "excerpt": "What is actually changing in how semiconductor teams hire, and what is not.",
+      "topics": [
+        "SEMICONDUCTOR",
+        "TALENT"
+      ],
+      "date": "2026-08-14",
+      "readTime": "6 min read",
+      "featured": true,
+      "body": [
+        {
+          "type": "p",
+          "text": "Semiconductor hiring has always been a specialist exercise, but the shape of that specialism keeps shifting. The roles that were hardest to fill five years ago are not always the roles that are hardest to fill today, even as the underlying discipline, RTL through tape-out, stays fundamentally the same."
+        },
+        {
+          "type": "h2",
+          "text": "The pool has not grown as fast as demand"
+        },
+        {
+          "type": "p",
+          "text": "The number of engineers with genuine, hands-on RTL, verification, or physical design experience grows slowly, because the ramp time for these disciplines is measured in years, not months. Demand, meanwhile, moves in step with every new programme a semiconductor or systems company starts. That mismatch is the single biggest constant in this market."
+        },
+        {
+          "type": "quote",
+          "text": "Most strong semiconductor candidates are already employed. The search is rarely about finding people who are looking. It is about finding people who are right, and giving them a reason to have the conversation."
+        },
+        {
+          "type": "h2",
+          "text": "Where the pressure shows up first"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Verification capacity, as design complexity grows faster than verification headcount",
+            "Physical design and DFT, where deep tool experience narrows the pool quickly",
+            "Analog and mixed-signal, a discipline with a naturally smaller talent base"
+          ]
+        },
+        {
+          "type": "p",
+          "text": "None of this means the market is impossible to hire into. It means the search has to be scoped correctly from the start, to the actual discipline, the actual tools, and the actual seniority the role needs, rather than a broad \"semiconductor engineer\" brief that tries to cover all of it at once."
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/6636463/pexels-photo-6636463.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Close-up of a microprocessor on a motherboard"
+      }
+    },
+    {
+      "category": "AI & Cloud",
+      "tags": [],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "",
+      "seoDescription": "",
+      "slug": "hiring-for-ai-infrastructure-teams",
+      "title": "Hiring for AI infrastructure teams",
+      "excerpt": "The systems and infrastructure engineering behind large-scale compute is its own specialism.",
+      "topics": [
+        "AI & CLOUD",
+        "HIRING"
+      ],
+      "date": "2026-07-29",
+      "readTime": "4 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "AI infrastructure hiring sits at an unusual intersection: it needs people who understand distributed systems at genuine scale, and people who understand the hardware those systems ultimately run on. Very few candidates are strong in both, which is exactly why this search needs to be treated as its own discipline rather than folded into general software hiring."
+        },
+        {
+          "type": "h2",
+          "text": "What actually differentiates a strong candidate"
+        },
+        {
+          "type": "p",
+          "text": "Experience with the everyday tools of cloud infrastructure is common. Experience with the failure modes that only appear at scale, network partitioning, GPU scheduling contention, thermal and power constraints on dense compute, is far rarer, and is usually the real signal worth screening for."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Distributed systems design under real failure conditions",
+            "GPU scheduling and orchestration at scale",
+            "Comfort operating close to the hardware, not just the platform above it"
+          ]
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/4508751/pexels-photo-4508751.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Modern data center corridor with server racks"
+      }
+    },
+    {
+      "category": "Automotive",
+      "tags": [],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "",
+      "seoDescription": "",
+      "slug": "automotive-engineering-talent",
+      "title": "Automotive engineering talent",
+      "excerpt": "Safety-critical requirements change what a strong automotive hire actually looks like.",
+      "topics": [
+        "AUTOMOTIVE",
+        "TALENT"
+      ],
+      "date": "2026-07-10",
+      "readTime": "5 min read",
+      "featured": true,
+      "body": [
+        {
+          "type": "p",
+          "text": "Automotive engineering hiring is shaped by one thing more than any other: the vehicle has to be safe, and that requirement runs through every layer of the hiring bar, not just the roles with \"safety\" in the title."
+        },
+        {
+          "type": "h2",
+          "text": "Functional safety changes the screen, not just the role"
+        },
+        {
+          "type": "p",
+          "text": "A candidate can be an excellent embedded engineer and still not be the right fit for an ADAS programme, if they have never worked under a functional-safety process like ISO 26262. That is not a small gap. It changes how someone approaches design, testing, and documentation from day one."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ADAS and sensor fusion experience",
+            "Genuine functional-safety process exposure, not just awareness of the standard",
+            "Embedded software discipline suited to safety-critical systems"
+          ]
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/6870298/pexels-photo-6870298.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Mechanic examining a car engine under an open hood"
+      }
+    },
+    {
+      "category": "Aerospace",
+      "tags": [],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "",
+      "seoDescription": "",
+      "slug": "hiring-for-aerospace-systems",
+      "title": "Hiring for aerospace and communications systems",
+      "excerpt": "Precision hardware roles come with long qualification cycles and a small, specialised pool.",
+      "topics": [
+        "AEROSPACE",
+        "HIRING"
+      ],
+      "date": "2026-06-22",
+      "readTime": "4 min read",
+      "featured": true,
+      "body": [
+        {
+          "type": "p",
+          "text": "Aerospace and communications hiring rarely moves quickly, and that is by design, not by accident. The qualification cycle for precision hardware and RF engineering roles reflects how much is genuinely at stake in the systems being built."
+        },
+        {
+          "type": "h2",
+          "text": "A smaller pool, and a slower, more deliberate search"
+        },
+        {
+          "type": "p",
+          "text": "RF and avionics engineering draw from a smaller talent base than most other disciplines on this list, and candidates in this space are often already deep into long programmes of their own. A search here has to account for both realities from the outset."
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/6325002/pexels-photo-6325002.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Satellite antenna structure"
+      }
+    },
+    {
+      "category": "Talent",
+      "tags": [],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "",
+      "seoDescription": "",
+      "slug": "commercial-talent-for-technical-products",
+      "title": "Commercial talent for technical products",
+      "excerpt": "The best commercial hires for hardware-adjacent products can actually speak to the technology.",
+      "topics": [
+        "TALENT",
+        "HIRING"
+      ],
+      "date": "2026-06-05",
+      "readTime": "4 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "Commercial and operational roles around a technical product are often treated as generic hires. They rarely should be. A sales engineer, account manager, or product manager who can genuinely follow the underlying technology closes a different kind of trust with technical buyers than one who cannot."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Genuine technical fluency, not just familiarity with the product deck",
+            "Comfort in a room with engineers, not just with buyers",
+            "A track record in commercial roles adjacent to complex technical products"
+          ]
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/260929/pexels-photo-260929.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Modern boardroom conference table"
+      }
+    },
+    {
+      "category": "FinTech",
+      "tags": [],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "",
+      "seoDescription": "",
+      "slug": "engineering-talent-behind-modern-payments",
+      "title": "Engineering talent behind modern payments",
+      "excerpt": "Payments infrastructure hiring sits at the intersection of systems engineering and regulated finance.",
+      "topics": [
+        "FINTECH",
+        "HIRING"
+      ],
+      "date": "2026-05-18",
+      "readTime": "5 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "Payments infrastructure engineering is not general finance hiring, and treating it that way is the most common mistake in this search. The strongest candidates combine genuine distributed-systems depth with real familiarity with regulated financial infrastructure, a narrower intersection than either skill alone."
+        },
+        {
+          "type": "h2",
+          "text": "What the screen actually needs to test for"
+        },
+        {
+          "type": "p",
+          "text": "High-throughput transaction processing, API design under real security constraints, and comfort with the operational rigour that regulated systems demand. None of that shows up clearly on a resume built for general backend engineering roles."
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/2988232/pexels-photo-2988232.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Close-up of a card payment being processed at a terminal"
+      }
+    },
+    {
+      "category": "Talent",
+      "tags": [],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "",
+      "seoDescription": "",
+      "slug": "precision-manufacturing-talent",
+      "title": "Precision manufacturing and product engineering talent",
+      "excerpt": "Balancing production-floor depth with the speed a consumer roadmap demands.",
+      "topics": [
+        "TALENT",
+        "HIRING"
+      ],
+      "date": "2026-05-02",
+      "readTime": "4 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "Consumer electronics and retail technology teams need engineers who are equally comfortable on the production floor and inside a fast-moving product roadmap. That combination is less common than it sounds, and it is usually the deciding factor in a strong hire."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Manufacturing and DFM experience, not just design experience",
+            "Quality engineering discipline suited to consumer-scale production",
+            "Comfort operating at the pace a consumer roadmap actually requires"
+          ]
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/5554948/pexels-photo-5554948.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Organized electronic circuit boards in a production setting"
+      }
+    },
+    {
+      "category": "Healthcare",
+      "tags": [],
+      "author": "ALLSEMIS Editorial",
+      "status": "published",
+      "seoTitle": "",
+      "seoDescription": "",
+      "slug": "medical-technology-hiring-landscape",
+      "title": "The medical technology hiring landscape",
+      "excerpt": "Regulatory fluency is often as scarce as the underlying engineering skill itself.",
+      "topics": [
+        "HEALTHCARE",
+        "HIRING"
+      ],
+      "date": "2026-04-11",
+      "readTime": "5 min read",
+      "featured": false,
+      "body": [
+        {
+          "type": "p",
+          "text": "Medical device and diagnostic engineering hiring has a second axis that most other engineering searches do not: regulatory fluency. A candidate can be an excellent embedded or signal-processing engineer and still be a poor fit for a role that requires real, working familiarity with a standard like ISO 13485 or an FDA 510(k) pathway."
+        },
+        {
+          "type": "h2",
+          "text": "Why this narrows the pool further than it first appears"
+        },
+        {
+          "type": "p",
+          "text": "Regulatory process experience is usually learned on the job, inside a small number of companies that operate under it. That makes it genuinely scarce, and it means a search built purely around technical skill will miss the gap until very late in the process."
+        }
+      ],
+      "image": {
+        "url": "https://images.pexels.com/photos/35444722/pexels-photo-35444722.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Laboratory technician handling cell culture equipment"
+      }
+    }
+  ],
+  "stories": [
+    {
+      "quote": "Allsemis helped us close five senior RTL Design and Verification engineers within three weeks - roles that had been open for over two months. Their deep understanding of VLSI talent is unmatched.",
+      "name": "VP Engineering",
+      "role": "Leading chip design firm",
+      "photo": {
+        "url": "https://images.pexels.com/photos/9242271/pexels-photo-9242271.jpeg?auto=compress&dpr=1&h=750&w=1260",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": ""
+      },
+      "order": 1,
+      "status": "published"
+    },
+    {
+      "quote": "We needed ADAS and functional safety engineers fast. Allsemis delivered pre-screened, interview-ready candidates in under a week. The quality and speed were exceptional.",
+      "name": "Head of Talent Acquisition",
+      "role": "Tier 1 automotive OEM",
+      "photo": {
+        "url": "https://images.pexels.com/photos/29475974/pexels-photo-29475974/free-photo-of-futuristic-car-dashboard-with-electronic-gadgets.jpeg?auto=compress&dpr=1&h=750&w=1260",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": ""
+      },
+      "order": 2,
+      "status": "published"
+    },
+    {
+      "quote": "The shortlist arrived within 48 hours. Every candidate understood our process node, our EDA stack, and our roadmap - a rare combination.",
+      "name": "Director of Silicon",
+      "role": "Fabless semiconductor company",
+      "photo": {
+        "url": "https://images.pexels.com/photos/6755086/pexels-photo-6755086.jpeg?auto=compress&dpr=1&h=750&w=1260",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": ""
+      },
+      "order": 3,
+      "status": "published"
+    }
+  ],
+  "expertise": [
+    {
+      "key": "semiconductor",
+      "num": "01",
+      "name": "Semiconductor & Chip Engineering",
+      "shortName": "Semiconductor",
+      "slug": "semiconductor-chip-engineering",
+      "desc": "RTL to tape-out - the engineers who design and verify modern silicon.",
+      "image": {
+        "url": "https://images.pexels.com/photos/6636463/pexels-photo-6636463.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Close-up of a microprocessor on a motherboard"
+      },
+      "introduction": "From architecture through verification to tape-out, semiconductor design is the sector ALLSEMIS was built around.",
+      "overview": "Semiconductor design spans a chain of specialised disciplines, from RTL architecture through functional verification, design-for-test, physical implementation and final signoff, with analog and mixed-signal design and post-silicon validation alongside. Each stage carries its own tools, its own methodology, and its own narrow talent pool, which means a single generic \"chip engineer\" search rarely finds the right person. ALLSEMIS scopes every semiconductor search to the specific discipline, seniority and technology the role actually needs.",
+      "domains": [
+        "VLSI & Chip Design",
+        "ASIC & SoC Design",
+        "RTL Design",
+        "Design Verification",
+        "Physical Design",
+        "DFT",
+        "Analog & Mixed-Signal",
+        "Physical Verification",
+        "Silicon Validation",
+        "Process & Fab Engineering"
+      ],
+      "roles": [
+        "RTL Design Engineer",
+        "Design Verification Engineer",
+        "Physical Design Engineer",
+        "DFT Engineer",
+        "Physical Verification Engineer",
+        "ASIC Design Engineer",
+        "SoC Design Engineer",
+        "Analog / Mixed-Signal Engineer",
+        "Post-Silicon Validation Engineer"
+      ],
+      "hiringChallenges": [
+        "Narrow Senior Pool: Genuine hands-on RTL, verification, or physical design depth takes years to build, so the senior pool grows slowly relative to demand.",
+        "Tool-Specific Depth: Strong candidates are often deep in one specific EDA toolchain, which narrows the realistic search radius for a given role.",
+        "Passive Candidates: Most strong semiconductor engineers are already employed and not actively job-searching.",
+        "Discipline Overlap: Roles can blur across RTL, verification, and physical design, so an imprecise brief attracts the wrong shortlist."
+      ],
+      "processFlow": [
+        "Wafer",
+        "RTL",
+        "Verification",
+        "Physical",
+        "Tape-out"
+      ],
+      "representativeSearches": [
+        {
+          "ref": "SEARCH / 101",
+          "title": "ASIC Design",
+          "requirement": "Senior RTL / ASIC engineering capability",
+          "signals": [
+            "SystemVerilog",
+            "AMBA",
+            "Synthesis",
+            "CDC",
+            "Low Power"
+          ]
+        },
+        {
+          "ref": "SEARCH / 102",
+          "title": "Design Verification",
+          "requirement": "UVM verification across block and SoC level",
+          "signals": [
+            "SystemVerilog",
+            "UVM",
+            "Coverage",
+            "Assertions",
+            "VCS / Xcelium / Questa"
+          ]
+        },
+        {
+          "ref": "SEARCH / 103",
+          "title": "Physical Design",
+          "requirement": "Place-and-route and timing closure through tape-out",
+          "signals": [
+            "PnR",
+            "STA",
+            "Timing Closure",
+            "Innovus / ICC2"
+          ]
+        }
+      ],
+      "relatedInsight": "semiconductor-engineering-talent-trends",
+      "status": "published"
+    },
+    {
+      "key": "embedded",
+      "num": "02",
+      "name": "Embedded Systems & Electronics",
+      "shortName": "Embedded",
+      "slug": "embedded-systems-electronics",
+      "desc": "Firmware, embedded software and electronics engineering for the devices built around the chip.",
+      "image": {
+        "url": "https://images.pexels.com/photos/3862632/pexels-photo-3862632.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Engineer working at a technical workstation surrounded by lab equipment"
+      },
+      "introduction": "The firmware, embedded software and electronics engineering that turns a chip and a board into a working product.",
+      "overview": "Embedded systems engineering sits where hardware and software meet. A microcontroller or processor only becomes a product once a board has been brought up, drivers written, an RTOS or embedded Linux configured, and the firmware validated against real hardware and real timing constraints. The work spans disciplines that are often grouped under one job title but call for different depth: bare-metal firmware, device drivers and board support, real-time software, electronics design, and the integration and validation effort that connects them. Strong embedded hiring starts with being exact about which of those a role needs.",
+      "domains": [
+        "Embedded Firmware",
+        "Embedded Software",
+        "Microcontrollers & SoC Platforms",
+        "RTOS & Real-Time Systems",
+        "Embedded Linux",
+        "Device Drivers & BSP",
+        "Board Bring-Up",
+        "Hardware / Software Integration",
+        "Electronics & Hardware Design",
+        "Firmware Validation",
+        "IoT & Connected Devices"
+      ],
+      "roles": [
+        "Embedded Firmware Engineer",
+        "Embedded Software Engineer",
+        "Embedded Linux Engineer",
+        "Device Driver / BSP Engineer",
+        "Hardware Design Engineer",
+        "Board Bring-Up Engineer",
+        "Firmware Validation Engineer",
+        "IoT Systems Engineer",
+        "Embedded Systems Architect"
+      ],
+      "hiringChallenges": [
+        "One Title, Many Jobs: One title spans bare-metal firmware, RTOS, embedded Linux and drivers, and depth rarely transfers.",
+        "Hardware Fluency: Strong firmware engineers read schematics and debug at board level, which a software-only background lacks.",
+        "Platform-Specific Experience: Experience is often tied to one microcontroller family, processor architecture or RTOS, which narrows the realistic pool.",
+        "Bring-Up and Integration Depth: Bringing up a new board is learned on real programmes, and few engineers have done it more than a handful of times."
+      ],
+      "processFlow": [
+        "Board",
+        "Bring-Up",
+        "Firmware",
+        "Integration",
+        "Validation"
+      ],
+      "representativeSearches": [
+        {
+          "ref": "SEARCH / 201",
+          "title": "Embedded Firmware",
+          "requirement": "Bare-metal and RTOS firmware for a microcontroller-based product",
+          "signals": [
+            "Embedded C",
+            "RTOS",
+            "ARM Cortex-M",
+            "SPI / I2C / UART",
+            "Low Power"
+          ]
+        },
+        {
+          "ref": "SEARCH / 202",
+          "title": "Embedded Linux & BSP",
+          "requirement": "Board support and driver development on an embedded Linux platform",
+          "signals": [
+            "Linux Kernel",
+            "Device Drivers",
+            "Device Tree",
+            "Yocto",
+            "U-Boot"
+          ]
+        },
+        {
+          "ref": "SEARCH / 203",
+          "title": "Hardware / Firmware Integration",
+          "requirement": "Board bring-up and validation across hardware and firmware",
+          "signals": [
+            "Board Bring-Up",
+            "Schematic Review",
+            "Oscilloscope / Logic Analyser",
+            "Firmware Validation"
+          ]
+        }
+      ],
+      "relatedInsight": "",
+      "status": "published"
+    },
+    {
+      "key": "mobility",
+      "num": "03",
+      "name": "Mobility & Communications",
+      "shortName": "Mobility",
+      "slug": "mobility-communications",
+      "desc": "Vehicle electronics, ADAS and the wireless, RF and satellite links that keep systems connected.",
+      "image": {
+        "url": "https://images.pexels.com/photos/6325002/pexels-photo-6325002.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Satellite antenna structure"
+      },
+      "introduction": "The electronics and software inside connected vehicles, and the wireless, RF and satellite systems that link them.",
+      "overview": "Mobility and communications engineering overlap more than they ever have. A modern vehicle is a network of electronic control units, sensors and software that also has to stay connected, through telematics, cellular and short-range wireless, and increasingly satellite links. On the vehicle side, hiring is shaped by safety: driver-assistance and control software is developed under functional-safety processes that take years to learn. On the communications side, RF and wireless systems engineering draws on a small pool with deep signal-chain and protocol knowledge. Searches in this sector usually need both the core discipline and experience of the environment it is applied in.",
+      "domains": [
+        "Automotive Electronics",
+        "ADAS & Assisted Driving",
+        "Vehicle Software",
+        "Functional Safety",
+        "Connected Mobility & Telematics",
+        "Wireless Systems",
+        "RF Engineering",
+        "Communications Systems",
+        "Satellite Communications",
+        "Mobility Platforms"
+      ],
+      "roles": [
+        "ADAS Engineer",
+        "Automotive Embedded Software Engineer",
+        "Functional Safety Engineer",
+        "Vehicle Software Engineer",
+        "Telematics & Connectivity Engineer",
+        "RF Systems Engineer",
+        "Wireless Systems Engineer",
+        "Communications Systems Engineer",
+        "Systems Validation Engineer"
+      ],
+      "hiringChallenges": [
+        "Safety-Critical Process: Safety-relevant vehicle roles need real ISO 26262 process exposure, not embedded skill alone.",
+        "Cross-Disciplinary Systems: ADAS, telematics and connectivity roles span hardware, embedded software, RF and systems at once.",
+        "Small RF and Wireless Pool: Deep RF, antenna and signal-chain experience is scarce, and rarely comes with vehicle programme experience as well.",
+        "Long Qualification Cycles: Automotive-grade and high-reliability programmes run for years, so relevant experience builds slowly."
+      ],
+      "processFlow": [
+        "Sensing",
+        "Compute",
+        "Control",
+        "Connectivity",
+        "Validation"
+      ],
+      "representativeSearches": [
+        {
+          "ref": "SEARCH / 301",
+          "title": "ADAS Systems",
+          "requirement": "Functional safety engineering for driver-assistance systems",
+          "signals": [
+            "ISO 26262",
+            "AUTOSAR",
+            "Sensor Fusion",
+            "C / C++"
+          ]
+        },
+        {
+          "ref": "SEARCH / 302",
+          "title": "Vehicle Connectivity",
+          "requirement": "Telematics and in-vehicle networking for a connected vehicle platform",
+          "signals": [
+            "CAN / LIN",
+            "Automotive Ethernet",
+            "Telematics",
+            "Cellular / V2X",
+            "OTA Updates"
+          ]
+        },
+        {
+          "ref": "SEARCH / 303",
+          "title": "RF & Wireless Systems",
+          "requirement": "RF system design and validation for wireless and satellite links",
+          "signals": [
+            "RF Design",
+            "Link Budget",
+            "DSP",
+            "Antenna Systems",
+            "Test & Measurement"
+          ]
+        }
+      ],
+      "relatedInsight": "automotive-engineering-talent",
+      "status": "published"
+    },
+    {
+      "key": "ai-infrastructure",
+      "num": "04",
+      "name": "AI Infrastructure & Cloud",
+      "shortName": "AI & Cloud",
+      "slug": "ai-infrastructure-cloud",
+      "desc": "The infrastructure and systems engineering behind large-scale compute.",
+      "image": {
+        "url": "https://images.pexels.com/photos/4508751/pexels-photo-4508751.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Modern data center corridor with server racks"
+      },
+      "introduction": "The compute, data and platform engineering that large-scale AI workloads depend on.",
+      "overview": "AI infrastructure engineering sits at the intersection of distributed systems, cloud platforms and hardware-aware engineering. Building and operating the compute behind large-scale AI workloads demands people who understand failure modes that only appear at genuine scale, from GPU scheduling contention to network partitioning under load, along with the data platforms and MLOps tooling that move a model from training into reliable production. This is a distinct specialism from general cloud engineering, and ALLSEMIS treats it as its own search.",
+      "domains": [
+        "AI Infrastructure",
+        "Cloud Engineering",
+        "Cloud Platforms",
+        "ML Infrastructure & MLOps",
+        "GPU Infrastructure",
+        "Distributed Systems",
+        "Data Platforms",
+        "Data Engineering",
+        "Platform Engineering",
+        "Site Reliability"
+      ],
+      "roles": [
+        "AI Infrastructure Engineer",
+        "Cloud Engineer",
+        "ML Infrastructure / MLOps Engineer",
+        "Platform Engineer",
+        "Data Engineer",
+        "Data Platform Engineer",
+        "Distributed Systems Engineer",
+        "GPU / HPC Infrastructure Engineer",
+        "Site Reliability Engineer"
+      ],
+      "hiringChallenges": [
+        "Scale-Specific Experience: Failure modes that only appear at genuine scale are rarely visible on a resume built for general cloud roles.",
+        "Hardware/Software Overlap: The strongest candidates are comfortable close to the hardware, not just at the platform layer above it.",
+        "Intense Market Demand: Demand for infrastructure-at-scale engineers currently outpaces the available senior pool industry-wide.",
+        "Fast-Moving Stack: Tooling and orchestration practices shift quickly, so relevant experience can go stale faster than in other disciplines."
+      ],
+      "processFlow": [
+        "Compute",
+        "Data",
+        "Orchestration",
+        "Deployment",
+        "Reliability"
+      ],
+      "representativeSearches": [
+        {
+          "ref": "SEARCH / 401",
+          "title": "AI Infrastructure",
+          "requirement": "Distributed systems capability for large-scale compute",
+          "signals": [
+            "Kubernetes",
+            "Distributed Systems",
+            "GPU Scheduling",
+            "Networking"
+          ]
+        },
+        {
+          "ref": "SEARCH / 402",
+          "title": "ML Platform & MLOps",
+          "requirement": "Platform reliability for production ML workloads",
+          "signals": [
+            "Python",
+            "Terraform",
+            "Model Deployment",
+            "Monitoring",
+            "Incident Response"
+          ]
+        },
+        {
+          "ref": "SEARCH / 403",
+          "title": "Data Platform Engineering",
+          "requirement": "Batch and streaming data platforms feeding analytics and ML",
+          "signals": [
+            "Spark",
+            "Kafka",
+            "SQL",
+            "Workflow Orchestration",
+            "Data Modelling"
+          ]
+        }
+      ],
+      "relatedInsight": "hiring-for-ai-infrastructure-teams",
+      "status": "published"
+    },
+    {
+      "key": "healthcare",
+      "num": "05",
+      "name": "Healthcare & Medical Technology",
+      "shortName": "Healthcare",
+      "slug": "healthcare-medical-technology",
+      "desc": "Engineering talent for medical devices, medical electronics and healthcare software.",
+      "image": {
+        "url": "https://images.pexels.com/photos/35444722/pexels-photo-35444722.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Laboratory technician handling cell culture equipment"
+      },
+      "introduction": "Engineering talent for medical devices and healthcare technology, where regulatory precision matters as much as technical skill.",
+      "overview": "Medical technology hiring has a second axis that most other engineering searches do not: regulatory fluency. A candidate can be an excellent embedded, electronics or software engineer and still be a poor fit for a role that requires real, working familiarity with a standard like ISO 13485 or IEC 62304, or with an FDA 510(k) pathway. That holds across medical devices, diagnostic equipment and the clinical software platforms around them, where verification, validation and documentation are part of the engineering work itself. ALLSEMIS searches account for both the engineering depth and the regulatory context together.",
+      "domains": [
+        "Medical Devices",
+        "Embedded Medical Systems",
+        "Medical Electronics",
+        "Diagnostic & Imaging Systems",
+        "Healthcare Software",
+        "Clinical Technology Platforms",
+        "Device Verification & Validation",
+        "Quality & Regulatory Engineering"
+      ],
+      "roles": [
+        "Medical Device Engineer",
+        "Embedded Systems Engineer (Medical)",
+        "Medical Electronics Engineer",
+        "Diagnostic Systems Engineer",
+        "Imaging Systems Engineer",
+        "Healthcare Software Engineer",
+        "Clinical Systems Engineer",
+        "Verification & Validation Engineer",
+        "Regulatory & Quality Engineer"
+      ],
+      "hiringChallenges": [
+        "Regulatory Fluency Gap: Regulatory process experience is often as scarce as the underlying engineering skill itself.",
+        "On-the-Job Learning: Regulatory fluency is usually learned inside a small number of companies that already operate under it.",
+        "Late-Stage Discovery: A search built purely around technical skill can miss the regulatory gap until very late in the process.",
+        "Validation Discipline: Design controls, traceability and formal validation are daily work here, and that experience is hard to judge from a resume."
+      ],
+      "processFlow": [
+        "Signal",
+        "Imaging",
+        "Diagnosis",
+        "Device"
+      ],
+      "representativeSearches": [
+        {
+          "ref": "SEARCH / 501",
+          "title": "Diagnostic Systems",
+          "requirement": "Embedded and signal-processing engineering for diagnostic imaging",
+          "signals": [
+            "ISO 13485",
+            "Signal Processing",
+            "Embedded C",
+            "FDA 510(k)"
+          ]
+        },
+        {
+          "ref": "SEARCH / 502",
+          "title": "Medical Device Engineering",
+          "requirement": "Regulated device development for a diagnostic hardware platform",
+          "signals": [
+            "Design Controls",
+            "Verification & Validation",
+            "Regulatory Documentation"
+          ]
+        },
+        {
+          "ref": "SEARCH / 503",
+          "title": "Healthcare Software",
+          "requirement": "Software engineering for a regulated clinical technology platform",
+          "signals": [
+            "IEC 62304",
+            "HL7 / FHIR",
+            "Data Privacy",
+            "Software Validation"
+          ]
+        }
+      ],
+      "relatedInsight": "medical-technology-hiring-landscape",
+      "status": "published"
+    },
+    {
+      "key": "consumer-retail",
+      "num": "06",
+      "name": "Consumer Goods & Retail",
+      "shortName": "Retail",
+      "slug": "consumer-goods-retail",
+      "desc": "Engineering talent for connected consumer products, retail technology and digital commerce.",
+      "image": {
+        "url": "https://images.pexels.com/photos/5554948/pexels-photo-5554948.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Organized electronic circuit boards in a production setting"
+      },
+      "introduction": "Product and platform engineering for connected consumer products, retail technology and digital commerce.",
+      "overview": "Consumer and retail technology covers two kinds of engineering that increasingly depend on each other. One builds the product itself: connected devices and consumer electronics that have to be designed, manufactured and supported at volume. The other builds the systems that sell and move it: e-commerce platforms, store and point-of-sale technology, and the supply-chain software behind fulfilment. Both run on fast release cycles and are judged directly by customers, so the strongest engineers pair technical depth with a clear feel for product quality, scale and reliability at peak.",
+      "domains": [
+        "Connected Consumer Products",
+        "Consumer Electronics",
+        "Product Engineering",
+        "Retail Technology",
+        "E-commerce Platforms",
+        "Digital Commerce",
+        "Supply-Chain Technology",
+        "Customer-Facing Applications"
+      ],
+      "roles": [
+        "Product Engineer",
+        "Consumer Electronics Engineer",
+        "E-commerce Platform Engineer",
+        "Full-Stack Engineer",
+        "Mobile App Engineer",
+        "Retail Systems Engineer",
+        "Supply-Chain Systems Engineer",
+        "Quality Engineer",
+        "Technical Product Manager"
+      ],
+      "hiringChallenges": [
+        "Product and Platform Range: Device engineering and commerce-platform engineering are different skill sets, and briefs here often ask for some of both.",
+        "Peak-Scale Experience: Systems that hold up through seasonal peaks need experience that ordinary web-scale work may not provide.",
+        "Fast Release Cycles: Consumer roadmaps move quickly, and not every background suits shipping at that pace without losing quality.",
+        "Volume and Supply Constraints: Consumer-scale manufacturing and fulfilment add constraints that a design-only or software-only background can miss."
+      ],
+      "processFlow": [
+        "Product",
+        "Supply",
+        "Commerce",
+        "Customer"
+      ],
+      "representativeSearches": [
+        {
+          "ref": "SEARCH / 601",
+          "title": "Connected Product Engineering",
+          "requirement": "Hardware and firmware product engineering for a connected consumer device",
+          "signals": [
+            "Product Development",
+            "DFM",
+            "Bluetooth / Wi-Fi",
+            "Companion App Integration"
+          ]
+        },
+        {
+          "ref": "SEARCH / 602",
+          "title": "E-commerce Platform",
+          "requirement": "Backend engineering for a high-traffic digital commerce platform",
+          "signals": [
+            "Microservices",
+            "Catalogue & Checkout",
+            "Payments Integration",
+            "Peak Performance"
+          ]
+        },
+        {
+          "ref": "SEARCH / 603",
+          "title": "Supply-Chain Systems",
+          "requirement": "Software engineering for inventory, order and fulfilment systems",
+          "signals": [
+            "Order Management",
+            "Inventory Systems",
+            "Systems Integration",
+            "Data Pipelines"
+          ]
+        }
+      ],
+      "relatedInsight": "precision-manufacturing-talent",
+      "status": "published"
+    },
+    {
+      "key": "business-finance",
+      "num": "07",
+      "name": "Business, Finance & Consumer",
+      "shortName": "Business",
+      "slug": "business-finance-consumer",
+      "desc": "Enterprise technology, business systems and digital products for commercial organisations.",
+      "image": {
+        "url": "https://images.pexels.com/photos/260929/pexels-photo-260929.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Modern boardroom conference table"
+      },
+      "introduction": "The enterprise software, business systems and data platforms that run commercial, finance and customer operations.",
+      "overview": "Most organisations run on technology that never ships as a product in its own right: ERP and finance systems, CRM and customer platforms, internal data platforms, and the digital products that connect them to their customers. Engineering and product talent in this space works closer to the business than in most sectors, turning finance, operations and customer processes into systems that hold up at scale. The strongest candidates combine sound engineering with real understanding of the business function they serve. That is a different profile from the payments and banking infrastructure specialists covered under Banking, Finance & FinTech.",
+      "domains": [
+        "Enterprise Technology",
+        "Enterprise Software",
+        "Business Systems (ERP / CRM)",
+        "Finance Systems & Platforms",
+        "Digital Products",
+        "Data Platforms & Analytics",
+        "Customer Technology",
+        "Business Operations Technology"
+      ],
+      "roles": [
+        "Enterprise Software Engineer",
+        "Business Systems Analyst",
+        "ERP / CRM Engineer",
+        "Finance Systems Engineer",
+        "Data Engineer",
+        "Analytics Engineer",
+        "Customer Platform Engineer",
+        "Solutions Architect",
+        "Product Manager"
+      ],
+      "hiringChallenges": [
+        "Business Fluency: Engineers who understand the business process behind a system are much scarcer than pure technologists.",
+        "Platform-Specific Experience: Experience is often tied to one enterprise platform or ecosystem, which narrows the realistic pool for a given role.",
+        "Cross-Functional Demands: Roles increasingly require comfort working between engineering, product, finance and commercial stakeholders.",
+        "Legacy and Modern Together: Established systems often run beside new cloud and data platforms, and roles need people effective in both."
+      ],
+      "processFlow": [
+        "Data",
+        "Decision",
+        "Operations",
+        "Growth"
+      ],
+      "representativeSearches": [
+        {
+          "ref": "SEARCH / 701",
+          "title": "Enterprise Platforms",
+          "requirement": "Engineering for core business and finance systems",
+          "signals": [
+            "ERP",
+            "Systems Integration",
+            "APIs",
+            "Process Automation"
+          ]
+        },
+        {
+          "ref": "SEARCH / 702",
+          "title": "Data & Analytics",
+          "requirement": "Data platform engineering for business reporting and decision support",
+          "signals": [
+            "SQL",
+            "Data Modelling",
+            "ETL / ELT",
+            "BI & Reporting"
+          ]
+        },
+        {
+          "ref": "SEARCH / 703",
+          "title": "Digital Product",
+          "requirement": "Product and engineering leadership for a customer-facing digital product",
+          "signals": [
+            "Product Discovery",
+            "Roadmapping",
+            "Web & Mobile",
+            "Customer Analytics"
+          ]
+        }
+      ],
+      "relatedInsight": "",
+      "status": "published"
+    },
+    {
+      "key": "banking-fintech",
+      "num": "08",
+      "name": "Banking, Finance & FinTech",
+      "shortName": "Banking",
+      "slug": "banking-finance-fintech",
+      "desc": "Engineering talent behind banking technology, payments and secure financial infrastructure.",
+      "image": {
+        "url": "https://images.pexels.com/photos/2988232/pexels-photo-2988232.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Close-up of a card payment being processed at a terminal"
+      },
+      "introduction": "Engineering talent behind banking technology, payments and financial infrastructure, not general finance hiring.",
+      "overview": "Banking and fintech engineering sits at the intersection of distributed-systems depth and regulated financial infrastructure, a narrower combination than either skill alone. The strongest candidates are comfortable with high-throughput transaction processing, API security, and the operational rigour that regulated systems demand, across core and digital banking platforms, payments, and the risk, compliance and data systems behind them. None of that shows up clearly on a resume built for general backend roles.",
+      "domains": [
+        "Banking Technology",
+        "Digital Banking",
+        "Payments Infrastructure",
+        "Transaction Systems",
+        "FinTech Products",
+        "Risk Technology",
+        "Compliance Technology",
+        "Financial Data Platforms",
+        "Security & Cryptography",
+        "API Platform Engineering"
+      ],
+      "roles": [
+        "Payments Infrastructure Engineer",
+        "Core Banking Engineer",
+        "Digital Banking Engineer",
+        "Fintech Systems Engineer",
+        "Risk Technology Engineer",
+        "Compliance Technology Engineer",
+        "Financial Data Engineer",
+        "Security Engineer",
+        "API Platform Engineer"
+      ],
+      "hiringChallenges": [
+        "Regulated-Systems Experience: Genuine familiarity with regulated financial infrastructure is scarce relative to general backend experience.",
+        "High-Throughput Depth: Transaction-scale systems experience is a distinct skill from typical web-scale backend engineering.",
+        "Security Rigour: API and data security requirements in fintech are stricter than most general engineering roles demand.",
+        "Risk and Compliance Overlap: Risk and compliance systems need engineers who can turn regulatory requirements into working controls."
+      ],
+      "processFlow": [
+        "Transaction",
+        "API",
+        "Risk",
+        "Settlement"
+      ],
+      "representativeSearches": [
+        {
+          "ref": "SEARCH / 801",
+          "title": "Payments Infrastructure",
+          "requirement": "High-throughput transaction processing systems",
+          "signals": [
+            "Distributed Systems",
+            "API Design",
+            "Security",
+            "Event Streaming"
+          ]
+        },
+        {
+          "ref": "SEARCH / 802",
+          "title": "Fintech Security Engineering",
+          "requirement": "Security engineering for regulated financial platforms",
+          "signals": [
+            "Cryptography",
+            "Threat Modeling",
+            "Compliance Awareness"
+          ]
+        },
+        {
+          "ref": "SEARCH / 803",
+          "title": "Risk & Compliance Technology",
+          "requirement": "Engineering for transaction monitoring and regulatory reporting systems",
+          "signals": [
+            "Transaction Monitoring",
+            "Rules Engines",
+            "Regulatory Reporting",
+            "Data Lineage"
+          ]
+        }
+      ],
+      "relatedInsight": "engineering-talent-behind-modern-payments",
+      "status": "published"
+    }
+  ],
+  "services": [
+    {
+      "num": "01",
+      "name": "Permanent Staffing",
+      "slug": "permanent-staffing",
+      "icon": "die",
+      "status": "published",
+      "description": "Find the right full-time talent for your semiconductor, chip design, automotive, or aerospace teams. We source, screen, and place top engineers who stay and grow with your organization.",
+      "headline": "Full-time engineers for the work that stays in-house.",
+      "lead": "Permanent staffing for semiconductor, chip design, automotive and aerospace teams. We source, screen and place engineers who stay and grow with your organisation.",
+      "fitTitle": "When a permanent hire is the right call.",
+      "fit": [
+        "A core design, verification or embedded role that carries long-term product knowledge.",
+        "A new team or function being built for a programme that will run for years.",
+        "A senior or lead position where continuity matters as much as speed.",
+        "A role that has stayed open too long through general channels."
+      ],
+      "processTitle": "How a permanent search runs.",
+      "process": [
+        "Brief: A technical conversation about the role, the team around it and what a strong hire looks like.",
+        "Search: Sourcing scoped to the exact discipline and seniority, including engineers who are not actively looking.",
+        "Technical screen: Every candidate is assessed against the brief before a profile reaches you.",
+        "Shortlist: A focused shortlist with notes on technical fit, not a stack of resumes.",
+        "Interview and offer: Interviews coordinated end to end, with support through offer and joining."
+      ],
+      "receiveTitle": "",
+      "receive": [
+        "A shortlist matched to the technical brief",
+        "Screening notes for each candidate",
+        "Interview scheduling and feedback handled for you",
+        "Support through offer and joining",
+        "A dedicated account manager throughout"
+      ],
+      "ctaLabel": "Start a Permanent Search",
+      "ctaTo": "/contact?type=employer",
+      "tagsTitle": "Disciplines we place",
+      "tags": [
+        "RTL Design",
+        "Design Verification",
+        "Physical Design",
+        "DFT",
+        "Analog and Mixed-Signal",
+        "Embedded Software",
+        "ADAS and Functional Safety",
+        "Systems and RF"
+      ],
+      "questions": [
+        "Which roles does this cover? | Engineering roles across the sectors ALLSEMIS works in, with semiconductor and chip design at the centre. The Expertise pages list the disciplines in each sector.",
+        "How are candidates screened? | Against the technical brief agreed with you at the start: skills, depth of experience and domain. The aim is that every profile you receive is worth an interview.",
+        "How are commercial terms set? | Terms are agreed per engagement. Send us the role and we will take it from there."
+      ]
+    },
+    {
+      "num": "02",
+      "name": "Project Staffing",
+      "slug": "project-staffing",
+      "icon": "layers",
+      "status": "published",
+      "description": "Scale your team on-demand with highly skilled contract engineers for specific projects. From VLSI design to embedded systems, we provide experts exactly when you need them.",
+      "headline": "Contract engineers for defined programmes.",
+      "lead": "Scale your team on demand with skilled contract engineers for specific projects. From VLSI design to embedded systems, experts exactly when you need them.",
+      "fitTitle": "When project staffing fits.",
+      "fit": [
+        "A tape-out, verification or bring-up phase that needs more hands than the permanent team has.",
+        "A specialised skill needed for one phase of a programme, not for the long term.",
+        "A deadline that cannot wait for a permanent hiring cycle.",
+        "A project where headcount has to rise and fall with the workload."
+      ],
+      "processTitle": "How a project engagement runs.",
+      "process": [
+        "Scope: Define the work, the skills, the duration and how the engineers will sit within your team.",
+        "Match: Identify contract engineers whose recent work matches the scope.",
+        "Onboard: Engineers start with the context they need to be useful from the first week.",
+        "Manage: A dedicated account manager stays with the engagement and handles staffing matters as they come up.",
+        "Extend or close: Extend, scale down or wrap up as the project requires."
+      ],
+      "receiveTitle": "",
+      "receive": [
+        "Contract engineers matched to a defined scope",
+        "End-to-end managed staffing",
+        "A dedicated account manager",
+        "Capacity that follows the project plan",
+        "One point of contact when the scope changes"
+      ],
+      "ctaLabel": "Staff a Project",
+      "ctaTo": "/contact?type=employer",
+      "tagsTitle": "Typical project skills",
+      "tags": [
+        "VLSI Design",
+        "Verification",
+        "Physical Design",
+        "DFT",
+        "Embedded Systems",
+        "Test and Validation"
+      ],
+      "questions": [
+        "How long does an engagement last? | It depends on the project. Duration is set in the scope and reviewed as the work progresses.",
+        "Can contract engineers work inside our team and tools? | Yes. The scope defines where the engineers work, which tools they use and who they report to on your side.",
+        "What happens if the scope changes? | Tell your account manager. The engagement is adjusted to match."
+      ]
+    },
+    {
+      "num": "03",
+      "name": "RPO Solution",
+      "slug": "rpo",
+      "icon": "pipeline",
+      "status": "published",
+      "description": "Outsource your entire recruitment process to Allsemis. Our Recruitment Process Outsourcing (RPO) solution delivers a dedicated hiring engine tailored to your talent acquisition needs.",
+      "headline": "A dedicated hiring engine, run for you.",
+      "lead": "Recruitment Process Outsourcing hands the recruitment process itself to ALLSEMIS, shaped around your talent acquisition needs.",
+      "fitTitle": "When RPO makes sense.",
+      "fit": [
+        "Sustained hiring across many roles, not one or two openings.",
+        "A new team, site or product line that needs a hiring function quickly.",
+        "An internal talent team that is already at capacity.",
+        "A need for one consistent process and one view of the pipeline."
+      ],
+      "processTitle": "How an RPO engagement runs.",
+      "process": [
+        "Discover: Map current hiring: open roles, process, tools and where candidates are being lost.",
+        "Design: Agree the scope, the process and how progress will be reported.",
+        "Embed: A recruitment team is assigned and works to your process and standards.",
+        "Run: Sourcing, screening, scheduling and offer management for the roles in scope.",
+        "Review: Regular reviews of the pipeline and the process, with changes agreed together."
+      ],
+      "receiveTitle": "",
+      "receive": [
+        "A recruitment team assigned to your hiring",
+        "One process from requisition to offer",
+        "Pipeline visibility across every role in scope",
+        "Scope that covers all hiring or a defined part of it",
+        "A dedicated account manager"
+      ],
+      "ctaLabel": "Discuss RPO",
+      "ctaTo": "/contact?type=employer",
+      "tagsTitle": "Ways to scope it",
+      "tags": [
+        "Full hiring cycle",
+        "One function or business unit",
+        "A defined hiring project",
+        "Sourcing and screening only"
+      ],
+      "questions": [
+        "How is RPO different from briefing an agency per role? | An agency fills individual roles. RPO takes on the recruitment process for the roles in scope, so the approach, the reporting and the candidate experience stay consistent.",
+        "Can we start small? | Yes. Scope can begin with one function or one hiring project and widen later.",
+        "Who makes the hiring decision? | You do. The RPO team runs the process. Your hiring managers decide who joins."
+      ]
+    }
+  ],
+  "locations": [
+    {
+      "key": "bengaluru",
+      "city": "Bengaluru",
+      "country": "India",
+      "region": "APAC",
+      "label": "ALLSEMIS Bengaluru",
+      "type": "office",
+      "status": "active",
+      "isHeadquarters": true,
+      "address": [
+        "No.73, Nallurahalli, Whitefield",
+        "Bangalore South, Karnataka 560066"
+      ],
+      "phone": "+91-70901-23400",
+      "email": "sales@allsemi.com",
+      "hours": [
+        "Mon-Fri, 9:00 AM - 6:30 PM IST",
+        "Mon-Fri, 8:30 PM - 6:00 AM EST"
+      ],
+      "lon": 77.5946,
+      "lat": 12.9716,
+      "description": "Confirmed ALLSEMIS office and the active node of the engineering network.",
+      "labelSide": "right",
+      "labelRaise": 0,
+      "active": true
+    },
+    {
+      "key": "bhubaneswar",
+      "city": "Bhubaneswar",
+      "country": "India",
+      "region": "APAC",
+      "label": "Bhubaneswar network node",
+      "type": "network",
+      "status": "active",
+      "isHeadquarters": false,
+      "address": [],
+      "phone": "",
+      "email": "",
+      "hours": [],
+      "lon": 85.8245,
+      "lat": 20.2961,
+      "description": "Engineering network node. Not an ALLSEMIS office.",
+      "labelSide": "right",
+      "labelRaise": 22,
+      "active": true
+    },
+    {
+      "key": "san-diego",
+      "city": "San Diego",
+      "country": "United States",
+      "region": "Americas",
+      "label": "San Diego network node",
+      "type": "network",
+      "status": "active",
+      "isHeadquarters": false,
+      "address": [],
+      "phone": "",
+      "email": "",
+      "hours": [],
+      "lon": -117.1611,
+      "lat": 32.7157,
+      "description": "Engineering network node. Not an ALLSEMIS office.",
+      "labelSide": "right",
+      "labelRaise": 0,
+      "active": true
+    }
+  ],
+  "site": {
+    "contact": {
+      "email": "sales@allsemi.com",
+      "phone": "+91-70901-23400",
+      "address": [
+        "No.73, Nallurahalli, Whitefield",
+        "Bangalore South, Karnataka 560066"
+      ],
+      "hours": [
+        "Mon-Fri, 9:00 AM - 6:30 PM IST",
+        "Mon-Fri, 8:30 PM - 6:00 AM EST"
+      ]
+    }
+  }
+}

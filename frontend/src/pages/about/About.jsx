@@ -5,6 +5,7 @@ import {
   TechnicalGrid, ScanLine, StaggerText, AnimatedUnderline, MeasurementLabel,
 } from '../../lib/motionPrimitives.jsx';
 import ExpertiseBands from '../../components/ExpertiseBands.jsx';
+import { useSectors } from '../../lib/usePublicData.js';
 import OfficeNetwork from '../../components/OfficeNetwork.jsx';
 import {
   ABOUT_HERO, POSITIONING, CONNECTS_NODES, HOW_WE_WORK, ENGINEERING_APPROACH, ABOUT_CTA,
@@ -161,6 +162,10 @@ function WhatAllsemiConnects() {
 /* ============ DOMAIN NETWORK ============ */
 function DomainNetwork() {
   const [ref, inView] = useInView(0.05);
+  // The sectors come from the backend. With none published, or when
+  // they could not be loaded, this section is left out.
+  const { status, sectors } = useSectors();
+  if (status !== 'loading' && sectors.length === 0) return null;
 
   return (
     <section ref={(el) => { ref.current = el; }} className="border-b border-line py-20 md:py-28">

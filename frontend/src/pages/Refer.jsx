@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   useInView, TechnicalGrid, StaggerText, AnimatedUnderline, MeasurementLabel,
 } from '../lib/motionPrimitives.jsx';
@@ -6,6 +6,15 @@ import {
   REFER_INTRO, REFER_HOW_IT_WORKS, REFERRABLE_ROLES,
   REFERRER_FIELDS, CANDIDATE_FIELDS, FIT_FIELD, CONSENT_FIELD,
 } from './referContent.js';
+import { formsApi } from '../lib/api/public.js';
+import { useForm } from '../components/forms/useForm.js';
+import { required, email, phone, link, accepted } from '../components/forms/validation.js';
+import {
+  FormAccent, FormSection, TextField, TextArea, SelectField, Checkbox, Honeypot,
+} from '../components/forms/fields.jsx';
+import { FileDropZone } from '../components/forms/FileDropZone.jsx';
+import { FormAlert, SubmitButton, SuccessPanel, TEXT_ACTION } from '../components/forms/FormStatus.jsx';
+import { useDomainOptions } from '../components/forms/options.js';
 
 /*
   Refer - a dedicated ALLSEMIS referral journey (route: /refer),
@@ -19,11 +28,11 @@ import {
   the entire "Signal"-style network language below is ALLSEMIS's own -
   no Nexus text, layout, rewards or branding were carried over.
 
-  This is a frontend-only experience: submitting the form simulates a
-  successful referral locally (see handleSubmit below) rather than
-  calling a real API. The field list, validation and submit contract
-  are structured so wiring a real endpoint later is a matter of
-  replacing that one function, not rebuilding the page.
+  The referral form submits to the backend (POST /api/referrals,
+  through formsApi.submitReferral) with an optional resume. It is built
+  from the shared form components in components/forms/, rendered in
+  this page's turquoise accent, and its fields are defined in
+  referContent.js under the names the backend accepts.
 */
 export default function Refer() {
   useEffect(() => {
@@ -131,152 +140,118 @@ function WhoToRefer() {
   );
 }
 
-/* ============ REFERRAL FORM ============ */
+/* ============ REFERRAL FORM ============
+   The schema and the starting values are derived from the field
+   definitions in referContent.js: a required field gets its "required"
+   rule, and email, phone and link fields get the matching format
+   check. The resume is a file, so it is handled by the drop zone and
+   is not part of the text values. */
+const FORMAT_RULES = { email: [email()], tel: [phone()], url: [link()] };
+const TEXT_FIELDS = [...REFERRER_FIELDS, ...CANDIDATE_FIELDS, FIT_FIELD].filter((f) => f.type !== 'file');
+
+const SCHEMA = {
+  ...Object.fromEntries(TEXT_FIELDS.map((f) => [f.id, {
+    label: f.label,
+    rules: [...(f.required ? [required(f.required)] : []), ...(FORMAT_RULES[f.type] || [])],
+  }])),
+  [CONSENT_FIELD.id]: { label: 'Consent', rules: [accepted()] },
+};
+
+const INITIAL = {
+  website: '',
+  ...Object.fromEntries(TEXT_FIELDS.map((f) => [f.id, ''])),
+  [CONSENT_FIELD.id]: false,
+};
+
+const FILE = { name: 'resume', label: 'Resume' };
+
 function ReferralForm() {
-  const [ref, inView] = useInView(0.1);
-  const [values, setValues] = useState({});
-  const [resumeName, setResumeName] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
+  const form = useForm({ initial: INITIAL, schema: SCHEMA, file: FILE });
 
-  const allFields = [...REFERRER_FIELDS, ...CANDIDATE_FIELDS, FIT_FIELD];
-
-  function setField(id, val) {
-    setValues((v) => ({ ...v, [id]: val }));
-  }
-
-  // Frontend-only submit: validates required fields locally and shows
-  // a success state. There is no production backend/API for referral
-  // submissions yet - wiring one later means replacing the body of
-  // this function with a real request, not restructuring the form.
-  function handleSubmit(e) {
+  function onSubmit(e) {
     e.preventDefault();
-    const missing = allFields.filter((f) => f.required && !String(values[f.id] || '').trim());
-    if (missing.length || !values.consent) {
-      setError('Please fill in the required fields and confirm consent before submitting.');
-      return;
-    }
-    setError('');
-    setSubmitted(true);
-  }
-
-  if (submitted) {
-    return (
-      <section ref={(el) => { ref.current = el; }} className="py-24 md:py-32">
-        <div className="max-w-2xl mx-auto px-5 md:px-10 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-turquoise/10 border border-turquoise/40 mb-6">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#2dd4bf" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          </div>
-          <h2 className="font-display font-semibold text-2xl md:text-3xl tracking-tight mb-3">Referral received.</h2>
-          <p className="text-text-dim leading-relaxed">
-            Thank you for referring someone you rate. Our team will review the profile and reach out to the candidate directly if it looks like a genuine fit.
-          </p>
-        </div>
-      </section>
-    );
+    form.submit((options) => formsApi.submitReferral(form.values, form.file, options));
   }
 
   return (
-    <section ref={(el) => { ref.current = el; }} className="py-20 md:py-28">
+    <section className="py-20 md:py-28">
       <div className="max-w-2xl mx-auto px-5 md:px-10">
         <MeasurementLabel className="block mb-4">REFER / 04 · REFERRAL FORM</MeasurementLabel>
         <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-4">Tell us who we should know.</h2>
-        <p className="text-text-dim mb-12 leading-relaxed">
-          A few details from you, a few about the candidate, and one line on why you rate them.
-        </p>
+        {!form.sent && (
+          <p className="text-text-dim mb-12 leading-relaxed">
+            A few details from you, a few about the candidate, and one line on why you rate them.
+          </p>
+        )}
 
-        <form onSubmit={handleSubmit} className="space-y-10" noValidate>
-          <FormGroup title="Your details">
-            {REFERRER_FIELDS.map((f) => (
-              <FormField key={f.id} field={f} value={values[f.id]} onChange={(v) => setField(f.id, v)} />
-            ))}
-          </FormGroup>
+        <FormAccent tone="turquoise">
+          {form.sent ? (
+            <SuccessPanel
+              title="Referral received."
+              received={`Your referral of ${form.values.candidateName.trim()} has been received.`}
+              email={form.values.referrerEmail.trim()}
+            >
+              <button type="button" onClick={form.reset} className={TEXT_ACTION}>&larr; Refer someone else</button>
+            </SuccessPanel>
+          ) : (
+            <form ref={form.rootRef} onSubmit={onSubmit} className="space-y-12" noValidate>
+              <Honeypot field={form.field('website')} />
 
-          <FormGroup title="Candidate details">
-            {CANDIDATE_FIELDS.map((f) => (
-              f.type === 'file' ? (
-                <div key={f.id}>
-                  <label htmlFor={f.id} className="block font-mono text-xs uppercase tracking-widest text-text-faint mb-2">
-                    {f.label}
-                  </label>
-                  <input
-                    id={f.id}
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) => { setResumeName(e.target.files?.[0]?.name || ''); setField(f.id, e.target.files?.[0]?.name || ''); }}
-                    className="block w-full text-sm text-text-dim file:mr-4 file:py-2 file:px-4 file:border file:border-line file:bg-transparent file:text-text-dim file:font-mono file:text-xs file:uppercase hover:file:border-turquoise hover:file:text-turquoise file:cursor-pointer cursor-pointer"
-                  />
-                  {resumeName && <p className="mt-1.5 text-xs text-text-faint">Selected: {resumeName}</p>}
-                </div>
-              ) : (
-                <FormField key={f.id} field={f} value={values[f.id]} onChange={(v) => setField(f.id, v)} />
-              )
-            ))}
-          </FormGroup>
+              <FormSection num="01" title="Your details">
+                {REFERRER_FIELDS.map((f) => <ReferField key={f.id} def={f} form={form} />)}
+              </FormSection>
 
-          <FormGroup title="Why this person">
-            <FormField field={FIT_FIELD} value={values[FIT_FIELD.id]} onChange={(v) => setField(FIT_FIELD.id, v)} />
-          </FormGroup>
+              <FormSection num="02" title="Candidate details">
+                {CANDIDATE_FIELDS.map((f) => <ReferField key={f.id} def={f} form={form} />)}
+              </FormSection>
 
-          <label className="flex items-start gap-3 text-sm text-text-dim leading-relaxed cursor-pointer">
-            <input
-              type="checkbox"
-              checked={!!values.consent}
-              onChange={(e) => setField('consent', e.target.checked)}
-              className="mt-1 accent-turquoise"
-            />
-            {CONSENT_FIELD.label}
-          </label>
+              <FormSection num="03" title="Why this person">
+                <ReferField def={FIT_FIELD} form={form} />
+              </FormSection>
 
-          {error && <p className="text-sm text-accent-2">{error}</p>}
-
-          <button
-            type="submit"
-            className="w-full sm:w-auto inline-flex justify-center text-sm font-semibold px-8 py-3.5 bg-text text-bg hover:bg-turquoise transition-colors"
-          >
-            Submit referral
-          </button>
-        </form>
+              <div className="space-y-6">
+                <Checkbox field={form.field(CONSENT_FIELD.id)} required>{CONSENT_FIELD.label}</Checkbox>
+                {form.alert && <FormAlert alert={form.alert} />}
+                <SubmitButton sending={form.sending}>Submit referral</SubmitButton>
+              </div>
+            </form>
+          )}
+        </FormAccent>
       </div>
     </section>
   );
 }
 
-function FormGroup({ title, children }) {
+// Maps one field definition from referContent.js to its shared input.
+function ReferField({ def, form }) {
+  const className = def.wide ? 'sm:col-span-2' : undefined;
+  if (def.type === 'file') {
+    return <FileDropZone field={form.fileField} label={def.label} optional className={className} />;
+  }
+  const field = form.field(def.id);
+  if (def.type === 'select') {
+    return <DomainField field={field} def={def} className={className} />;
+  }
+  if (def.type === 'textarea') {
+    return <TextArea field={field} label={def.label} required={Boolean(def.required)} maxLength={def.maxLength} className={className} />;
+  }
   return (
-    <fieldset className="space-y-5">
-      <legend className="font-mono text-[0.62rem] uppercase tracking-[0.2em] text-accent/70 mb-1">{title}</legend>
-      {children}
-    </fieldset>
+    <TextField
+      field={field}
+      label={def.label}
+      type={def.type}
+      required={Boolean(def.required)}
+      maxLength={def.maxLength}
+      autoComplete={def.autoComplete}
+      placeholder={def.placeholder}
+      className={className}
+    />
   );
 }
 
-function FormField({ field, value, onChange }) {
-  const base = 'w-full bg-transparent border-b border-line focus:border-turquoise outline-none py-2.5 text-sm transition-colors placeholder:text-text-faint';
-  return (
-    <div>
-      <label htmlFor={field.id} className="block font-mono text-xs uppercase tracking-widest text-text-faint mb-2">
-        {field.label} {field.required && <span className="text-accent-2">*</span>}
-      </label>
-      {field.type === 'textarea' ? (
-        <textarea
-          id={field.id}
-          rows={4}
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          className={`${base} resize-none`}
-        />
-      ) : (
-        <input
-          id={field.id}
-          type={field.type}
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          className={base}
-        />
-      )}
-    </div>
-  );
+// The "Engineering domain" select: its choices are the published
+// sectors, read from the backend.
+function DomainField({ field, def, className }) {
+  const options = useDomainOptions(field.value);
+  return <SelectField field={field} label={def.label} options={options} placeholder={def.placeholder} className={className} />;
 }

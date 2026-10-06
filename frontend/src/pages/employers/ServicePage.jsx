@@ -1,18 +1,26 @@
 import React, { useEffect } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   useInView, TechnicalGrid, StaggerText, AnimatedUnderline, MeasurementLabel,
 } from '../../lib/motionPrimitives.jsx';
 import { GlyphDie, GlyphLayers, GlyphPipeline, DimensionRule } from '../../components/EngineeringGlyphs.jsx';
-import { publishedServices, getServiceBySlug } from './servicesContent.js';
+import { useServices } from '../../lib/usePublicData.js';
+import { withPageDefaults } from './servicesContent.js';
 
 /*
-  ServicePage - the shared template behind the three service
-  destinations (/employers/permanent-staffing, /employers/project-staffing,
-  /employers/rpo). One template, one design system, driven per service by
-  servicesContent.js - the same pattern SectorPage uses for the eight
-  Expertise sectors, so the service pages read as part of the existing
-  site rather than a second visual language.
+  ServicePage - the shared template behind the service pages (route:
+  /employers/:slug). One template, one design system, the same pattern
+  SectorPage uses for the Expertise sectors, so the service pages read
+  as part of the existing site rather than a second visual language.
+
+  The services come from the backend (useServices -> GET
+  /api/public/services): published services only, in the order set in
+  the admin. The page shows the one whose slug is in the address, and
+  lists the others under "Other Services". A slug with no published
+  service behind it (never existed, still a draft, or unpublished since)
+  shows the not-found state. If the request itself fails the page says
+  so and offers a retry. The section labels and the fixed headings are
+  part of the page, not of a service.
 
   Each page answers four questions specific to that service: when it
   fits, how it runs, what the client receives, and the questions an
@@ -21,21 +29,116 @@ import { publishedServices, getServiceBySlug } from './servicesContent.js';
 */
 
 const GLYPHS = { die: GlyphDie, layers: GlyphLayers, pipeline: GlyphPipeline };
+// An icon name this build does not know is drawn with the first glyph.
+const glyphFor = (icon) => (Object.hasOwn(GLYPHS, icon) ? GLYPHS[icon] : GlyphDie);
 
-export default function ServicePage({ slug }) {
-  const service = getServiceBySlug(slug);
+export default function ServicePage() {
+  const { slug } = useParams();
+  const { status, services, reload } = useServices();
+
+  if (status !== 'ready') return <ServicePending loading={status === 'loading'} onRetry={reload} />;
+
+  const found = services.find((s) => s.slug === slug);
+  if (!found) return <ServiceNotFound />;
+
+  // Keyed by slug: going from one service to another starts the page
+  // again, as it does between any two pages.
+  return (
+    <ServiceView
+      key={found.slug}
+      service={withPageDefaults(found)}
+      others={services.filter((s) => s.slug !== found.slug)}
+    />
+  );
+}
+
+// The frame the service hero has, for the states below: the same grid
+// and way back to the Employers page.
+function ServiceFrame({ children }) {
+  return (
+    <section className="relative min-h-[70vh] border-b border-line pt-32 md:pt-44 pb-16 md:pb-24 overflow-hidden">
+      <TechnicalGrid className="opacity-[0.05]" />
+      <div className="relative max-w-7xl mx-auto px-5 md:px-10">
+        <Link to="/employers" className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-accent hover:text-accent-2 transition-colors mb-8">
+          <span aria-hidden="true">&larr;</span> Employers
+        </Link>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+// The page while the services are loading, or when they could not be
+// loaded.
+function ServicePending({ loading, onRetry }) {
+  return (
+    <ServiceFrame>
+      {loading ? (
+        <div role="status">
+          <span className="sr-only">Loading service</span>
+          <div className="animate-pulse motion-reduce:animate-none" aria-hidden="true">
+            <div className="h-2 w-48 bg-line-strong mt-3" />
+            <div className="h-10 md:h-14 w-3/4 max-w-3xl bg-line-strong mt-9" />
+            <div className="h-10 md:h-14 w-1/2 max-w-xl bg-line-strong mt-3" />
+            <div className="h-3 w-full max-w-2xl bg-line mt-12" />
+            <div className="h-3 w-2/3 max-w-xl bg-line mt-3" />
+          </div>
+        </div>
+      ) : (
+        <div role="alert">
+          <p className="text-base md:text-lg text-text-dim leading-relaxed mb-6">This service could not be loaded.</p>
+          <button onClick={onRetry} className="font-mono text-xs uppercase tracking-widest text-accent hover:text-accent-2 transition-colors px-4 py-2 border border-accent/40">
+            Try again
+          </button>
+        </div>
+      )}
+    </ServiceFrame>
+  );
+}
+
+// No published service has this address. Search engines are asked not
+// to index the page while this state is shown.
+function ServiceNotFound() {
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'ALLSEMIS | Service not found';
+    const robots = document.createElement('meta');
+    robots.name = 'robots';
+    robots.content = 'noindex';
+    document.head.appendChild(robots);
+    return () => {
+      document.title = previousTitle;
+      robots.remove();
+    };
+  }, []);
+
+  return (
+    <ServiceFrame>
+      <MeasurementLabel className="block mb-4">Not found</MeasurementLabel>
+      <h1 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl tracking-tight leading-[1.05]">This service is not available.</h1>
+      <p className="mt-5 max-w-2xl text-base md:text-lg text-text-dim leading-relaxed">
+        It may have been moved or unpublished, or the address may be wrong.
+      </p>
+      <div className="mt-8">
+        <Link to="/employers" className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
+          Back to Employers
+        </Link>
+      </div>
+    </ServiceFrame>
+  );
+}
+
+function ServiceView({ service, others }) {
   const [heroRef, mounted] = useInView(0.01);
   const [processRef, processInView] = useInView(0.2);
 
   useEffect(() => {
-    if (service) document.title = `ALLSEMIS | ${service.name}`;
-  }, [service]);
-
-  if (!service) return <Navigate to="/employers" replace />;
+    document.title = `ALLSEMIS | ${service.name}`;
+  }, [service.name]);
 
   const { page } = service;
-  const Glyph = GLYPHS[service.icon] || GlyphDie;
-  const others = publishedServices().filter((s) => s.slug !== service.slug);
+  const Glyph = glyphFor(service.icon);
+  const hasCta = Boolean(service.cta.label && service.cta.to);
 
   return (
     <>
@@ -59,9 +162,11 @@ export default function ServicePage({ slug }) {
           <div className="mt-6"><AnimatedUnderline inView={mounted} /></div>
           <p className="mt-6 max-w-2xl text-base md:text-lg text-text-dim leading-relaxed">{page.lead}</p>
           <div className="flex flex-wrap gap-3 mt-8">
-            <Link to={service.cta.to} className="inline-flex text-sm font-semibold px-5 py-3 bg-text text-bg hover:bg-accent transition-colors">
-              {service.cta.label}
-            </Link>
+            {hasCta && (
+              <Link to={service.cta.to} className="inline-flex text-sm font-semibold px-5 py-3 bg-text text-bg hover:bg-accent transition-colors">
+                {service.cta.label}
+              </Link>
+            )}
             <Link to="/expertise" className="inline-flex text-sm font-semibold px-5 py-3 border border-white/25 text-text hover:border-accent transition-colors">
               Explore Sectors
             </Link>
@@ -78,8 +183,8 @@ export default function ServicePage({ slug }) {
             <DimensionRule className="mt-6" />
           </div>
           <ul className="divide-y divide-line border-y border-line">
-            {page.fit.map((item) => (
-              <li key={item} className="flex gap-4 py-5">
+            {page.fit.map((item, i) => (
+              <li key={i} className="flex gap-4 py-5">
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-turquoise" aria-hidden="true" />
                 <span className="text-base md:text-lg text-text-dim leading-relaxed">{item}</span>
               </li>
@@ -96,7 +201,7 @@ export default function ServicePage({ slug }) {
           <ol className="grid sm:grid-cols-2 lg:grid-cols-5 gap-x-6 gap-y-10">
             {page.process.map((step, i) => (
               <li
-                key={step.label}
+                key={i}
                 className={`relative transition-all duration-500 motion-reduce:transition-none ${processInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}
                 style={{ transitionDelay: `${i * 90}ms` }}
               >
@@ -118,7 +223,7 @@ export default function ServicePage({ slug }) {
             <MeasurementLabel className="block mb-4">What You Receive</MeasurementLabel>
             <ul className="mt-6 space-y-4">
               {page.receive.map((item, i) => (
-                <li key={item} className="flex items-baseline gap-4 border-b border-line pb-4">
+                <li key={i} className="flex items-baseline gap-4 border-b border-line pb-4">
                   <span className="font-mono text-xs text-accent">{String(i + 1).padStart(2, '0')}</span>
                   <span className="font-display font-medium text-lg md:text-xl tracking-tight">{item}</span>
                 </li>
@@ -126,15 +231,20 @@ export default function ServicePage({ slug }) {
             </ul>
           </div>
           <div>
-            <MeasurementLabel className="block mb-4">{page.tagsTitle}</MeasurementLabel>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {page.tags.map((tag) => (
-                <span key={tag} className="font-mono text-xs uppercase tracking-wide px-3 py-2 border border-line-strong text-text-dim">
-                  {tag}
-                </span>
-              ))}
-            </div>
-            <p className="mt-8 text-sm text-text-dim leading-relaxed max-w-md">
+            {/* A service without tags has no tags block. */}
+            {page.tags.length > 0 && (
+              <>
+                <MeasurementLabel className="block mb-4">{page.tagsTitle}</MeasurementLabel>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {page.tags.map((tag, i) => (
+                    <span key={i} className="font-mono text-xs uppercase tracking-wide px-3 py-2 border border-line-strong text-text-dim">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+            <p className={`${page.tags.length > 0 ? 'mt-8 ' : ''}text-sm text-text-dim leading-relaxed max-w-md`}>
               {service.description}
             </p>
           </div>
@@ -142,13 +252,14 @@ export default function ServicePage({ slug }) {
       </section>
 
       {/* ============ QUESTIONS ============ */}
+      {page.questions.length > 0 && (
       <section className="border-b border-line py-20 md:py-28">
         <div className="max-w-4xl mx-auto px-5 md:px-10">
           <MeasurementLabel className="block mb-4">Questions</MeasurementLabel>
           <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-10">Asked before a first call.</h2>
           <dl className="divide-y divide-line border-y border-line">
-            {page.questions.map((item) => (
-              <div key={item.q} className="py-6 grid md:grid-cols-[1fr_1.4fr] gap-3 md:gap-10">
+            {page.questions.map((item, i) => (
+              <div key={i} className="py-6 grid md:grid-cols-[1fr_1.4fr] gap-3 md:gap-10">
                 <dt className="font-display font-semibold text-lg tracking-tight">{item.q}</dt>
                 <dd className="text-text-dim leading-relaxed">{item.a}</dd>
               </div>
@@ -156,16 +267,18 @@ export default function ServicePage({ slug }) {
           </dl>
         </div>
       </section>
+      )}
 
       {/* ============ OTHER SERVICES ============ */}
+      {others.length > 0 && (
       <section className="border-b border-line py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-5 md:px-10">
           <MeasurementLabel className="block mb-6">Other Services</MeasurementLabel>
           <div className="grid md:grid-cols-2 gap-6">
             {others.map((s) => {
-              const OtherGlyph = GLYPHS[s.icon] || GlyphDie;
+              const OtherGlyph = glyphFor(s.icon);
               return (
-                <Link key={s.slug} to={`/employers/${s.slug}`} className="group block border border-line p-6 md:p-8 hover:border-accent/50 transition-colors">
+                <Link key={s.id || s.slug} to={`/employers/${s.slug}`} className="group block border border-line p-6 md:p-8 hover:border-accent/50 transition-colors">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs tracking-widest text-accent">{s.num}</span>
                     <OtherGlyph className="text-accent/60" />
@@ -178,14 +291,17 @@ export default function ServicePage({ slug }) {
           </div>
         </div>
       </section>
+      )}
 
       {/* ============ FINAL CTA ============ */}
       <section className="py-24 md:py-32 text-center">
         <div className="max-w-2xl mx-auto px-5 md:px-10">
           <h2 className="font-display font-bold text-3xl md:text-5xl tracking-tight mb-8">Tell us what you need to hire.</h2>
-          <Link to={service.cta.to} className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
-            {service.cta.label}
-          </Link>
+          {hasCta && (
+            <Link to={service.cta.to} className="inline-flex text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
+              {service.cta.label}
+            </Link>
+          )}
         </div>
       </section>
     </>

@@ -1,18 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   useInView, useRadialHighlight,
   TechnicalGrid, MeasurementLabel, LocationScan,
 } from '../lib/motionPrimitives.jsx';
-import { SECTORS } from '../components/Expertise.jsx';
-import { LOCATIONS } from '../lib/officeLocations.js';
+import { useSiteContact } from '../lib/usePublicData.js';
+import RequirementForm from '../components/forms/RequirementForm.jsx';
+import ApplicationForm from '../components/forms/ApplicationForm.jsx';
+import EnquiryForm from '../components/forms/EnquiryForm.jsx';
+import { TEXT_ACTION } from '../components/forms/FormStatus.jsx';
 
 /*
   Contact - the dedicated, standalone contact experience. Per the
   current architecture, the landing page carries only the engineering-
   network/location visual and a single "Get in Touch" CTA; the full
-  interactive contact experience - route selection, a dynamic form,
-  and the location details - lives only here.
+  interactive contact experience - route selection, the forms, and the
+  location details - lives only here.
 
   The signature interaction is SignalConnection: a small technical
   network (Employer / Candidate / General -> ALLSEMIS -> Enquiry) the
@@ -24,13 +27,24 @@ import { LOCATIONS } from '../lib/officeLocations.js';
   general), so CTAs elsewhere in the app can deep-link straight into
   the right experience without three separate page implementations.
 
-  Office contact details come from lib/officeLocations.js - the same
-  single source of truth OfficeNetwork.jsx (About page, and the
-  landing page's location section) reads from - rather than a local
-  copy, so there is exactly one place this data is edited.
-*/
+  Each route has a real form that submits to the backend:
+  - employer  -> RequirementForm (Hire Talent, POST /api/requirements)
+  - candidate -> ApplicationForm (a general application, POST
+                 /api/applications)
+  - general   -> a question, "What are you looking to do?", that either
+                 switches to one of the two routes above or reveals
+                 EnquiryForm (POST /api/enquiries)
+  The employer and candidate routes also offer the short enquiry form
+  for someone who would sooner just send a message.
 
-const OFFICE = LOCATIONS[0];
+  Contact details (the info panel and the closing CTA) come from the
+  site settings edited in the admin, through useSiteContact(), and
+  from nowhere else: no contact detail is written in this file. While
+  they load the info panel holds its rows open, so the page does not
+  jump. A detail left empty in the admin is left out. If the settings
+  cannot be loaded the panel says so in one line and the closing CTA
+  is left out; the route selector and the forms do not depend on them.
+*/
 
 const ROUTES = [
   {
@@ -59,9 +73,6 @@ const ROUTES = [
   },
 ];
 
-const HIRING_REQUIREMENTS = ['Permanent Staffing', 'Project Staffing', 'RPO', 'Specialised Search'];
-const EXPERIENCE_LEVELS = ['Entry-Level', 'Mid-Level', 'Senior', 'Lead / Principal', 'Director+'];
-
 function normalizeType(raw) {
   return ROUTES.some(r => r.key === raw) ? raw : 'general';
 }
@@ -69,6 +80,7 @@ function normalizeType(raw) {
 export default function Contact() {
   const [searchParams, setSearchParams] = useSearchParams();
   const type = normalizeType(searchParams.get('type'));
+  const contact = useSiteContact();
 
   useEffect(() => {
     document.title = 'ALLSEMIS | Contact';
@@ -81,16 +93,16 @@ export default function Contact() {
   return (
     <>
       <SignalConnection active={type} onSelect={selectType} />
-      <ContactFormSection type={type} />
-      <ContactInfoPanel />
-      <ContactFinalCta />
+      <ContactFormSection type={type} onSelectType={selectType} />
+      <ContactInfoPanel contact={contact} />
+      <ContactFinalCta contact={contact} />
     </>
   );
 }
 
 /* ============ THE SIGNAL CONNECTION ============
    The page's signature interaction: a small technical network
-   (Employer / Candidate / General -> ALLSEMI -> Enquiry) that the
+   (Employer / Candidate / General -> ALLSEMIS -> Enquiry) that the
    visitor drives directly. Selecting a node sends a brief signal
    along its path, the heading transitions to route-specific copy,
    and the form below updates - "connection established" is the
@@ -343,7 +355,7 @@ function MobileRouteSelector({ active, onSelect }) {
       <div className="mt-4 flex items-center gap-3 px-1" aria-hidden="true">
         <span className="h-px flex-1 bg-line-strong" />
         <span className="font-mono text-[0.58rem] uppercase tracking-[0.16em] text-text-faint whitespace-nowrap">
-          System / Allsemis &rarr; Enquiry
+          System / ALLSEMIS &rarr; Enquiry
         </span>
         <span className="h-px flex-1 bg-line-strong" />
       </div>
@@ -351,56 +363,26 @@ function MobileRouteSelector({ active, onSelect }) {
   );
 }
 
-/* ============ DYNAMIC FORM ============ */
-function ContactFormSection({ type }) {
-  const route = ROUTES.find(r => r.key === type);
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({});
-  const [touched, setTouched] = useState({});
+/* ============ FORMS ============
+   One panel per route, remounted (keyed by type) when the route
+   changes so it fades in, as before. The forms themselves live in
+   components/forms/. */
+function ContactFormSection({ type, onSelectType }) {
+  const panelRef = useRef(null);
+  // True when the route was changed from inside the panel (the
+  // general route's question). The button that was pressed is gone
+  // after the switch, so focus is moved to the new panel.
+  const focusPanel = useRef(false);
 
   useEffect(() => {
-    setSubmitted(false);
-    setForm({});
-    setTouched({});
+    if (!focusPanel.current) return;
+    focusPanel.current = false;
+    panelRef.current?.focus({ preventScroll: true });
   }, [type]);
 
-  function set(field, value) {
-    setForm(f => ({ ...f, [field]: value }));
-  }
-  function markTouched(field) {
-    setTouched(t => ({ ...t, [field]: true }));
-  }
-
-  const nameValid = (form.name || '').trim().length >= 2;
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email || '');
-  const messageValid = (form.message || '').trim().length >= 2;
-  const canSubmit = nameValid && emailValid && messageValid;
-
-  function handleSubmit(e) {
-    e.preventDefault();
-    setTouched({ name: true, email: true, message: true });
-    if (!canSubmit) return;
-    // Frontend-only: structured payload ready for a future backend
-    // endpoint. Nothing is sent or stored - see the note in the
-    // success state below.
-    const payload = {
-      type,
-      name: form.name || '',
-      email: form.email || '',
-      phone: form.phone || '',
-      company: form.company || '',
-      role: form.role || '',
-      domain: form.domain || '',
-      experience: form.experience || '',
-      skills: form.skills || '',
-      location: form.location || '',
-      portfolio: form.portfolio || '',
-      message: form.message || '',
-      resume: form.resumeName || '',
-    };
-    // eslint-disable-next-line no-console
-    console.log('Contact form payload (frontend-only, not submitted):', payload);
-    setSubmitted(true);
+  function switchRoute(key) {
+    focusPanel.current = true;
+    onSelectType(key);
   }
 
   return (
@@ -408,199 +390,165 @@ function ContactFormSection({ type }) {
       <div className="max-w-3xl mx-auto px-5 md:px-10">
         <div
           key={type}
+          ref={panelRef}
           id="contact-form-panel"
           role="tabpanel"
+          tabIndex={-1}
           aria-labelledby={`route-tab-${type}`}
-          className="contact-form-transition"
+          className="contact-form-transition focus:outline-none"
         >
-          {submitted ? (
-            <SuccessState route={route} onReset={() => setSubmitted(false)} />
-          ) : (
-            <>
-              <MeasurementLabel className="block mb-4">{route.label} Enquiry</MeasurementLabel>
-              <p className="text-text-dim text-base md:text-lg leading-relaxed mb-10 max-w-xl">
-                {route.intro}
-              </p>
-
-              <form onSubmit={handleSubmit} noValidate className="space-y-6">
-                <Field label="Name" required>
-                  <input
-                    type="text"
-                    value={form.name || ''}
-                    onChange={e => set('name', e.target.value)}
-                    onBlur={() => markTouched('name')}
-                    autoComplete="name"
-                    aria-required="true"
-                    aria-invalid={touched.name && !nameValid}
-                    className={inputClass(touched.name && !nameValid)}
-                  />
-                  {touched.name && !nameValid && <FieldError>Name is required.</FieldError>}
-                </Field>
-
-                <Field label={type === 'employer' ? 'Work Email' : 'Email'} required>
-                  <input
-                    type="email"
-                    value={form.email || ''}
-                    onChange={e => set('email', e.target.value)}
-                    onBlur={() => markTouched('email')}
-                    autoComplete="email"
-                    aria-required="true"
-                    aria-invalid={touched.email && !emailValid}
-                    className={inputClass(touched.email && !emailValid)}
-                  />
-                  {touched.email && !emailValid && <FieldError>Enter a valid email address.</FieldError>}
-                </Field>
-
-                <Field label="Phone">
-                  <input type="tel" value={form.phone || ''} onChange={e => set('phone', e.target.value)} autoComplete="tel" className={inputClass(false)} />
-                </Field>
-
-                {type === 'employer' && (
-                  <>
-                    <Field label="Company">
-                      <input type="text" value={form.company || ''} onChange={e => set('company', e.target.value)} className={inputClass(false)} />
-                    </Field>
-                    <Field label="Role / Requirement">
-                      <input type="text" value={form.role || ''} onChange={e => set('role', e.target.value)} placeholder="e.g. Senior RTL Design Engineer" className={inputClass(false)} />
-                    </Field>
-                    <Field label="Engineering Domain">
-                      <select value={form.domain || ''} onChange={e => set('domain', e.target.value)} className={selectClass}>
-                        <option value="">Select a domain</option>
-                        {SECTORS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="Hiring Requirement">
-                      <select value={form.experience || ''} onChange={e => set('experience', e.target.value)} className={selectClass}>
-                        <option value="">Select a requirement</option>
-                        {HIRING_REQUIREMENTS.map(h => <option key={h} value={h}>{h}</option>)}
-                      </select>
-                    </Field>
-                  </>
-                )}
-
-                {type === 'candidate' && (
-                  <>
-                    <Field label="Current Role">
-                      <input type="text" value={form.role || ''} onChange={e => set('role', e.target.value)} placeholder="e.g. RTL Design Engineer" className={inputClass(false)} />
-                    </Field>
-                    <Field label="Experience">
-                      <select value={form.experience || ''} onChange={e => set('experience', e.target.value)} className={selectClass}>
-                        <option value="">Select a level</option>
-                        {EXPERIENCE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="Engineering Domain">
-                      <select value={form.domain || ''} onChange={e => set('domain', e.target.value)} className={selectClass}>
-                        <option value="">Select a domain</option>
-                        {SECTORS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="Skills">
-                      <input type="text" value={form.skills || ''} onChange={e => set('skills', e.target.value)} placeholder="e.g. SystemVerilog, UVM, RTL" className={inputClass(false)} />
-                    </Field>
-                    <Field label="LinkedIn / Portfolio">
-                      <input type="url" value={form.portfolio || ''} onChange={e => set('portfolio', e.target.value)} placeholder="https://" className={inputClass(false)} />
-                    </Field>
-                    <Field label="Preferred Location">
-                      <input type="text" value={form.location || ''} onChange={e => set('location', e.target.value)} className={inputClass(false)} />
-                    </Field>
-                    <Field label="CV / Resume">
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={e => set('resumeName', e.target.files?.[0]?.name || '')}
-                        className="w-full text-sm text-text-dim file:mr-4 file:py-2 file:px-4 file:border file:border-line-strong file:bg-transparent file:text-text file:text-xs file:uppercase file:tracking-wide"
-                      />
-                    </Field>
-                  </>
-                )}
-
-                {type === 'general' && (
-                  <Field label="Subject">
-                    <input type="text" value={form.role || ''} onChange={e => set('role', e.target.value)} className={inputClass(false)} />
-                  </Field>
-                )}
-
-                <Field label="Message" required>
-                  <textarea
-                    rows={4}
-                    value={form.message || ''}
-                    onChange={e => set('message', e.target.value)}
-                    onBlur={() => markTouched('message')}
-                    aria-required="true"
-                    aria-invalid={touched.message && !messageValid}
-                    className={`${inputClass(touched.message && !messageValid)} resize-none`}
-                  />
-                  {touched.message && !messageValid && <FieldError>Tell us a little about what you need.</FieldError>}
-                </Field>
-
-                <p className="text-text-faint text-xs leading-relaxed border border-dashed border-line-strong px-3 py-2">
-                  This form shows the intended contact experience. Backend submission is not yet connected.
-                </p>
-
-                <button type="submit" className="w-full sm:w-auto inline-flex justify-center items-center min-h-[48px] text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors">
-                  Send {route.label} Enquiry
-                </button>
-              </form>
-            </>
+          {type === 'employer' && (
+            <RoutePanel
+              label="Hire Talent"
+              title="Tell us about the requirement."
+              intro="Three short sections: who you are, the role, and the details. A job description can be attached."
+              backLabel="Back to the requirement form"
+              messageIntro="Not ready to fill in a full requirement? Write to us here."
+              enquiryType="HIRING"
+            >
+              {(onSentChange) => <RequirementForm onSentChange={onSentChange} />}
+            </RoutePanel>
           )}
+          {type === 'candidate' && (
+            <RoutePanel
+              label="Candidate Application"
+              title="Send your profile."
+              intro="Five short steps. Your resume is the only attachment needed, and you can review everything before sending."
+              backLabel="Back to the application"
+              messageIntro="Have a question before applying? Write to us here."
+              enquiryType="CAREER"
+            >
+              {(onSentChange) => <ApplicationForm onSentChange={onSentChange} />}
+            </RoutePanel>
+          )}
+          {type === 'general' && <GeneralPanel onSwitchRoute={switchRoute} />}
         </div>
       </div>
     </section>
   );
 }
 
-function Field({ label, required, children }) {
+/* The employer and candidate panels: the route's own form, with the
+   option to send a short message instead. Both forms stay mounted and
+   the one not in use is hidden, so switching back and forth does not
+   throw away what was typed. `children` is a function that receives
+   onSentChange for the route's form: once either form has been
+   accepted, the heading and the prompt above it are put away and only
+   the confirmation is left. */
+function RoutePanel({ label, title, intro, backLabel, messageIntro, enquiryType, children }) {
+  const [asMessage, setAsMessage] = useState(false);
+  const [sent, setSent] = useState(false);
   return (
-    <div>
-      <label className="block font-mono text-xs uppercase tracking-wider text-text-dim mb-2">
-        {label}{required && <span className="text-accent"> *</span>}
-      </label>
-      {children}
-    </div>
-  );
-}
-function FieldError({ children }) {
-  return <p className="font-mono text-xs text-red-400 mt-2">! {children}</p>;
-}
-function inputClass(hasError) {
-  return `w-full bg-transparent border-b text-text text-base py-2 focus:outline-none transition-colors ${
-    hasError ? 'border-red-500' : 'border-line-strong focus:border-accent'
-  }`;
-}
-const selectClass = 'w-full bg-bg border-b border-line-strong text-text text-base py-2 focus:outline-none focus:border-accent';
-
-function SuccessState({ route, onReset }) {
-  return (
-    <div className="py-6">
-      <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-accent/10 mb-5">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
-          <path d="M5 13l4 4L19 7" />
-        </svg>
-      </div>
-      <MeasurementLabel className="block mb-2">Received</MeasurementLabel>
-      <h3 className="font-display font-semibold text-2xl mb-3">Thank you.</h3>
-      <p className="text-text-dim mb-2 max-w-md">
-        Your {route.label.toLowerCase()} enquiry has been prepared. This is the frontend experience only -
-        submissions are not yet connected to a live backend or stored anywhere.
-      </p>
-      <button onClick={onReset} className="font-mono text-xs text-accent hover:text-accent-2 transition-colors uppercase tracking-widest mt-6">
-        ← Submit another
-      </button>
-    </div>
+    <>
+      <MeasurementLabel className="block mb-4">{label}</MeasurementLabel>
+      {!sent && (
+        <>
+          <h2 className="font-display font-semibold text-2xl md:text-3xl tracking-tight mb-3">
+            {asMessage ? 'Send a message.' : title}
+          </h2>
+          <p className="text-text-dim text-base leading-relaxed mb-4 max-w-xl">{asMessage ? messageIntro : intro}</p>
+          <button type="button" onClick={() => setAsMessage((value) => !value)} className={TEXT_ACTION}>
+            {asMessage ? <>&larr; {backLabel}</> : <>Or just send a message &rarr;</>}
+          </button>
+        </>
+      )}
+      <div className={sent ? '' : 'mt-10'} hidden={asMessage}>{children(setSent)}</div>
+      <div className={sent ? '' : 'mt-10'} hidden={!asMessage}><EnquiryForm type={enquiryType} onSentChange={setSent} /></div>
+    </>
   );
 }
 
-/* ============ CONTACT INFO PANEL ============ */
-function ContactInfoPanel() {
+/* The general route opens with a question. Two answers belong to the
+   other routes and switch the page to them; the other two are enquiry
+   types and reveal the enquiry form.
+
+   The four answers are buttons, not a radio group: in a radio group
+   the arrow keys select as they move, and here that would switch the
+   whole page while someone was only looking through the options. */
+const INTENTS = [
+  { key: 'hire', label: 'Hire engineers', sub: 'Share a hiring requirement with us', route: 'employer' },
+  { key: 'role', label: 'Find a role', sub: 'Apply with your profile and resume', route: 'candidate' },
+  { key: 'partner', label: 'Partner with us', sub: 'Propose a partnership or collaboration', enquiryType: 'PARTNERSHIP' },
+  { key: 'general', label: 'General enquiry', sub: 'Press, questions, anything else', enquiryType: 'GENERAL' },
+];
+
+function GeneralPanel({ onSwitchRoute }) {
+  const [enquiryType, setEnquiryType] = useState(null);
+  // Once the enquiry has been accepted the question is put away and
+  // only the confirmation is left.
+  const [sent, setSent] = useState(false);
+
+  return (
+    <>
+      <MeasurementLabel className="block mb-4">General Enquiry</MeasurementLabel>
+      {!sent && (
+        <>
+          <h2 id="contact-intent" className="font-display font-semibold text-2xl md:text-3xl tracking-tight mb-8">
+            What are you looking to do?
+          </h2>
+
+          <div role="group" aria-labelledby="contact-intent" className="grid gap-2.5 sm:grid-cols-2">
+            {INTENTS.map((intent) => {
+              const isActive = Boolean(intent.enquiryType) && intent.enquiryType === enquiryType;
+              return (
+                <button
+                  key={intent.key}
+                  type="button"
+                  aria-pressed={intent.enquiryType ? isActive : undefined}
+                  onClick={() => (intent.route ? onSwitchRoute(intent.route) : setEnquiryType(intent.enquiryType))}
+                  className={`group relative flex min-h-[64px] items-center gap-4 border px-4 py-3.5 text-left transition-colors duration-300 motion-reduce:transition-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                    isActive ? 'border-accent bg-accent/[0.07]' : 'border-line-strong hover:border-accent/50'
+                  }`}
+                >
+                  <span className="relative flex h-8 w-8 shrink-0 items-center justify-center" aria-hidden="true">
+                    <span className={`absolute inset-0 rounded-full border transition-colors ${isActive ? 'border-accent' : 'border-line-strong'}`} />
+                    <span className={`h-2 w-2 rounded-full transition-colors duration-300 motion-reduce:transition-none ${isActive ? 'bg-accent' : 'bg-text-faint group-hover:bg-text-dim'}`} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block font-mono text-[0.66rem] uppercase tracking-[0.16em] ${isActive ? 'text-accent' : 'text-text'}`}>
+                      {intent.label}
+                    </span>
+                    <span className="block mt-0.5 text-sm leading-snug text-text-dim">{intent.sub}</span>
+                  </span>
+                  {intent.route && (
+                    <span className="shrink-0 font-mono text-sm text-text-dim transition-colors group-hover:text-accent" aria-hidden="true">&rarr;</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="sr-only" aria-live="polite">{enquiryType ? 'The enquiry form is shown below.' : ''}</p>
+        </>
+      )}
+
+      {enquiryType && (
+        <div className={sent ? '' : 'contact-form-transition mt-12'}>
+          <EnquiryForm type={enquiryType} onSentChange={setSent} />
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ============ CONTACT INFO PANEL ============
+   `lines` is how many lines a row holds open while the details load. */
+const phoneLink = (phone) => `tel:${phone.replace(/[\s-]/g, '')}`;
+
+function ContactInfoPanel({ contact }) {
   const [ref, inView] = useInView(0.1);
   const glowRef = useRadialHighlight();
+  const loading = contact.status === 'loading';
+  const failed = contact.status === 'error';
   const rows = [
-    { k: 'LOCATION', v: OFFICE.address, scan: true },
-    { k: 'PHONE', v: [OFFICE.phone], link: `tel:${OFFICE.phone.replace(/[\s-]/g, '')}` },
-    { k: 'EMAIL', v: [OFFICE.email], link: `mailto:${OFFICE.email}` },
-    { k: 'HOURS', v: OFFICE.hours },
-  ];
+    { k: 'LOCATION', v: contact.address, lines: 2, scan: true },
+    { k: 'PHONE', v: contact.phone ? [contact.phone] : [], lines: 1, link: phoneLink(contact.phone) },
+    { k: 'EMAIL', v: contact.email ? [contact.email] : [], lines: 1, link: `mailto:${contact.email}` },
+    { k: 'HOURS', v: contact.hours, lines: 2 },
+  ].filter((row) => loading || row.v.length > 0);
+
+  // Nothing saved at all: the section is left out.
+  if (!loading && !failed && rows.length === 0) return null;
 
   return (
     <section ref={(el) => { ref.current = el; }} className="border-b border-line py-12 sm:py-16 md:py-24">
@@ -610,6 +558,8 @@ function ContactInfoPanel() {
 
         <div ref={glowRef} className="radial-highlight relative border border-line-strong p-5 sm:p-6 md:p-10 overflow-hidden">
           <TechnicalGrid className="opacity-[0.04]" />
+          {failed && <p role="alert" className="relative font-mono text-sm text-text-dim">Contact details could not be loaded.</p>}
+          {loading && <span className="sr-only" role="status">Loading contact details</span>}
           <div className="relative grid sm:grid-cols-2 gap-6 sm:gap-8 md:gap-10">
             {rows.map((row, i) => (
               <div
@@ -623,6 +573,11 @@ function ContactInfoPanel() {
                 <div className="relative">
                   <span className="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-accent">{row.k}</span>
                   <div className="font-mono text-sm leading-relaxed mt-2">
+                    {loading && Array.from({ length: row.lines }, (_, j) => (
+                      <p key={j} className="block" aria-hidden="true">
+                        <span className="inline-block h-2.5 w-44 max-w-full bg-line animate-pulse motion-reduce:animate-none" />
+                      </p>
+                    ))}
                     {row.v.map((line, j) =>
                       row.link ? (
                         <a key={j} href={row.link} className="block hover:text-accent transition-colors">{line}</a>
@@ -645,7 +600,11 @@ function ContactInfoPanel() {
    Landing no longer has an in-page enquiry anchor to send visitors
    back to, so this closing CTA offers the two direct channels instead
    (call / email) rather than a broken "back to landing" link. */
-function ContactFinalCta() {
+function ContactFinalCta({ contact }) {
+  const loading = contact.status === 'loading';
+  // No address to write to and no number to call: nothing to offer.
+  if (!loading && !contact.email && !contact.phone) return null;
+  const held = loading ? ' invisible' : '';
   return (
     <section className="py-14 sm:py-20 md:py-28 text-center">
       <div className="max-w-2xl mx-auto px-5 md:px-10">
@@ -653,21 +612,27 @@ function ContactFinalCta() {
           Prefer the direct route?
         </h2>
         <p className="text-text-dim text-base mb-8 max-w-md mx-auto">
-          Call or email us directly, any time.
+          {loading || (contact.email && contact.phone) ? 'Call or email us' : contact.email ? 'Email us' : 'Call us'} directly, any time.
         </p>
         <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center gap-3 sm:gap-4">
+          {(loading || contact.email) && (
           <a
-            href={`mailto:${OFFICE.email}`}
-            className="inline-flex justify-center items-center min-h-[48px] text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors"
+            href={loading ? undefined : `mailto:${contact.email}`}
+            aria-hidden={loading || undefined}
+            className={`inline-flex justify-center items-center min-h-[48px] text-sm font-semibold px-6 py-3 bg-text text-bg hover:bg-accent transition-colors${held}`}
           >
-            Email {OFFICE.email}
+            Email {contact.email}
           </a>
+          )}
+          {(loading || contact.phone) && (
           <a
-            href={`tel:${OFFICE.phone.replace(/[\s-]/g, '')}`}
-            className="inline-flex justify-center items-center min-h-[48px] text-sm font-semibold px-6 py-3 border border-line-strong hover:border-accent transition-colors"
+            href={loading ? undefined : phoneLink(contact.phone)}
+            aria-hidden={loading || undefined}
+            className={`inline-flex justify-center items-center min-h-[48px] text-sm font-semibold px-6 py-3 border border-line-strong hover:border-accent transition-colors${held}`}
           >
-            Call {OFFICE.phone}
+            Call {contact.phone}
           </a>
+          )}
         </div>
       </div>
     </section>

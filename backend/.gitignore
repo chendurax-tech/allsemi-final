@@ -1,0 +1,8 @@
+node_modules
+.env
+.env.*
+!.env.example
+# local development storage drivers (never used in production)
+.data/
+coverage/
+*.log

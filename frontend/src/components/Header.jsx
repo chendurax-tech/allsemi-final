@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { SECTORS } from './Expertise.jsx';
-import { EXPERTISE_SLUGS } from '../lib/expertiseRoutes.js';
+import { useSectors } from '../lib/usePublicData.js';
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -13,6 +12,15 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const onLanding = location.pathname === '/';
+  // The sectors in the menu are the published ones, read from the
+  // backend. Until they have loaded, and when there are none or they
+  // could not be loaded, the menu has no sector entries; the
+  // "Expertise" link itself always works.
+  const { status: sectorsStatus, sectors } = useSectors();
+  const hasSectors = sectors.length > 0;
+  // The arrow that opens the list keeps its place while the sectors
+  // load, so the navigation does not shift when they arrive.
+  const showSectorToggle = hasSectors || sectorsStatus === 'loading';
 
   useEffect(() => {
     function onDocClick(e) {
@@ -54,10 +62,10 @@ export default function Header() {
   // Individual sectors, from either the desktop dropdown or the mobile
   // accordion, always navigate straight to that sector's own page -
   // the pages now exist, so there is no reason to stay in-page here.
-  function selectSector(id, closeMobile) {
+  function selectSector(sector, closeMobile) {
     setExpOpen(false);
     if (closeMobile) { setMobileExpOpen(false); close(); }
-    navigate(`/expertise/${EXPERTISE_SLUGS[id]}`);
+    navigate(`/expertise/${sector.slug}`);
   }
 
   const navLinkClass = 'font-mono text-xs text-text-dim px-3 py-2 rounded-lg hover:text-text hover:bg-accent/10 transition-colors';
@@ -99,6 +107,7 @@ export default function Header() {
               onMouseLeave={closeOnLeave}
             >
               <Link to="/expertise" onClick={handleExpertiseLabelClick} className={navLinkClass}>Expertise</Link>
+              {showSectorToggle && (
               <button
                 type="button"
                 aria-haspopup="true"
@@ -112,17 +121,19 @@ export default function Header() {
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
+              )}
 
+              {hasSectors && (
               <div
                 className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[420px] bg-bg/95 backdrop-blur-md border border-line shadow-2xl transition-all duration-200 origin-top ${
                   expOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
                 }`}
               >
                 <div className="grid grid-cols-2 gap-x-4 p-4">
-                  {SECTORS.map(s => (
+                  {sectors.map(s => (
                     <button
                       key={s.id}
-                      onClick={() => selectSector(s.id)}
+                      onClick={() => selectSector(s)}
                       className="text-left font-mono text-[0.7rem] uppercase tracking-wide text-text-dim hover:text-accent px-2 py-2.5 transition-colors leading-snug"
                     >
                       <span className="text-accent mr-1.5">{s.num}</span>{s.name}
@@ -130,6 +141,7 @@ export default function Header() {
                   ))}
                 </div>
               </div>
+              )}
             </div>
 
             <Link to="/insights" className={navLinkClass}>Insights</Link>
@@ -165,6 +177,7 @@ export default function Header() {
             >
               Expertise
             </Link>
+            {showSectorToggle && (
             <button
               type="button"
               onClick={() => setMobileExpOpen(v => !v)}
@@ -177,12 +190,18 @@ export default function Header() {
                 <path d="M6 9l6 6 6-6" />
               </svg>
             </button>
+            )}
           </div>
-          <div className={`overflow-hidden transition-all duration-300 ${mobileExpOpen ? 'max-h-[480px] pb-3' : 'max-h-0'}`}>
-            {SECTORS.map(s => (
+          {/* The open list is given room for eight sectors; a longer
+              list gets the room it needs, so no sector is cut off. */}
+          <div
+            className={`overflow-hidden transition-all duration-300 ${mobileExpOpen && hasSectors ? 'max-h-[480px] pb-3' : 'max-h-0'}`}
+            style={mobileExpOpen && sectors.length > 8 ? { maxHeight: `${sectors.length * 60}px` } : undefined}
+          >
+            {sectors.map(s => (
               <button
                 key={s.id}
-                onClick={() => selectSector(s.id, true)}
+                onClick={() => selectSector(s, true)}
                 className="block w-full text-left font-mono text-xs uppercase tracking-wide text-text-dim py-2.5 pl-3 border-l border-line"
               >
                 <span className="text-accent mr-1.5">{s.num}</span>{s.name}

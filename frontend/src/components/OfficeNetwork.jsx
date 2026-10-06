@@ -1,18 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useInView, MeasurementLabel, prefersReducedMotion } from '../lib/motionPrimitives.jsx';
-import { activeLocations, projectCoordinates } from '../lib/officeLocations.js';
+import { projectCoordinates } from '../lib/officeLocations.js';
+import { useLocations } from '../lib/usePublicData.js';
 import { buildDotField } from '../lib/worldLand.js';
 
-// Every active location in lib/officeLocations.js is a selectable node
-// on the map: the confirmed office (Bengaluru) and the named
-// engineering-network nodes (type: 'network'). A network node is never
-// presented as an office - it has no address, phone, email or hours,
-// and the panel shows only its city, country and "Engineering Network /
-// Network node".
-const LOCATIONS = activeLocations();
-const HUB = LOCATIONS.find((l) => l.isHeadquarters) || LOCATIONS.find((l) => l.type !== 'network') || LOCATIONS[0];
+// The locations come from the backend (useLocations -> GET
+// /api/public/locations): the ones switched on in the admin, oldest
+// first. Every one is a selectable node on the map: a confirmed office
+// or a named engineering-network node (type: 'network'). A network node
+// is never presented as an office - it has no address, phone, email or
+// hours, and the panel shows only its city, country and "Engineering
+// Network / Network node".
 const isNetworkNode = (location) => location.type === 'network';
+
+// The hub of the map and the node selected by default: the headquarters
+// office, else the first office, else the first location.
+function pickHub(locations) {
+  return locations.find((l) => !isNetworkNode(l) && l.isHeadquarters) || locations.find((l) => !isNetworkNode(l)) || locations[0] || null;
+}
 
 /*
   OfficeNetwork - ALLSEMIS's own take on a "global office" section: the
@@ -23,13 +29,17 @@ const isNetworkNode = (location) => location.type === 'network';
   node" points spread across it, thin circuit-style traces, and the
   named ALLSEMIS locations placed at their real coordinates.
 
-  Bengaluru is the one confirmed office and the default selected node:
-  bright teal, pulsing, labeled. Bhubaneswar and San Diego are named
-  engineering-network nodes in the same node language, smaller and
-  quieter. Selecting any of the three makes it the active node and
-  updates the location panel.
+  The headquarters office is the hub and the default selected node:
+  bright teal, pulsing, labeled. Network nodes use the same node
+  language, smaller and quieter. Selecting any node makes it the active
+  one and updates the location panel.
 
-  Content honesty: LOCATIONS (lib/officeLocations.js) is the only named
+  While the locations load the section keeps its frame, so the page
+  does not jump. With no location switched on, or when the API cannot
+  be reached, the section is left out and the rest of the page is
+  unaffected.
+
+  Content honesty: the locations from the backend are the only named
   location data this component renders. NETWORK_NODES below are a
   fixed, intentionally unlabeled set of decorative points representing
   "the engineering network ALLSEMIS operates within," not offices -
@@ -41,7 +51,9 @@ const isNetworkNode = (location) => location.type === 'network';
   fit. Mobile uses its own crop and projection - North America through
   to India - so San Diego, Bengaluru and Bhubaneswar all stay visible
   in a portrait frame, with their labels moved into the free space
-  around the dot field.
+  around the dot field. A location outside that crop is drawn at the
+  nearest edge of it on mobile, so it stays in the frame and can still
+  be selected.
 
   Two named nodes can be close together (Bengaluru and Bhubaneswar are
   about 1,150 km apart, a few pixels on a world map). Three things keep
@@ -53,7 +65,10 @@ const isNetworkNode = (location) => location.type === 'network';
     and where two hit areas would overlap they are split along the
     midline between the nodes, so neither can swallow the other;
   - each label sits on its own side with its own short leader trace,
-    and is itself a click / tap target.
+    and is itself a click / tap target;
+  - on desktop raiseLabels() checks the labels' real boxes and lifts a
+    network label that would touch or crowd another label or node, so
+    the labels stay apart whatever label hints are saved.
 */
 
 const VIEWBOX_W = 1000;
@@ -83,7 +98,7 @@ const toPath = (points) => points.map(([x, y], i) => `${i ? 'L' : 'M'} ${fmt(x)}
 
 // Signal routes between the named locations, drawn like board traces:
 // straight runs joined by 45-degree bends, never a curved map route.
-// Every route runs from a node to the hub (Bengaluru).
+// Every route runs from a node to the hub.
 // A long route leaves along the node's own latitude, steps across to
 // the hub's latitude in one 45-degree run placed `bendAt` of the way
 // along (over the Atlantic for San Diego), and arrives level with the
@@ -104,19 +119,20 @@ function shortRoute(a, b, chamfer) {
 // are drawn apart along the line between them, so the bearing (and so
 // "Bhubaneswar is north-east of Bengaluru") is preserved. The office
 // stays exactly where it is and the network node takes the offset.
-function separateNodes(project, minGap) {
+function separateNodes(locations, hub, place, minGap) {
   const points = {};
-  LOCATIONS.forEach((loc) => { points[loc.id] = project(loc.coordinates); });
-  LOCATIONS.forEach((a, i) => {
-    LOCATIONS.slice(i + 1).forEach((b) => {
+  locations.forEach((loc) => { points[loc.id] = place(loc.coordinates); });
+  locations.forEach((a, i) => {
+    locations.slice(i + 1).forEach((b) => {
       const pa = points[a.id];
       const pb = points[b.id];
       const d = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]);
-      if (d >= minGap || d === 0) return;
-      const ux = (pb[0] - pa[0]) / d;
-      const uy = (pb[1] - pa[1]) / d;
+      if (d >= minGap) return;
+      // two locations on the same spot are drawn apart on a diagonal
+      const ux = d ? (pb[0] - pa[0]) / d : Math.SQRT1_2;
+      const uy = d ? (pb[1] - pa[1]) / d : -Math.SQRT1_2;
       const push = minGap - d;
-      const shareA = a.id === HUB.id ? 0 : b.id === HUB.id ? 1 : 0.5;
+      const shareA = a.id === hub.id ? 0 : b.id === hub.id ? 1 : 0.5;
       points[a.id] = [pa[0] - ux * push * shareA, pa[1] - uy * push * shareA];
       points[b.id] = [pb[0] + ux * push * (1 - shareA), pb[1] + uy * push * (1 - shareA)];
     });
@@ -156,48 +172,61 @@ function hitArea(center, radius, neighbours) {
 }
 
 /*
-  buildView - everything one composition needs, computed once at module
-  load: the land dots (from lib/worldLand.js), the hairline links
-  between some of them, the decorative nodes, the named nodes' display
-  positions and hit areas, and the signal routes, all projected into
-  that view's own coordinate space.
+  buildBase - the part of one composition that does not depend on the
+  locations, computed once at module load: the land dots (from
+  lib/worldLand.js), the hairline links between some of them and the
+  decorative nodes, all projected into that view's own coordinate
+  space. `place` is the projection used for the named locations; it
+  defaults to `project`.
 */
-function buildView({ width, height, project, step, crop, mobile = false, bendAt, chamfer, minGap, hitRadius }) {
+function buildBase({ width, height, project, place = project, step, crop, mobile = false, bendAt, chamfer, minGap, hitRadius }) {
   const field = buildDotField({ step, ...crop });
-  const placed = separateNodes(project, minGap);
-  const radiusOf = (loc) => (isNetworkNode(loc) ? hitRadius.network : hitRadius.office);
-  const hits = {};
-  LOCATIONS.forEach((loc) => {
-    hits[loc.id] = hitArea(
-      placed[loc.id],
-      radiusOf(loc),
-      LOCATIONS.filter((other) => other.id !== loc.id).map((other) => ({ point: placed[other.id], radius: radiusOf(other) })),
-    );
-  });
-  const routes = LOCATIONS.filter((l) => l.id !== HUB.id).map((loc) => {
-    const a = placed[loc.id];
-    const b = placed[HUB.id];
-    const points = Math.abs(loc.coordinates[0] - HUB.coordinates[0]) > 30 ? longRoute(a, b, bendAt) : shortRoute(a, b, chamfer);
-    return { id: loc.id, points, toHub: toPath(points), fromHub: toPath([...points].reverse()) };
-  });
   return {
     width,
     height,
     mobile,
     project,
+    place,
+    bendAt,
+    chamfer,
+    minGap,
+    hitRadius,
     viewBox: `0 0 ${width} ${height}`,
     // [x, y, edge, bright] - arrays, so the cursor effect can read x/y
     // by index without allocating.
     dots: field.dots.map((d) => { const [x, y] = project([d.lon, d.lat]); return [fmt(x), fmt(y), d.edge, d.bright]; }),
     linksPath: field.links.map(([lonA, latA, lonB, latB]) => toPath([project([lonA, latA]), project([lonB, latB])])).join(' '),
     decor: DECOR_NODE_COORDS.map((coords) => project(coords)),
-    points: placed,
-    hits,
-    routes,
   };
 }
 
-const DESKTOP_VIEW = buildView({
+/*
+  placeLocations - a composition with the loaded locations on it: the
+  named nodes' display positions and hit areas, and the signal routes
+  to the hub. Computed when the locations arrive (see NetworkMap).
+*/
+function placeLocations(base, locations, hub) {
+  const { bendAt, chamfer, minGap, hitRadius } = base;
+  const placed = separateNodes(locations, hub, base.place, minGap);
+  const radiusOf = (loc) => (isNetworkNode(loc) ? hitRadius.network : hitRadius.office);
+  const hits = {};
+  locations.forEach((loc) => {
+    hits[loc.id] = hitArea(
+      placed[loc.id],
+      radiusOf(loc),
+      locations.filter((other) => other.id !== loc.id).map((other) => ({ point: placed[other.id], radius: radiusOf(other) })),
+    );
+  });
+  const routes = locations.filter((l) => l.id !== hub.id).map((loc) => {
+    const a = placed[loc.id];
+    const b = placed[hub.id];
+    const points = Math.abs(loc.coordinates[0] - hub.coordinates[0]) > 30 ? longRoute(a, b, bendAt) : shortRoute(a, b, chamfer);
+    return { id: loc.id, points, toHub: toPath(points), fromHub: toPath([...points].reverse()) };
+  });
+  return { ...base, hub, points: placed, hits, routes };
+}
+
+const DESKTOP_VIEW = buildBase({
   width: VIEWBOX_W,
   height: VIEWBOX_H,
   project: (coords) => projectCoordinates(coords, VIEWBOX_W, VIEWBOX_H),
@@ -220,14 +249,29 @@ const MOBILE_CROP = { lonMin: -134, lonMax: 108, latMin: -48, latMax: 74 };
 const MOBILE_BAND_TOP = 104;
 const MOBILE_LAT_SCALE = 2.25;
 const MOBILE_LABEL_BASE = 90; // network labels sit above the band, their bottom edge here
+const MOBILE_LABEL_STACK = 2; // how many network labels fit above the band at one side
 
-const MOBILE_VIEW = buildView({
+const projectMobile = ([lon, lat]) => [
+  ((lon - MOBILE_CROP.lonMin) / (MOBILE_CROP.lonMax - MOBILE_CROP.lonMin)) * MOBILE_W,
+  MOBILE_BAND_TOP + (MOBILE_CROP.latMax - lat) * MOBILE_LAT_SCALE,
+];
+// A named location outside the mobile crop is held just inside the edge
+// of the dot field, so its node is never drawn off the frame.
+const MOBILE_EDGE = 14;
+const within = (value, min, max) => Math.min(Math.max(value, min), max);
+const placeMobile = (coords) => {
+  const [x, y] = projectMobile(coords);
+  return [
+    within(x, MOBILE_EDGE, MOBILE_W - MOBILE_EDGE),
+    within(y, MOBILE_BAND_TOP + MOBILE_EDGE, MOBILE_BAND_TOP + (MOBILE_CROP.latMax - MOBILE_CROP.latMin) * MOBILE_LAT_SCALE - MOBILE_EDGE),
+  ];
+};
+
+const MOBILE_VIEW = buildBase({
   width: MOBILE_W,
   height: MOBILE_H,
-  project: ([lon, lat]) => [
-    ((lon - MOBILE_CROP.lonMin) / (MOBILE_CROP.lonMax - MOBILE_CROP.lonMin)) * MOBILE_W,
-    MOBILE_BAND_TOP + (MOBILE_CROP.latMax - lat) * MOBILE_LAT_SCALE,
-  ],
+  project: projectMobile,
+  place: placeMobile,
   step: 4,
   crop: MOBILE_CROP,
   mobile: true,
@@ -239,10 +283,99 @@ const MOBILE_VIEW = buildView({
   hitRadius: { office: 32, network: 32 },
 });
 
-// Where Bengaluru's label sits on desktop: at the end of its teal lead,
+// Where an office's label sits on desktop: at the end of its teal lead,
 // below and to the right of the node (view units from the node), which
-// leaves the space above and to the right free for Bhubaneswar's.
+// leaves the space above and to the right free for a neighbour's.
 const OFFICE_LABEL = { dx: 40, dy: 30 };
+// Two offices can be close together on the map (Bengaluru and
+// Bhubaneswar). The hub office keeps OFFICE_LABEL; every other office
+// has its label above its node instead of below it, a little higher
+// and closer in so that it also fits the narrowest desktop frame, and
+// its lead lines go upward the same way. Two offices therefore never
+// share a label position, whichever of them is selected.
+const OTHER_OFFICE_LABEL = { dx: 26, dy: -46 };
+const officeLabel = (loc, hub) => (loc.id === hub.id ? OFFICE_LABEL : OTHER_OFFICE_LABEL);
+// Mobile: only the hub office is labelled just below its node. Every
+// other node, network or office, is labelled in the strip above the dot
+// field, at the end of a trace up from the node.
+const labelledAbove = (loc, hub) => isNetworkNode(loc) || loc.id !== hub.id;
+
+// Where a network label sits on desktop, in pixels from its node: beside
+// it and just above its centre (see MapLabels).
+const NETWORK_LABEL = { side: 12, up: 6 };
+// The clear space kept between a desktop label and another label or
+// another node, in pixels. Generous on purpose: the real web fonts can
+// set a label a little wider than a fallback font does.
+const LABEL_CLEAR = { x: 10, y: 32 };
+// A label that has to move is lifted at least this far, so the elbow
+// trace back to its node is long enough to read.
+const LABEL_MIN_RAISE = 12;
+// A lifted label stays this far inside the top of the map frame.
+const LABEL_FRAME_PAD = 4;
+// How much room a node takes up, in view units: the pulsing ring drawn
+// around it while it is selected (see MapContent).
+const NODE_REACH = { office: 18, network: 14 };
+
+/*
+  raiseLabels - keeps the desktop labels apart. The saved hints
+  (visual.labelSide, visual.labelRaise) are the starting position of a
+  network label; this works out how much further each one has to be
+  lifted so that its box keeps LABEL_CLEAR away from every office label,
+  every network label placed before it and every other node.
+
+  It works on real sizes: `frame` is the map frame's size and `sizes`
+  the measured size of each label, both in pixels. The office label does
+  not move (it stays at the end of its teal lead) and a network label
+  only ever goes straight up, with its elbow trace following it, so the
+  result depends on nothing but those sizes and the order of the
+  locations. Returns { [id]: extra pixels of raise }.
+*/
+function raiseLabels(view, locations, frame, sizes) {
+  const sx = frame.width / view.width;
+  const sy = frame.height / view.height;
+  const at = (loc) => [view.points[loc.id][0] * sx, view.points[loc.id][1] * sy];
+  const obstacles = [];
+  locations.forEach((loc) => {
+    const [nx, ny] = at(loc);
+    const reach = (isNetworkNode(loc) ? NODE_REACH.network : NODE_REACH.office) * sx;
+    obstacles.push({ id: loc.id, left: nx - reach, right: nx + reach, top: ny - reach, bottom: ny + reach });
+    if (isNetworkNode(loc)) return;
+    // the office label: 7px past the end of its lead, centred on it
+    const { width, height } = sizes[loc.id];
+    const offset = officeLabel(loc, view.hub);
+    const left = nx + offset.dx * sx + 7;
+    const top = ny + offset.dy * sy - height / 2;
+    obstacles.push({ id: loc.id, left, right: left + width, top, bottom: top + height });
+  });
+  const crowds = (a, b) => (
+    a.left < b.right + LABEL_CLEAR.x && b.left < a.right + LABEL_CLEAR.x
+    && a.top < b.bottom + LABEL_CLEAR.y && b.top < a.bottom + LABEL_CLEAR.y
+  );
+  const lifts = {};
+  locations.filter(isNetworkNode).forEach((loc) => {
+    const [nx, ny] = at(loc);
+    const { width, height } = sizes[loc.id];
+    const hint = loc.visual?.labelRaise || 0;
+    const left = loc.visual?.labelSide === 'left' ? nx - NETWORK_LABEL.side - width : nx + NETWORK_LABEL.side;
+    const boxAt = (raise) => {
+      const bottom = ny - NETWORK_LABEL.up - raise;
+      return { id: loc.id, left, right: left + width, top: bottom - height, bottom };
+    };
+    const highest = Math.max(hint, Math.floor(ny - NETWORK_LABEL.up - height - LABEL_FRAME_PAD));
+    let raise = hint;
+    // each pass clears the first thing in the way by going above it
+    for (let pass = 0; pass <= obstacles.length && raise < highest; pass++) {
+      const box = boxAt(raise);
+      const inTheWay = obstacles.find((o) => o.id !== loc.id && crowds(box, o));
+      if (!inTheWay) break;
+      const clear = Math.ceil(ny - NETWORK_LABEL.up - (inTheWay.top - LABEL_CLEAR.y));
+      raise = Math.min(highest, Math.max(clear, LABEL_MIN_RAISE));
+    }
+    if (raise > hint) lifts[loc.id] = raise - hint;
+    obstacles.push(boxAt(raise));
+  });
+  return lifts;
+}
 
 // The cursor effect below runs on the desktop view only.
 const WORLD_DOTS = DESKTOP_VIEW.dots;
@@ -265,10 +398,16 @@ export default function OfficeNetwork({
   cta = null, // { to, label }
 }) {
   const [ref, inView] = useInView(0.15);
-  const [activeId, setActiveId] = useState(HUB?.id ?? null);
+  const { status, locations } = useLocations();
+  const [selectedId, setSelectedId] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
 
-  const active = LOCATIONS.find((l) => l.id === activeId) || HUB;
+  // Until a node is chosen the hub is the selected one.
+  const active = locations.find((l) => l.id === selectedId) || pickHub(locations);
+  const activeId = active?.id ?? null;
+  const loading = status === 'loading';
+
+  if (!loading && locations.length === 0) return null;
 
   return (
     <section
@@ -287,17 +426,19 @@ export default function OfficeNetwork({
           </p>
         </div>
 
+        {loading ? <NetworkLoading /> : (
         <div className="grid lg:grid-cols-[1.5fr_1fr] gap-6 lg:gap-8 items-stretch">
           <NetworkMap
-            locations={LOCATIONS}
+            locations={locations}
             activeId={activeId}
             hoveredId={hoveredId}
-            onSelect={setActiveId}
+            onSelect={setSelectedId}
             onHover={setHoveredId}
             inView={inView}
           />
-          <LocationPanel location={active} locations={LOCATIONS} />
+          <LocationPanel location={active} locations={locations} />
         </div>
+        )}
 
         {cta && (
           <div className={`mt-10 md:mt-14 flex justify-center transition-opacity duration-700 motion-reduce:transition-none ${inView ? 'opacity-100' : 'opacity-0'}`}>
@@ -312,6 +453,27 @@ export default function OfficeNetwork({
         )}
       </div>
     </section>
+  );
+}
+
+// Stands in for an office's details while the locations load. It is
+// never shown or read out: it gives the panel the height an office with
+// a two-line address and two lines of hours has, so the sections below
+// do not move when the locations arrive.
+const SPACE = '\u00a0';
+const PANEL_SPACE = { id: 'loading', type: 'office', city: SPACE, country: SPACE, region: SPACE, address: [SPACE, SPACE], phone: SPACE, email: SPACE, hours: [SPACE, SPACE] };
+
+// The map's and the panel's frames, held while the locations load.
+function NetworkLoading() {
+  return (
+    <div role="status" className="relative grid lg:grid-cols-[1.5fr_1fr] gap-6 lg:gap-8 items-stretch">
+      <span className="sr-only">Loading locations</span>
+      <div className="border border-line bg-bg-raised/40 animate-pulse motion-reduce:animate-none md:flex md:flex-col md:justify-center" aria-hidden="true">
+        <div className="hidden md:block aspect-[1000/460]" />
+        <div className="md:hidden aspect-[4/5]" />
+      </div>
+      <LocationPanel location={PANEL_SPACE} locations={[PANEL_SPACE]} loading />
+    </div>
   );
 }
 
@@ -445,7 +607,7 @@ function useCursorFX() {
       }
     }
 
-    // named locations (Bengaluru and the network nodes): a slightly
+    // named locations (the offices and the network nodes): a slightly
     // stronger displacement cap, brighter ring, illuminated connecting
     // traces, and a bolder label while the cursor is near.
     Object.values(locationRefs.current).forEach((refs) => {
@@ -576,6 +738,7 @@ const TEAL = '#2dd4bf';
 const LILAC = '#a78bfa';
 
 function MapContent({ view, locations, activeId, hoveredId, onSelect, onHover, inView, fx }) {
+  const HUB = view.hub;
   const [bx, by] = view.points[HUB.id];
   const hubActive = activeId === HUB.id;
   const fade = `transition-opacity duration-1000 motion-reduce:transition-none ${inView ? 'opacity-100' : 'opacity-0'}`;
@@ -658,8 +821,8 @@ function MapContent({ view, locations, activeId, hoveredId, onSelect, onHover, i
                 strokeLinejoin="round"
                 className="transition-[stroke-opacity] duration-300 motion-reduce:transition-none"
               />
-              {route.points.slice(1, -1).map(([px, py]) => (
-                <circle key={`${px}-${py}`} cx={fmt(px)} cy={fmt(py)} r="1.5" fill={LILAC} opacity={strokeOpacity} />
+              {route.points.slice(1, -1).map(([px, py], bend) => (
+                <circle key={bend} cx={fmt(px)} cy={fmt(py)} r="1.5" fill={LILAC} opacity={strokeOpacity} />
               ))}
               {showPulse && (
                 <circle
@@ -708,6 +871,14 @@ function MapContent({ view, locations, activeId, hoveredId, onSelect, onHover, i
         const isActive = loc.id === activeId;
         const isHovered = loc.id === hoveredId;
         const hoverOnly = isHovered && !isActive;
+        // where this node's label goes (see officeLabel, labelledAbove)
+        const lead = officeLabel(loc, HUB);
+        const turn = Math.sign(lead.dy);
+        // the teal lead: straight first when the label is further away
+        // than its 45-degree run reaches, then the run, then 10 across
+        const run = lead.dx - 10;
+        const straight = Math.abs(lead.dy) - run;
+        const above = labelledAbove(loc, HUB);
         if (fx) fx.setLocationOrigin(loc.id, x, y);
         // office / network sizes: core, steady ring, pulsing ring, glow, cursor boost ring
         const size = network
@@ -720,23 +891,23 @@ function MapContent({ view, locations, activeId, hoveredId, onSelect, onHover, i
             style={fx ? { transformOrigin: `${x}px ${y}px` } : undefined}
             ref={fx ? (el) => fx.registerLocation(loc.id, 'group', el) : undefined}
           >
-            {/* Bengaluru's two lead lines (desktop composition) */}
+            {/* an office's two lead lines (desktop composition) */}
             {!network && !view.mobile && (
               <g className={`transition-opacity duration-700 motion-reduce:transition-none ${inView ? 'opacity-100' : 'opacity-0'}`}>
                 <path
-                  d={`M ${x} ${y} L ${x + OFFICE_LABEL.dy} ${y + OFFICE_LABEL.dy} L ${x + OFFICE_LABEL.dx} ${y + OFFICE_LABEL.dy}`}
+                  d={`M ${x} ${y}${straight > 0 ? ` V ${y + straight * turn}` : ''} L ${x + run} ${y + lead.dy} L ${x + lead.dx} ${y + lead.dy}`}
                   fill="none" stroke="rgba(45,212,191,0.4)" strokeWidth="1.2"
                   className={fx ? 'transition-opacity duration-200 ease-out' : undefined}
                   ref={fx ? (el) => fx.registerLocationListItem(loc.id, 'leads', 0, el) : undefined}
                 />
                 <path
-                  d={`M ${x} ${y} L ${x - 48} ${y + 38} L ${x - 120} ${y + 38}`}
+                  d={`M ${x} ${y} L ${x - 48} ${y + 38 * turn} L ${x - 120} ${y + 38 * turn}`}
                   fill="none" stroke="rgba(167,139,250,0.35)" strokeWidth="1.2"
                   className={fx ? 'transition-opacity duration-200 ease-out' : undefined}
                   ref={fx ? (el) => fx.registerLocationListItem(loc.id, 'leads', 1, el) : undefined}
                 />
-                <circle cx={x + OFFICE_LABEL.dx} cy={y + OFFICE_LABEL.dy} r="2.5" fill="#2dd4bf" opacity="0.6" />
-                <circle cx={x - 120} cy={y + 38} r="2.5" fill="#a78bfa" opacity="0.5" />
+                <circle cx={x + lead.dx} cy={y + lead.dy} r="2.5" fill="#2dd4bf" opacity="0.6" />
+                <circle cx={x - 120} cy={y + 38 * turn} r="2.5" fill="#a78bfa" opacity="0.5" />
               </g>
             )}
 
@@ -745,10 +916,10 @@ function MapContent({ view, locations, activeId, hoveredId, onSelect, onHover, i
             {view.mobile && (
               <g className={`transition-opacity duration-700 motion-reduce:transition-none ${inView ? 'opacity-100' : 'opacity-0'}`}>
                 <path
-                  d={network ? `M ${fmt(x)} ${fmt(y - 9)} V ${MOBILE_LABEL_BASE + 8}` : `M ${fmt(x)} ${fmt(y + 20)} V ${fmt(y + 30)}`}
+                  d={above ? `M ${fmt(x)} ${fmt(y - 9)} V ${MOBILE_LABEL_BASE + 8}` : `M ${fmt(x)} ${fmt(y + 20)} V ${fmt(y + 30)}`}
                   fill="none" stroke={color} strokeOpacity={isActive ? 0.6 : 0.3} strokeWidth="1"
                 />
-                <circle cx={fmt(x)} cy={network ? MOBILE_LABEL_BASE + 8 : fmt(y + 30)} r="1.8" fill={color} opacity={isActive ? 0.8 : 0.45} />
+                <circle cx={fmt(x)} cy={above ? MOBILE_LABEL_BASE + 8 : fmt(y + 30)} r="1.8" fill={color} opacity={isActive ? 0.8 : 0.45} />
               </g>
             )}
 
@@ -818,7 +989,7 @@ function MapContent({ view, locations, activeId, hoveredId, onSelect, onHover, i
           (see hitArea above). On mobile the trace from a network node
           up to its label is tappable too. */}
       <g>
-        {view.mobile && locations.filter(isNetworkNode).map((loc) => {
+        {view.mobile && locations.filter((loc) => labelledAbove(loc, HUB)).map((loc) => {
           const [x, y] = view.points[loc.id];
           return (
             <path
@@ -857,6 +1028,50 @@ function MapContent({ view, locations, activeId, hoveredId, onSelect, onHover, i
 }
 
 function MapLabels({ view, locations, activeId, hoveredId, onSelect, onHover, fx }) {
+  // Desktop: the labels are measured where they are drawn, and a
+  // network label that would touch or crowd another label or node is
+  // lifted clear of it (see raiseLabels). `lifts` holds that extra
+  // raise for each label. It is worked out again when the map frame or
+  // a label changes size (a resize, the web fonts arriving), and before
+  // the browser paints, so a label is never seen in the wrong place.
+  // The map frame is the element the labels are positioned in.
+  const labelEls = useRef({});
+  const [lifts, setLifts] = useState({});
+  useLayoutEffect(() => {
+    const labels = locations.map((loc) => labelEls.current[loc.id]).filter(Boolean);
+    const frame = labels[0]?.closest('[data-map-frame]');
+    if (view.mobile || !frame) return undefined;
+    const measure = () => {
+      const size = { width: frame.clientWidth, height: frame.clientHeight };
+      const sizes = {};
+      locations.forEach((loc) => {
+        const el = labelEls.current[loc.id];
+        if (el && el.offsetWidth) sizes[loc.id] = { width: el.offsetWidth, height: el.offsetHeight };
+      });
+      // nothing to measure while this composition is not on screen
+      if (!size.width || locations.some((loc) => !sizes[loc.id])) return;
+      const next = raiseLabels(view, locations, size, sizes);
+      setLifts((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(frame);
+    labels.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [view, locations]);
+  // Mobile: the network labels share the strip above the dot field,
+  // one stack at each side of it. A stack holds two labels; with more
+  // nodes than that on one side, the selected node's label takes the
+  // second place and the rest are left to their nodes.
+  const stacks = { left: [], right: [] };
+  if (view.mobile) {
+    locations.filter((loc) => labelledAbove(loc, view.hub)).forEach((loc) => stacks[view.points[loc.id][0] > view.width / 2 ? 'right' : 'left'].push(loc.id));
+    Object.values(stacks).forEach((ids) => {
+      const at = ids.indexOf(activeId);
+      if (at >= MOBILE_LABEL_STACK) ids.splice(MOBILE_LABEL_STACK - 1, 0, ...ids.splice(at, 1));
+    });
+  }
   return (
     <>
       {locations.map((loc) => {
@@ -883,6 +1098,9 @@ function MapLabels({ view, locations, activeId, hoveredId, onSelect, onHover, fx
         // controls, so these duplicates are hidden from both.
         if (view.mobile) {
           const alignRight = px > view.width / 2;
+          const above = labelledAbove(loc, view.hub);
+          const place = above ? stacks[alignRight ? 'right' : 'left'].indexOf(loc.id) : 0;
+          if (place >= MOBILE_LABEL_STACK) return null;
           return (
             <button
               key={loc.id}
@@ -893,8 +1111,8 @@ function MapLabels({ view, locations, activeId, hoveredId, onSelect, onHover, fx
               className={`absolute px-1.5 py-1.5 bg-bg/70 rounded-sm ${alignRight ? 'text-right' : 'text-left'}`}
               style={{
                 [alignRight ? 'right' : 'left']: '6px',
-                top: `${((network ? MOBILE_LABEL_BASE : py + 30) / view.height) * 100}%`,
-                transform: network ? 'translateY(-100%)' : undefined,
+                top: `${((above ? MOBILE_LABEL_BASE : py + 30) / view.height) * 100}%`,
+                transform: above ? `translateY(-${(place + 1) * 100}%)` : undefined,
               }}
             >
               {text}
@@ -922,14 +1140,16 @@ function MapLabels({ view, locations, activeId, hoveredId, onSelect, onHover, fx
         // below and to the right of the node, clear of any network
         // node to its north-east.
         if (!network) {
+          const offset = officeLabel(loc, view.hub);
           return (
             <div
               key={loc.id}
+              ref={(el) => { labelEls.current[loc.id] = el; }}
               aria-hidden="true"
               className="absolute"
               style={{
-                left: `${((px + OFFICE_LABEL.dx) / view.width) * 100}%`,
-                top: `${((py + OFFICE_LABEL.dy) / view.height) * 100}%`,
+                left: `${((px + offset.dx) / view.width) * 100}%`,
+                top: `${((py + offset.dy) / view.height) * 100}%`,
                 transform: 'translate(7px, -50%)',
               }}
             >
@@ -942,11 +1162,14 @@ function MapLabels({ view, locations, activeId, hoveredId, onSelect, onHover, fx
 
         // A network label sits beside its node, on the side set in the
         // location data. `labelRaise` lifts it away from a neighbouring
-        // node (Bhubaneswar's goes up and to the right, Bengaluru's
-        // down and to the right) and adds a short elbow trace back to
-        // the node, so the pairing stays obvious.
+        // node (it goes up and to the side, an office's label down
+        // and to the right) and adds a short elbow trace back to
+        // the node, so the pairing stays obvious. The saved raise is
+        // the starting point: a label that would still touch or crowd
+        // another label or node is lifted further (`lifts`), and its
+        // elbow trace grows with it.
         const onLeft = loc.visual?.labelSide === 'left';
-        const raise = loc.visual?.labelRaise || 0;
+        const raise = (loc.visual?.labelRaise || 0) + (lifts[loc.id] || 0);
         return (
           <div
             key={loc.id}
@@ -960,7 +1183,11 @@ function MapLabels({ view, locations, activeId, hoveredId, onSelect, onHover, fx
                 <span className="absolute h-px bg-accent/50" style={{ [onLeft ? 'right' : 'left']: 0, bottom: raise + 13, width: 10 }} />
               </>
             )}
-            <div className="absolute pointer-events-auto" style={{ [onLeft ? 'right' : 'left']: 12, bottom: 6 + raise }}>
+            <div
+              ref={(el) => { labelEls.current[loc.id] = el; }}
+              className="absolute pointer-events-auto"
+              style={{ [onLeft ? 'right' : 'left']: NETWORK_LABEL.side, bottom: NETWORK_LABEL.up + raise }}
+            >
               <button {...labelButton()}>
                 <div className={`${box} ${onLeft ? 'text-right' : ''}`} ref={labelRef}>{text}</div>
               </button>
@@ -976,6 +1203,11 @@ function MapLabels({ view, locations, activeId, hoveredId, onSelect, onHover, fx
 // visual) can reuse the exact same map rendering - one implementation
 // of "the ALLSEMIS network map," not two drifting copies.
 export function NetworkMap({ locations, activeId, hoveredId, onSelect, onHover, inView }) {
+  // The two compositions with these locations placed on them.
+  const views = useMemo(() => {
+    const hub = pickHub(locations);
+    return hub ? { desktop: placeLocations(DESKTOP_VIEW, locations, hub), mobile: placeLocations(MOBILE_VIEW, locations, hub) } : null;
+  }, [locations]);
   // Desktop-only "engineering scan field" cursor interaction (see
   // useCursorFX above). fx.enabled is false on touch/coarse-pointer
   // devices and under prefers-reduced-motion, in which case the mouse
@@ -986,6 +1218,8 @@ export function NetworkMap({ locations, activeId, hoveredId, onSelect, onHover, 
   const fxForChildren = fxEnabled ? fx : null;
   const active = locations.find((l) => l.id === activeId);
   const mapLabel = `ALLSEMIS global engineering network${active ? `, ${active.city} selected` : ''}`;
+
+  if (!views) return null;
 
   return (
     <div className="relative border border-line bg-bg-raised/40 overflow-hidden md:flex md:flex-col md:justify-center">
@@ -998,6 +1232,7 @@ export function NetworkMap({ locations, activeId, hoveredId, onSelect, onHover, 
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         className="hidden md:block relative aspect-[1000/460]"
+        data-map-frame
       >
         <svg
           ref={fxSvgRef}
@@ -1007,20 +1242,19 @@ export function NetworkMap({ locations, activeId, hoveredId, onSelect, onHover, 
           role="img"
           aria-label={mapLabel}
         >
-          <MapContent view={DESKTOP_VIEW} locations={locations} activeId={activeId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} inView={inView} fx={fxForChildren} />
+          <MapContent view={views.desktop} locations={locations} activeId={activeId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} inView={inView} fx={fxForChildren} />
         </svg>
-        <MapLabels view={DESKTOP_VIEW} locations={locations} activeId={activeId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} fx={fxForChildren} />
+        <MapLabels view={views.desktop} locations={locations} activeId={activeId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} fx={fxForChildren} />
         {fxEnabled && <CursorScanner fxRef={fxScannerRef} />}
       </div>
 
       {/* Mobile: the same world-node field in a portrait composition -
-          North America through to India - so San Diego, Bengaluru and
-          Bhubaneswar are all in view, in the same taller frame. */}
+          North America through to India - in the same taller frame. */}
       <div className="md:hidden relative aspect-[4/5]">
         <svg viewBox={MOBILE_VIEW.viewBox} className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={mapLabel}>
-          <MapContent view={MOBILE_VIEW} locations={locations} activeId={activeId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} inView={inView} />
+          <MapContent view={views.mobile} locations={locations} activeId={activeId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} inView={inView} />
         </svg>
-        <MapLabels view={MOBILE_VIEW} locations={locations} activeId={activeId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} />
+        <MapLabels view={views.mobile} locations={locations} activeId={activeId} hoveredId={hoveredId} onSelect={onSelect} onHover={onHover} />
       </div>
 
       <div className="absolute left-4 bottom-4 flex items-center gap-2">
@@ -1033,22 +1267,23 @@ export function NetworkMap({ locations, activeId, hoveredId, onSelect, onHover, 
   );
 }
 
-// The panel follows the selected node. An office shows its confirmed
-// details. A network node shows only what is known about it - city,
-// country, "Engineering Network" and "Network node" - and never an
-// address, phone number, email or hours.
+// The panel follows the selected node. An office shows the details
+// saved for it (a detail left empty in the admin is left out). A
+// network node shows only what is known about it - city, country,
+// "Engineering Network" and "Network node" - and never an address,
+// phone number, email or hours.
 //
 // Every location's content is laid in the same grid cell and only the
 // selected one is visible, so the panel keeps the height of its tallest
 // entry: selecting a node never makes the section jump.
-function LocationPanel({ location, locations }) {
+function LocationPanel({ location, locations, loading = false }) {
   if (!location) return null;
   const rowLabel = 'font-mono text-[0.6rem] uppercase tracking-widest text-text-faint mb-1';
   return (
     <div className="relative border border-line bg-bg-raised/40 p-6 md:p-8 grid" aria-live="polite">
       {locations.map((loc) => {
         const network = isNetworkNode(loc);
-        const selected = loc.id === location.id;
+        const selected = !loading && loc.id === location.id;
         return (
           <div key={loc.id} className={`col-start-1 row-start-1 ${selected ? '' : 'invisible'}`} aria-hidden={!selected}>
             <div className="flex items-center gap-2 mb-4">
@@ -1071,26 +1306,34 @@ function LocationPanel({ location, locations }) {
               </dl>
             ) : (
               <dl className="space-y-4 text-sm">
+                {loc.address.length > 0 && (
                 <div>
                   <dt className={rowLabel}>Address</dt>
                   <dd className="text-text-dim leading-relaxed">
-                    {loc.address.map((line) => <span key={line} className="block">{line}</span>)}
+                    {loc.address.map((line, i) => <span key={i} className="block">{line}</span>)}
                   </dd>
                 </div>
+                )}
+                {loc.phone && (
                 <div>
                   <dt className={rowLabel}>Phone</dt>
                   <dd className="text-text-dim">{loc.phone}</dd>
                 </div>
+                )}
+                {loc.email && (
                 <div>
                   <dt className={rowLabel}>Email</dt>
                   <dd className="text-text-dim">{loc.email}</dd>
                 </div>
+                )}
+                {loc.hours.length > 0 && (
                 <div>
                   <dt className={rowLabel}>Hours</dt>
                   <dd className="text-text-dim leading-relaxed">
-                    {loc.hours.map((line) => <span key={line} className="block">{line}</span>)}
+                    {loc.hours.map((line, i) => <span key={i} className="block">{line}</span>)}
                   </dd>
                 </div>
+                )}
               </dl>
             )}
           </div>

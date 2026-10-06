@@ -1,0 +1,696 @@
+{
+  "candidates": [
+    {
+      "name": "Ananya Rao",
+      "email": "ananya.rao@example.com",
+      "phone": "+91 90000 00001",
+      "location": "Bengaluru, India",
+      "headline": "Design Verification Engineer",
+      "domain": "Semiconductor & Chip Engineering",
+      "experienceYears": 6,
+      "skills": [
+        "SystemVerilog",
+        "UVM",
+        "Functional Coverage",
+        "Assertions",
+        "VCS",
+        "Verilog",
+        "Python"
+      ],
+      "summary": "Verification engineer with block and SoC-level UVM experience and a record of coverage closure on digital designs.",
+      "noticePeriod": "30 days",
+      "education": [
+        {
+          "degree": "B.E. Electronics and Communication",
+          "institution": "Engineering college (sample record)",
+          "year": "2020"
+        }
+      ],
+      "experience": [
+        {
+          "title": "Senior Design Verification Engineer",
+          "employer": "Fabless semiconductor company (sample)",
+          "period": "2023 to present",
+          "highlights": [
+            "Owns UVM environments for two SoC subsystems",
+            "Drove functional coverage closure for a bus interface block"
+          ]
+        },
+        {
+          "title": "Design Verification Engineer",
+          "employer": "Semiconductor design services firm (sample)",
+          "period": "2020 to 2023",
+          "highlights": [
+            "Built constrained-random testbenches at block level",
+            "Wrote assertions for protocol checking"
+          ]
+        }
+      ],
+      "source": "WEBSITE",
+      "resumeFileName": "ananya-rao-resume.pdf",
+      "createdAt": "2026-09-28",
+      "labels": []
+    },
+    {
+      "name": "Karthik Menon",
+      "email": "karthik.menon@example.com",
+      "phone": "+91 90000 00002",
+      "location": "Bengaluru, India",
+      "headline": "RTL Design Engineer",
+      "domain": "Semiconductor & Chip Engineering",
+      "experienceYears": 8,
+      "skills": [
+        "Verilog",
+        "SystemVerilog",
+        "RTL Design",
+        "Digital Logic Design",
+        "CDC",
+        "Low Power Design",
+        "Synthesis Constraints",
+        "Lint"
+      ],
+      "summary": "RTL designer covering micro-architecture through synthesis handoff, with low-power and CDC signoff experience.",
+      "noticePeriod": "60 days",
+      "education": [
+        {
+          "degree": "M.Tech VLSI Design",
+          "institution": "Engineering college (sample record)",
+          "year": "2018"
+        }
+      ],
+      "experience": [
+        {
+          "title": "Lead RTL Design Engineer",
+          "employer": "Fabless semiconductor company (sample)",
+          "period": "2022 to present",
+          "highlights": [
+            "Leads RTL for a peripheral subsystem from specification to synthesis handoff",
+            "Owns CDC and lint signoff for owned blocks"
+          ]
+        },
+        {
+          "title": "RTL Design Engineer",
+          "employer": "Semiconductor product company (sample)",
+          "period": "2018 to 2022",
+          "highlights": [
+            "Implemented clock-gating and power-domain logic",
+            "Supported timing closure with the physical design team"
+          ]
+        }
+      ],
+      "source": "REFERRAL",
+      "resumeFileName": "karthik-menon-cv.pdf",
+      "createdAt": "2026-09-26",
+      "labels": [
+        "INTERVIEWED"
+      ]
+    },
+    {
+      "name": "Priya Nair",
+      "email": "priya.nair@example.com",
+      "phone": "+91 90000 00003",
+      "location": "Hyderabad, India",
+      "headline": "Physical Design Engineer",
+      "domain": "Semiconductor & Chip Engineering",
+      "experienceYears": 5,
+      "skills": [
+        "Place and Route",
+        "STA",
+        "Timing Closure",
+        "Floorplanning",
+        "Innovus",
+        "Tcl"
+      ],
+      "summary": "Physical design engineer with block-level place and route, floorplanning and timing closure experience.",
+      "noticePeriod": "Immediate",
+      "education": [
+        {
+          "degree": "B.Tech Electronics and Communication",
+          "institution": "Engineering college (sample record)",
+          "year": "2021"
+        }
+      ],
+      "experience": [
+        {
+          "title": "Physical Design Engineer",
+          "employer": "Semiconductor design services firm (sample)",
+          "period": "2021 to present",
+          "highlights": [
+            "Took four blocks from floorplan through routing",
+            "Closed setup and hold across corners at block level"
+          ]
+        }
+      ],
+      "source": "WEBSITE",
+      "resumeFileName": "priya-nair-resume.pdf",
+      "createdAt": "2026-09-29",
+      "labels": []
+    },
+    {
+      "name": "Rohit Verma",
+      "email": "rohit.verma@example.com",
+      "phone": "+91 90000 00004",
+      "location": "Bengaluru, India",
+      "headline": "DFT Engineer",
+      "domain": "Semiconductor & Chip Engineering",
+      "experienceYears": 4,
+      "skills": [
+        "Scan Insertion",
+        "ATPG",
+        "MBIST",
+        "JTAG",
+        "Tessent"
+      ],
+      "summary": "DFT engineer focused on scan insertion and pattern generation, with memory test exposure.",
+      "noticePeriod": "90 days",
+      "education": [
+        {
+          "degree": "B.E. Electronics",
+          "institution": "Engineering college (sample record)",
+          "year": "2022"
+        }
+      ],
+      "experience": [
+        {
+          "title": "DFT Engineer",
+          "employer": "Semiconductor design services firm (sample)",
+          "period": "2022 to present",
+          "highlights": [
+            "Scan insertion and ATPG for digital blocks",
+            "Simulated patterns and debugged mismatches"
+          ]
+        }
+      ],
+      "source": "LINKEDIN",
+      "resumeFileName": "rohit-verma-cv.pdf",
+      "createdAt": "2026-09-30",
+      "labels": []
+    },
+    {
+      "name": "Sneha Iyer",
+      "email": "sneha.iyer@example.com",
+      "phone": "+91 90000 00005",
+      "location": "Pune, India",
+      "headline": "Embedded Software Engineer",
+      "domain": "Embedded Systems & Electronics",
+      "experienceYears": 7,
+      "skills": [
+        "Embedded C",
+        "C++",
+        "RTOS",
+        "Automotive Software",
+        "AUTOSAR",
+        "CAN/LIN"
+      ],
+      "summary": "Embedded software engineer in automotive, working on AUTOSAR-based ECUs and in-vehicle networking.",
+      "noticePeriod": "30 days",
+      "education": [
+        {
+          "degree": "B.E. Electronics and Telecommunication",
+          "institution": "Engineering college (sample record)",
+          "year": "2019"
+        }
+      ],
+      "experience": [
+        {
+          "title": "Senior Embedded Software Engineer",
+          "employer": "Automotive supplier (sample)",
+          "period": "2022 to present",
+          "highlights": [
+            "Developed AUTOSAR software components for a body-control ECU",
+            "Integrated CAN and LIN communication stacks"
+          ]
+        },
+        {
+          "title": "Embedded Software Engineer",
+          "employer": "Automotive engineering services firm (sample)",
+          "period": "2019 to 2022",
+          "highlights": [
+            "Wrote RTOS-based device drivers",
+            "Supported hardware-in-the-loop testing"
+          ]
+        }
+      ],
+      "source": "LINKEDIN",
+      "resumeFileName": "sneha-iyer-resume.pdf",
+      "createdAt": "2026-09-27",
+      "labels": []
+    },
+    {
+      "name": "Arjun Das",
+      "email": "arjun.das@example.com",
+      "phone": "+91 90000 00006",
+      "location": "Bhubaneswar, India",
+      "headline": "ADAS Software Engineer",
+      "domain": "Mobility & Communications",
+      "experienceYears": 3,
+      "skills": [
+        "C++",
+        "Python",
+        "Sensor Fusion",
+        "ROS",
+        "Computer Vision"
+      ],
+      "summary": "Perception and sensor-fusion engineer early in an ADAS career, with a robotics background.",
+      "noticePeriod": "15 days",
+      "education": [
+        {
+          "degree": "M.Tech Robotics",
+          "institution": "Engineering college (sample record)",
+          "year": "2023"
+        }
+      ],
+      "experience": [
+        {
+          "title": "ADAS Software Engineer",
+          "employer": "Mobility technology company (sample)",
+          "period": "2023 to present",
+          "highlights": [
+            "Implemented camera and radar fusion for object tracking",
+            "Built ROS-based replay tooling for recorded drives"
+          ]
+        }
+      ],
+      "source": "WEBSITE",
+      "resumeFileName": "arjun-das-resume.pdf",
+      "createdAt": "2026-10-01",
+      "labels": []
+    },
+    {
+      "name": "Meera Krishnan",
+      "email": "meera.krishnan@example.com",
+      "phone": "+91 90000 00007",
+      "location": "Bengaluru, India",
+      "headline": "Functional Safety Engineer",
+      "domain": "Mobility & Communications",
+      "experienceYears": 9,
+      "skills": [
+        "ISO 26262",
+        "Functional Safety",
+        "Hazard Analysis",
+        "FMEA",
+        "Safety Case Documentation",
+        "ASIL Decomposition"
+      ],
+      "summary": "Functional safety engineer who has taken automotive systems through hazard analysis to safety case.",
+      "noticePeriod": "60 days",
+      "education": [
+        {
+          "degree": "B.E. Electrical and Electronics",
+          "institution": "Engineering college (sample record)",
+          "year": "2017"
+        }
+      ],
+      "experience": [
+        {
+          "title": "Functional Safety Lead",
+          "employer": "Automotive supplier (sample)",
+          "period": "2021 to present",
+          "highlights": [
+            "Led hazard analysis and risk assessment for a braking subsystem",
+            "Authored and defended the safety case through assessment"
+          ]
+        },
+        {
+          "title": "Safety Engineer",
+          "employer": "Automotive engineering services firm (sample)",
+          "period": "2017 to 2021",
+          "highlights": [
+            "Performed FMEA and FTA on ECU designs",
+            "Maintained safety requirement traceability"
+          ]
+        }
+      ],
+      "source": "RECRUITER",
+      "resumeFileName": "meera-krishnan-cv.pdf",
+      "createdAt": "2026-09-25",
+      "labels": [
+        "SELECTED"
+      ]
+    },
+    {
+      "name": "Vikram Shetty",
+      "email": "vikram.shetty@example.com",
+      "phone": "+91 90000 00008",
+      "location": "Bengaluru, India",
+      "headline": "RF Systems Engineer",
+      "domain": "Mobility & Communications",
+      "experienceYears": 6,
+      "skills": [
+        "RF Design",
+        "Link Budget Analysis",
+        "Antenna Design",
+        "ADS/Microwave Office"
+      ],
+      "summary": "RF engineer with front-end design and link budget analysis experience for communications payloads.",
+      "noticePeriod": "30 days",
+      "education": [
+        {
+          "degree": "M.Tech RF and Microwave Engineering",
+          "institution": "Engineering college (sample record)",
+          "year": "2020"
+        }
+      ],
+      "experience": [
+        {
+          "title": "RF Design Engineer",
+          "employer": "Communications hardware company (sample)",
+          "period": "2020 to present",
+          "highlights": [
+            "Designed RF front-end chains and verified them on the bench",
+            "Maintained link budgets for two communication links"
+          ]
+        }
+      ],
+      "source": "WEBSITE",
+      "resumeFileName": "vikram-shetty-resume.pdf",
+      "createdAt": "2026-10-02",
+      "labels": []
+    }
+  ],
+  "applications": [
+    {
+      "candidateEmail": "ananya.rao@example.com",
+      "jobSlug": "design-verification-engineer",
+      "status": "SHORTLISTED",
+      "source": "WEBSITE",
+      "submittedAt": "2026-09-28",
+      "recruiterNotes": "Strong UVM depth. Confirm notice period on first call.",
+      "labels": []
+    },
+    {
+      "candidateEmail": "karthik.menon@example.com",
+      "jobSlug": "rtl-design-engineer",
+      "status": "SHORTLISTED",
+      "source": "REFERRAL",
+      "submittedAt": "2026-09-26",
+      "recruiterNotes": "Technical round scheduled. Referred by an engineer in the network.",
+      "labels": [
+        "INTERVIEWED"
+      ]
+    },
+    {
+      "candidateEmail": "priya.nair@example.com",
+      "jobSlug": "physical-design-engineer",
+      "status": "NEW",
+      "source": "WEBSITE",
+      "submittedAt": "2026-09-29",
+      "recruiterNotes": "Below the stated seniority. Check full-chip exposure before deciding.",
+      "labels": []
+    },
+    {
+      "candidateEmail": "rohit.verma@example.com",
+      "jobSlug": "dft-engineer",
+      "status": "NEW",
+      "source": "LINKEDIN",
+      "submittedAt": "2026-09-30",
+      "recruiterNotes": "",
+      "labels": []
+    },
+    {
+      "candidateEmail": "sneha.iyer@example.com",
+      "jobSlug": "embedded-software-engineer",
+      "status": "SHORTLISTED",
+      "source": "LINKEDIN",
+      "submittedAt": "2026-09-27",
+      "recruiterNotes": "Open to hybrid. Based in Pune.",
+      "labels": []
+    },
+    {
+      "candidateEmail": "arjun.das@example.com",
+      "jobSlug": "adas-engineer",
+      "status": "NEW",
+      "source": "WEBSITE",
+      "submittedAt": "2026-10-01",
+      "recruiterNotes": "",
+      "labels": []
+    },
+    {
+      "candidateEmail": "meera.krishnan@example.com",
+      "jobSlug": "functional-safety-engineer",
+      "status": "SHORTLISTED",
+      "source": "RECRUITER",
+      "submittedAt": "2026-09-25",
+      "recruiterNotes": "Offer discussion in progress.",
+      "labels": [
+        "SELECTED"
+      ]
+    },
+    {
+      "candidateEmail": "vikram.shetty@example.com",
+      "jobSlug": "rf-systems-engineer",
+      "status": "NEW",
+      "source": "WEBSITE",
+      "submittedAt": "2026-10-02",
+      "recruiterNotes": "",
+      "labels": []
+    },
+    {
+      "candidateEmail": "ananya.rao@example.com",
+      "jobSlug": "rtl-design-engineer",
+      "status": "NEW",
+      "source": "WEBSITE",
+      "submittedAt": "2026-09-28",
+      "recruiterNotes": "Verification profile, not RTL design. Kept for the DV role.",
+      "labels": [
+        "REJECTED"
+      ]
+    },
+    {
+      "candidateEmail": "sneha.iyer@example.com",
+      "jobSlug": "adas-engineer",
+      "status": "NEW",
+      "source": "LINKEDIN",
+      "submittedAt": "2026-10-02",
+      "recruiterNotes": "",
+      "labels": []
+    }
+  ],
+  "requirements": [
+    {
+      "contactName": "Sample Contact A",
+      "company": "Employer name (sample)",
+      "email": "hiring.a@example.com",
+      "phone": "+91 90000 20001",
+      "hiringType": "Permanent Staffing",
+      "domain": "Semiconductor & Chip Engineering",
+      "role": "Design Verification Engineer",
+      "positions": 3,
+      "location": "Bengaluru",
+      "workMode": "ON_SITE",
+      "description": "SoC-level experience preferred. Shortlist in progress.",
+      "skills": [
+        "SystemVerilog",
+        "UVM",
+        "Functional Coverage"
+      ],
+      "experience": "4 to 8 years",
+      "priority": "HIGH",
+      "status": "IN_PROGRESS",
+      "internalNotes": "",
+      "source": "ADMIN",
+      "createdAt": "2026-09-22"
+    },
+    {
+      "contactName": "Sample Contact B",
+      "company": "Employer name (sample)",
+      "email": "hiring.b@example.com",
+      "phone": "+91 90000 20002",
+      "hiringType": "Permanent Staffing",
+      "domain": "Semiconductor & Chip Engineering",
+      "role": "Physical Design Engineer",
+      "positions": 2,
+      "location": "Bengaluru",
+      "workMode": "ON_SITE",
+      "description": "Full-chip or large-block experience required.",
+      "skills": [
+        "Place and Route",
+        "STA",
+        "Timing Closure"
+      ],
+      "experience": "7+ years",
+      "priority": "HIGH",
+      "status": "NEW",
+      "internalNotes": "",
+      "source": "ADMIN",
+      "createdAt": "2026-09-24"
+    },
+    {
+      "contactName": "Sample Contact C",
+      "company": "Employer name (sample)",
+      "email": "hiring.c@example.com",
+      "phone": "+91 90000 20003",
+      "hiringType": "Project Staffing",
+      "domain": "Embedded Systems & Electronics",
+      "role": "Embedded Software Engineer",
+      "positions": 2,
+      "location": "Bengaluru",
+      "workMode": "HYBRID",
+      "description": "Automotive background required.",
+      "skills": [
+        "Embedded C",
+        "RTOS",
+        "AUTOSAR"
+      ],
+      "experience": "4 to 7 years",
+      "priority": "MEDIUM",
+      "status": "IN_PROGRESS",
+      "internalNotes": "",
+      "source": "ADMIN",
+      "createdAt": "2026-09-20"
+    },
+    {
+      "contactName": "Sample Contact D",
+      "company": "Employer name (sample)",
+      "email": "hiring.d@example.com",
+      "phone": "+91 90000 20004",
+      "hiringType": "Specialised Search",
+      "domain": "Mobility & Communications",
+      "role": "Functional Safety Engineer",
+      "positions": 1,
+      "location": "Bengaluru",
+      "workMode": "HYBRID",
+      "description": "",
+      "skills": [
+        "ISO 26262",
+        "Hazard Analysis",
+        "FMEA"
+      ],
+      "experience": "7+ years",
+      "priority": "MEDIUM",
+      "status": "NEW",
+      "internalNotes": "",
+      "source": "ADMIN",
+      "createdAt": "2026-09-18"
+    },
+    {
+      "contactName": "Sample Contact E",
+      "company": "Employer name (sample)",
+      "email": "hiring.e@example.com",
+      "phone": "+91 90000 20005",
+      "hiringType": "Permanent Staffing",
+      "domain": "Mobility & Communications",
+      "role": "RF Systems Engineer",
+      "positions": 1,
+      "location": "Bengaluru",
+      "workMode": "ON_SITE",
+      "description": "On hold until the programme start date is confirmed.",
+      "skills": [
+        "RF Design",
+        "Link Budget Analysis"
+      ],
+      "experience": "7+ years",
+      "priority": "LOW",
+      "status": "REVIEWING",
+      "internalNotes": "",
+      "source": "ADMIN",
+      "createdAt": "2026-09-12"
+    }
+  ],
+  "enquiries": [
+    {
+      "name": "Sample Enquirer A",
+      "email": "hiring.lead@example.com",
+      "phone": "+91 90000 10001",
+      "company": "Employer name (sample)",
+      "type": "HIRING",
+      "subject": "Verification team hiring",
+      "message": "We are building a verification team and would like to discuss permanent staffing for three roles.",
+      "status": "NEW",
+      "internalNotes": "",
+      "createdAt": "2026-10-02"
+    },
+    {
+      "name": "Sample Enquirer B",
+      "email": "engineer@example.com",
+      "phone": "",
+      "company": "",
+      "type": "CAREER",
+      "subject": "Physical design roles",
+      "message": "I have six years in physical design and would like to hear about suitable openings.",
+      "status": "IN_PROGRESS",
+      "internalNotes": "Asked for an updated resume.",
+      "createdAt": "2026-10-01"
+    },
+    {
+      "name": "Sample Enquirer C",
+      "email": "talent@example.com",
+      "phone": "+91 90000 10003",
+      "company": "Employer name (sample)",
+      "type": "HIRING",
+      "subject": "RPO for a new design centre",
+      "message": "We would like to understand how an RPO engagement would work for a new team.",
+      "status": "IN_PROGRESS",
+      "internalNotes": "Call booked.",
+      "createdAt": "2026-09-30"
+    },
+    {
+      "name": "Sample Enquirer D",
+      "email": "partner@example.com",
+      "phone": "",
+      "company": "",
+      "type": "PARTNERSHIP",
+      "subject": "Partnership",
+      "message": "We run engineering training programmes and would like to explore working together.",
+      "status": "NEW",
+      "internalNotes": "",
+      "createdAt": "2026-09-29"
+    },
+    {
+      "name": "Sample Enquirer E",
+      "email": "graduate@example.com",
+      "phone": "",
+      "company": "",
+      "type": "CAREER",
+      "subject": "Entry-level DFT",
+      "message": "Recent graduate with a DFT internship. Are there entry-level roles?",
+      "status": "CLOSED",
+      "internalNotes": "Replied with guidance. No current entry-level DFT role.",
+      "createdAt": "2026-09-24"
+    }
+  ],
+  "referrals": [
+    {
+      "referrerName": "Sample Referrer A",
+      "referrerEmail": "referrer.a@example.com",
+      "referrerPhone": "+91 90000 30001",
+      "relationship": "Former colleague",
+      "candidateName": "Sample Candidate R1",
+      "candidateEmail": "referred.one@example.com",
+      "candidatePhone": "+91 90000 31001",
+      "candidateRole": "Physical Design Engineer",
+      "domain": "Semiconductor & Chip Engineering",
+      "message": "Worked together on block-level place and route for two years. Careful with timing closure and good to work with.",
+      "status": "NEW",
+      "createdAt": "2026-10-01"
+    },
+    {
+      "referrerName": "Sample Referrer B",
+      "referrerEmail": "referrer.b@example.com",
+      "referrerPhone": "",
+      "relationship": "Manager",
+      "candidateName": "Sample Candidate R2",
+      "candidateEmail": "referred.two@example.com",
+      "candidatePhone": "",
+      "candidateRole": "Embedded Firmware Engineer",
+      "domain": "Embedded Systems & Electronics",
+      "message": "Reported to me for three years. Strong on board bring-up and RTOS-based firmware.",
+      "status": "REVIEWING",
+      "createdAt": "2026-09-29"
+    },
+    {
+      "referrerName": "Sample Referrer C",
+      "referrerEmail": "referrer.c@example.com",
+      "referrerPhone": "+91 90000 30003",
+      "relationship": "University classmate",
+      "candidateName": "Sample Candidate R3",
+      "candidateEmail": "",
+      "candidatePhone": "+91 90000 31003",
+      "candidateRole": "Design Verification Engineer",
+      "domain": "Semiconductor & Chip Engineering",
+      "message": "Has worked on UVM testbenches since graduating. Looking for a move to Bengaluru.",
+      "status": "CONTACTED",
+      "createdAt": "2026-09-25"
+    }
+  ]
+}

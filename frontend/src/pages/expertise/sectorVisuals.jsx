@@ -243,3 +243,10 @@ export const SECTOR_VISUALS = {
   'business-finance': BusinessVisual,
   'banking-fintech': BankingVisual,
 };
+
+// The motif for a sector, by the sector's fixed id, or null. The
+// sectors themselves come from the backend; a sector created in the
+// admin has no motif drawn for it, and the pages then show none.
+export function sectorVisual(id) {
+  return Object.hasOwn(SECTOR_VISUALS, id) ? SECTOR_VISUALS[id] : null;
+}

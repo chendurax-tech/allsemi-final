@@ -1,0 +1,37 @@
+{
+  "name": "allsemis-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ALLSEMIS API: recruitment data, admin, public form submissions, media and private document storage.",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/seed/seed.js",
+    "create-admin": "node scripts/create-admin.js",
+    "migrate:recruitment": "node scripts/migrate-recruitment.js",
+    "clean:showcase": "node scripts/clean-showcase.js",
+    "test": "node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js",
+    "check": "node scripts/check-syntax.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/s3-request-presigner": "^3.700.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "mongoose": "^8.9.0",
+    "multer": "^2.0.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^10.1.2"
+  }
+}

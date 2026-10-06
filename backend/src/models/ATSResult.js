@@ -1,0 +1,134 @@
+import mongoose from 'mongoose';
+import { ATS_REVIEW_STATES, ATS_ENGINE, AI_COMPARISON_LIMITS as AI } from '../config/constants.js';
+import { baseSchemaPlugin } from './plugins.js';
+
+const { Schema } = mongoose;
+
+/*
+  One evaluation of one candidate against one job.
+
+  The scores, skill lists and `checks` are produced by the RULE-BASED
+  engine (services/atsService.js). Every one of those numbers comes
+  from deterministic rules and can be explained from `checks`. No AI
+  model is involved in them.
+
+  `aiComparison` is separate. It is empty until a recruiter presses
+  "Compare with AI" for this result, and then holds the advisory
+  analysis the model returned (services/aiService.js), validated on the
+  server, with who asked for it and when. Running the comparison again
+  replaces it. The AI code reads and writes `aiComparison` only: it
+  never touches a rule-based field, the recruiter's review or the
+  application. Re-running the rule-based evaluation leaves
+  `aiComparison` as it is.
+*/
+const checkSchema = new Schema({
+  rule: String,
+  result: { type: String, enum: ['pass', 'review', 'fail', 'info'] },
+  detail: String,
+  score: { type: Number, default: null },
+  weight: { type: Number, default: null },
+}, { _id: false });
+
+// The limits are AI_COMPARISON_LIMITS (config/constants.js). The answer
+// is validated against them before it is stored (services/aiService.js).
+// The model's name is stored as `aiModel` and returned by the API as
+// `model`.
+const aiComparisonSchema = new Schema({
+  overallMatch: { type: Number, required: true, min: 0, max: 100 },
+  summary: { type: String, required: true, maxlength: AI.summary },
+  matchedSkills: { type: [String], default: [] },
+  missingSkills: { type: [String], default: [] },
+  relevantExperience: { type: String, required: true, maxlength: AI.relevantExperience },
+  experienceGaps: { type: [String], default: [] },
+  qualificationAssessment: { type: String, required: true, maxlength: AI.qualificationAssessment },
+  strengths: { type: [String], default: [] },
+  concerns: { type: [String], default: [] },
+  recommendation: { type: String, required: true, maxlength: AI.recommendation },
+  aiModel: { type: String, required: true, maxlength: AI.model },
+  comparedAt: { type: Date, required: true },
+  comparedById: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  comparedByName: { type: String, default: '' },
+}, { _id: false });
+
+const atsResultSchema = new Schema({
+  candidateId: { type: Schema.Types.ObjectId, ref: 'Candidate', required: true, index: true },
+  jobId: { type: Schema.Types.ObjectId, ref: 'Job', required: true, index: true },
+  applicationId: { type: Schema.Types.ObjectId, ref: 'Application', default: null },
+  engine: { type: String, default: ATS_ENGINE },
+  engineVersion: { type: String, default: '1' },
+
+  totalScore: { type: Number, required: true },
+  skillScore: { type: Number, required: true },
+  preferredSkillScore: { type: Number, default: null },
+  experienceScore: { type: Number, required: true },
+  domainScore: { type: Number, required: true },
+  locationScore: { type: Number, required: true },
+  completenessScore: { type: Number, required: true },
+  weights: { type: Schema.Types.Mixed, default: {} },
+  band: { type: String, default: '' },
+
+  requiredSkills: { type: [String], default: [] },
+  matchedSkills: { type: [String], default: [] },
+  missingSkills: { type: [String], default: [] },
+  preferredMatched: { type: [String], default: [] },
+  preferredMissing: { type: [String], default: [] },
+  checks: { type: [checkSchema], default: [] },
+
+  review: {
+    state: { type: String, enum: ATS_REVIEW_STATES, default: 'PENDING' },
+    note: { type: String, default: '', maxlength: 4000 },
+    reviewerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    reviewerName: { type: String, default: '' },
+    updatedAt: { type: Date, default: null },
+  },
+  runAt: { type: Date, default: Date.now },
+  runByName: { type: String, default: 'System' },
+
+  // The advisory AI comparison. Empty until a recruiter asks for one.
+  aiComparison: { type: aiComparisonSchema, default: null },
+}, { timestamps: true });
+
+// One result per candidate, job and engine: running the rule-based
+// evaluation again updates the same result.
+atsResultSchema.index({ candidateId: 1, jobId: 1, engine: 1 }, { unique: true });
+atsResultSchema.plugin(baseSchemaPlugin);
+
+const baseTransform = atsResultSchema.get('toJSON').transform;
+atsResultSchema.set('toJSON', {
+  ...atsResultSchema.get('toJSON'),
+  transform(doc, ret) {
+    const out = baseTransform(doc, ret);
+    out.candidateId = String(doc.candidateId);
+    out.jobId = String(doc.jobId);
+    out.applicationId = doc.applicationId ? String(doc.applicationId) : null;
+    if (out.review) {
+      out.review = {
+        state: doc.review.state,
+        note: doc.review.note,
+        reviewerName: doc.review.reviewerName,
+        updatedAt: doc.review.updatedAt,
+      };
+    }
+    // Always present: null until a comparison has been run. The id of
+    // the person who ran it stays on the server; their name is enough.
+    const ai = doc.aiComparison;
+    out.aiComparison = ai ? {
+      overallMatch: ai.overallMatch,
+      summary: ai.summary,
+      matchedSkills: [...(ai.matchedSkills || [])],
+      missingSkills: [...(ai.missingSkills || [])],
+      relevantExperience: ai.relevantExperience,
+      experienceGaps: [...(ai.experienceGaps || [])],
+      qualificationAssessment: ai.qualificationAssessment,
+      strengths: [...(ai.strengths || [])],
+      concerns: [...(ai.concerns || [])],
+      recommendation: ai.recommendation,
+      model: ai.aiModel,
+      comparedAt: ai.comparedAt,
+      comparedByName: ai.comparedByName,
+    } : null;
+    return out;
+  },
+});
+
+export const ATSResult = mongoose.models.ATSResult || mongoose.model('ATSResult', atsResultSchema);

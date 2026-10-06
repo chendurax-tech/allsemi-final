@@ -1,17 +1,7 @@
-// Maps each SECTORS id (defined in components/Expertise.jsx) to its
-// canonical /expertise/:slug route. Shared between App.jsx (route
-// definitions), Header.jsx (dropdown navigation) and every internal
-// link to a sector page, so they never drift apart.
-export const EXPERTISE_SLUGS = {
-  semiconductor: 'semiconductor-chip-engineering',
-  embedded: 'embedded-systems-electronics',
-  mobility: 'mobility-communications',
-  'ai-infrastructure': 'ai-infrastructure-cloud',
-  healthcare: 'healthcare-medical-technology',
-  'consumer-retail': 'consumer-goods-retail',
-  'business-finance': 'business-finance-consumer',
-  'banking-fintech': 'banking-finance-fintech',
-};
+// A sector's address is /expertise/<slug>. The slug is part of the
+// sector record (Admin, Expertise) and comes from the backend with the
+// rest of the sector (useSectors in lib/usePublicData.js), so no list of
+// sector slugs is kept here.
 
 // Sector URLs that existed before the client-approved sector list.
 // Each old slug redirects to the canonical page that now covers its

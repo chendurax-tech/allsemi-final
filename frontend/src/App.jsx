@@ -8,7 +8,6 @@ import Contact from './pages/Contact.jsx';
 import Refer from './pages/Refer.jsx';
 import Employers from './pages/employers/Employers.jsx';
 import ServicePage from './pages/employers/ServicePage.jsx';
-import { publishedServices } from './pages/employers/servicesContent.js';
 import Talent from './pages/talent/Talent.jsx';
 import JobDetail from './pages/talent/JobDetail.jsx';
 import About from './pages/about/About.jsx';
@@ -16,8 +15,7 @@ import InsightsIndex from './pages/insights/InsightsIndex.jsx';
 import InsightDetail from './pages/insights/InsightDetail.jsx';
 import ExpertiseIndex from './pages/expertise/ExpertiseIndex.jsx';
 import SectorPage from './pages/expertise/SectorPage.jsx';
-import { SECTORS } from './components/Expertise.jsx';
-import { EXPERTISE_SLUGS, EXPERTISE_LEGACY_SLUGS } from './lib/expertiseRoutes.js';
+import { EXPERTISE_LEGACY_SLUGS } from './lib/expertiseRoutes.js';
 
 // The admin panel is loaded only when an /admin route is opened, so its
 // code never weighs on the public site's bundle.
@@ -47,9 +45,14 @@ const AdminApp = lazy(() => import('./admin/AdminApp.jsx'));
 
   /admin routes render the admin panel with its own chrome (no public
   Header/Footer). Every other route renders the public site exactly as
-  before. The three service pages (/employers/:slug) are generated from
-  servicesContent.js, the same way the sector routes are generated from
-  SECTORS.
+  before.
+
+  Service pages (/employers/:slug) and sector pages (/expertise/:slug)
+  are matched by slug. Each page looks its record up in the published
+  list the backend returns, so a slug changed in the admin works at
+  once and an unpublished or unknown slug shows the page's own
+  not-found state. activeSector starts empty and is set by
+  ExpertiseBands once the sectors have loaded.
 */
 export default function App() {
   return (
@@ -61,7 +64,7 @@ export default function App() {
 }
 
 function AppShell() {
-  const [activeSector, setActiveSector] = useState(SECTORS[0].id);
+  const [activeSector, setActiveSector] = useState(null);
   const [pulseKey] = useState(null);
   const { pathname } = useLocation();
 
@@ -83,24 +86,13 @@ function AppShell() {
               element={<Landing activeSector={activeSector} setActiveSector={setActiveSector} pulseKey={pulseKey} />}
             />
             <Route path="/employers" element={<Employers />} />
-            {publishedServices().map(s => (
-              <Route
-                key={s.slug}
-                path={`/employers/${s.slug}`}
-                element={<ServicePage slug={s.slug} />}
-              />
-            ))}
+            <Route path="/employers/:slug" element={<ServicePage />} />
             <Route path="/talent" element={<Talent />} />
             <Route path="/talent/jobs/:slug" element={<JobDetail />} />
             <Route path="/expertise" element={<ExpertiseIndex />} />
-            {SECTORS.map(s => (
-              <Route
-                key={s.id}
-                path={`/expertise/${EXPERTISE_SLUGS[s.id]}`}
-                element={<SectorPage sectorId={s.id} />}
-              />
-            ))}
-            {/* Old sector URLs redirect to the page that now covers them. */}
+            {/* Old sector URLs redirect to the page that now covers them.
+                They are listed before the :slug route's turn comes
+                because a fixed path always wins over a parameter. */}
             {Object.entries(EXPERTISE_LEGACY_SLUGS).map(([from, to]) => (
               <Route
                 key={from}
@@ -108,6 +100,7 @@ function AppShell() {
                 element={<Navigate to={`/expertise/${to}`} replace />}
               />
             ))}
+            <Route path="/expertise/:slug" element={<SectorPage />} />
             <Route path="/insights" element={<InsightsIndex />} />
             <Route path="/insights/:slug" element={<InsightDetail />} />
             <Route path="/about" element={<About />} />

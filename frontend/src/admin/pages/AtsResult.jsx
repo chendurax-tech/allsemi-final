@@ -1,141 +1,215 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { atsApi } from '../../lib/api/index.js';
 import { useAdminStore } from '../store.jsx';
+import { useAuth } from '../auth.jsx';
 import {
-  PageHeader, Panel, StageTrace, ScoreRing, Badge, Button, Chip, EmptyState, DefinitionList, Notice, cx,
+  PageHeader, Panel, StageTrace, ScoreRing, Badge, Button, Chip, EmptyState, DefinitionList, Notice, cx, inputCls, labelCls,
 } from '../components/ui.jsx';
-import { ATS_STAGES } from '../data/atsStages.js';
-import { REVIEW_STATES } from '../data/recruitment.js';
-import { aiService } from '../lib/aiService.js';
-import { formatDateTime } from '../lib/format.js';
+import { ATS_STAGES, ATS_STAGE_COLUMNS, ATS_COMPONENTS } from '../data/atsStages.js';
+import { ATS_REVIEW_STATES, label } from '../data/enums.js';
+import { formatDate, formatDateTime } from '../lib/format.js';
+import ShortlistPanel from '../components/ShortlistPanel.jsx';
+import AiComparison, { AtsScopeNotice } from '../components/AiComparison.jsx';
 
 /*
-  AtsResult - one candidate's evaluation against one job.
+  AtsResult - one candidate's rule-based evaluation against one job.
 
   The screen follows the pipeline, not a single number: the stage trace
-  first, then what the rule-based layer found, what the AI layer read,
-  the evidence behind each claim, and finally the recruiter's review.
-  The overall figure is labelled as decision support wherever it shows.
+  first, then the score with the weighted parts it is made of, the
+  checks behind each part, the skills that were and were not found,
+  and finally the recruiter's review.
+
+  Everything in those panels is what the rule-based engine stored.
+  Running an evaluation or saving a review never changes an
+  application. The decision to shortlist is a separate action a
+  recruiter takes, offered beside the review.
+
+  The AI comparison is a separate panel after all of that
+  (components/AiComparison.jsx). It is advice a recruiter asks for with
+  a button, it is never requested by this screen on its own, and none
+  of its text or numbers are mixed into the rule-based panels.
 */
 
-const selectCls = 'w-full bg-bg border border-line-strong px-3 py-2 text-sm text-text focus:outline-none focus:border-accent';
-
-function MarkedList({ items, tone, empty }) {
-  if (!items.length) return <p className="text-sm text-text-dim">{empty}</p>;
-  return (
-    <ul className="space-y-2.5">
-      {items.map((item) => (
-        <li key={item} className="flex gap-3 text-sm leading-relaxed">
-          <span className={cx('mt-2 h-1.5 w-1.5 shrink-0 rounded-full', tone === 'teal' ? 'bg-turquoise' : 'bg-[#e8b65a]')} aria-hidden="true" />
-          <span>{item}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function ReviewPanel({ result }) {
-  const { upsert, log, user } = useAdminStore();
+  const { put } = useAdminStore();
+  const { can } = useAuth();
   const [reviewState, setReviewState] = useState(result.review.state);
   const [note, setNote] = useState(result.review.note || '');
-  const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState(null);
+  const canReview = can('ats:review');
 
-  function save() {
-    const at = new Date().toISOString();
-    upsert('atsResults', {
-      ...result,
-      review: { state: reviewState, note, reviewer: user.name, updatedAt: at },
-      history: [...result.history, { at, actor: user.name, action: `Recruiter review set to "${reviewState}"` }],
-    });
-    log({ action: `Recruiter review set to "${reviewState}"`, candidateId: result.candidateId, jobId: result.jobId });
-    setSaved(true);
+  async function save() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      put('atsResults', await atsApi.review(result.id, reviewState, note));
+      setMessage({ tone: 'teal', text: 'Saved review.' });
+    } catch (failure) {
+      setMessage({ tone: 'red', text: failure.fields?.note || failure.message });
+    }
+    setBusy(false);
   }
 
   return (
     <Panel title="Recruiter review" meta="The decision belongs to a person">
-      <div className="mb-4"><Badge>{result.review.state}</Badge></div>
-      <label htmlFor="review-state" className="block font-mono text-[0.65rem] uppercase tracking-[0.14em] text-text-dim mb-1.5">Decision</label>
-      <select id="review-state" value={reviewState} onChange={(e) => { setReviewState(e.target.value); setSaved(false); }} className={selectCls}>
-        {REVIEW_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-      </select>
-      <label htmlFor="review-note" className="mt-4 block font-mono text-[0.65rem] uppercase tracking-[0.14em] text-text-dim mb-1.5">Note</label>
-      <textarea id="review-note" rows={4} value={note} onChange={(e) => { setNote(e.target.value); setSaved(false); }} className={cx(selectCls, 'resize-y leading-relaxed')} />
-      <div className="mt-4 flex items-center gap-3">
-        <Button variant="primary" onClick={save}>Save review</Button>
-        {saved && <span className="text-xs text-turquoise" role="status">Saved review</span>}
-      </div>
-      {result.review.reviewer && (
-        <p className="mt-4 text-xs text-text-dim">Last reviewed by {result.review.reviewer}, {formatDateTime(result.review.updatedAt)}</p>
+      <div className="mb-4"><Badge>{label(result.review.state)}</Badge></div>
+      {canReview ? (
+        <>
+          <label htmlFor="review-state" className={labelCls}>Decision</label>
+          <select id="review-state" value={reviewState} disabled={busy} onChange={(e) => { setReviewState(e.target.value); setMessage(null); }} className={inputCls}>
+            {ATS_REVIEW_STATES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
+          </select>
+          <label htmlFor="review-note" className={cx(labelCls, 'mt-4')}>Note</label>
+          <textarea id="review-note" rows={4} value={note} maxLength={4000} disabled={busy} onChange={(e) => { setNote(e.target.value); setMessage(null); }} className={cx(inputCls, 'resize-y leading-relaxed')} />
+          <div className="mt-4"><Button variant="primary" onClick={save} disabled={busy}>{busy ? 'Saving' : 'Save review'}</Button></div>
+          {message && <div className="mt-3" role={message.tone === 'red' ? 'alert' : 'status'}><Notice tone={message.tone}>{message.text}</Notice></div>}
+        </>
+      ) : (
+        <>
+          {result.review.note && <p className="whitespace-pre-line text-sm leading-relaxed">{result.review.note}</p>}
+          <p className="mt-3 text-xs text-text-dim leading-relaxed">Your role can read this review but cannot change it.</p>
+        </>
       )}
+      {result.review.reviewerName && (
+        <p className="mt-4 text-xs text-text-dim">Last reviewed by {result.review.reviewerName}, {formatDateTime(result.review.updatedAt)}</p>
+      )}
+      <p className="mt-4 border-t border-line pt-4 text-xs text-text-dim leading-relaxed">
+        A review is a note on this evaluation. It does not shortlist or reject anyone and sends nothing. Shortlisting the application is the separate step below.
+      </p>
     </Panel>
   );
 }
 
+function SkillGroup({ title, items, tone, empty }) {
+  return (
+    <>
+      <p className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim mb-2">{title}</p>
+      <div className="flex flex-wrap gap-2">
+        {items.length ? items.map((s) => <Chip key={s} tone={tone}>{s}</Chip>) : <span className="text-sm text-text-dim">{empty}</span>}
+      </div>
+    </>
+  );
+}
+
 export default function AtsResult({ candidateId }) {
-  const { state } = useAdminStore();
+  const { state, status, errors, reload, put } = useAdminStore();
+  const { can } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [runMessage, setRunMessage] = useState('');
+  const [running, setRunning] = useState('');
+  const [runNote, setRunNote] = useState(null);
+
+  const back = <div className="flex justify-center pb-4"><Button to="/admin/ats">Back to ATS results</Button></div>;
+
+  const pending = ['atsResults', 'candidates'].find((name) => status[name] === 'loading');
+  const failed = ['atsResults', 'candidates'].find((name) => status[name] === 'error');
+  if (pending) {
+    return <Panel><div role="status"><EmptyState title="Loading the evaluation">Reading the result from the database.</EmptyState></div></Panel>;
+  }
+  if (failed) {
+    return (
+      <Panel>
+        <div role="alert"><EmptyState title="The evaluation could not be loaded">{errors[failed]}</EmptyState></div>
+        <div className="flex justify-center pb-4"><Button onClick={() => reload(failed)}>Try again</Button></div>
+      </Panel>
+    );
+  }
 
   const candidate = state.candidates.find((c) => c.id === candidateId);
   const results = state.atsResults.filter((r) => r.candidateId === candidateId);
   const result = results.find((r) => r.jobId === searchParams.get('job')) || results[0];
   const jobOf = (jobId) => state.jobs.find((j) => j.id === jobId)?.title || 'Removed job';
+  // The application this evaluation belongs to, when the role may read
+  // applications. If the candidate applied to the job more than once,
+  // the one the evaluation was run for.
+  const application = result && can('applications:read')
+    ? state.applications.find((a) => a.id === result.applicationId) || state.applications.find((a) => a.candidateId === candidateId && a.jobId === result.jobId)
+    : null;
 
   if (!candidate) {
-    return (
-      <Panel>
-        <EmptyState title="This candidate was not found">The profile may have been deleted in this session.</EmptyState>
-        <div className="flex justify-center pb-4"><Button to="/admin/ats">Back to ATS results</Button></div>
-      </Panel>
-    );
+    return <Panel><EmptyState title="This candidate was not found">The profile may have been deleted, or the address may be wrong.</EmptyState>{back}</Panel>;
   }
 
+  // target: { applicationId } or { candidateId, jobId }
+  async function run(key, target) {
+    setRunning(key);
+    setRunNote(null);
+    try {
+      const fresh = await atsApi.run(target);
+      put('atsResults', fresh);
+      setSearchParams({ job: fresh.jobId }, { replace: true });
+      setRunNote({ tone: 'teal', text: `Evaluation finished: ${fresh.totalScore} of 100. The recruiter review was kept as it was.` });
+    } catch (failure) {
+      setRunNote({ tone: 'red', text: failure.message });
+    }
+    setRunning('');
+  }
+
+  const scope = <AtsScopeNotice />;
+  const runMessage = runNote && <div className="mb-5" role={runNote.tone === 'red' ? 'alert' : 'status'}><Notice tone={runNote.tone}>{runNote.text}</Notice></div>;
+
   if (!result) {
-    const stages = ATS_STAGES.map((stage, i) => ({ ...stage, state: i < 3 ? 'done' : 'pending' }));
+    const stages = ATS_STAGES.map((stage, i) => ({ ...stage, state: i < 2 ? 'done' : 'pending' }));
+    const waiting = state.applications.filter((a) => a.candidateId === candidateId && a.jobId);
     return (
       <>
-        <PageHeader eyebrow="Recruitment / ATS results" title={candidate.name} description="No evaluation has run for this candidate yet." actions={<Button variant="ghost" to="/admin/ats">Back to ATS results</Button>} />
-        <Panel title="Where this candidate is in the pipeline">
-          <StageTrace stages={stages} />
-          <p className="mt-6 text-sm text-text-dim leading-relaxed">The resume has been extracted into a structured profile. An evaluation runs when the application is matched to a job.</p>
+        <PageHeader eyebrow="Recruitment / Rule-based ATS" title={candidate.name} description="No evaluation has run for this candidate yet." actions={<Button variant="ghost" to="/admin/ats">Back to ATS results</Button>} />
+        <div className="mb-5">{scope}</div>
+        {runMessage}
+        <Panel title="Where this candidate is in the pipeline" meta="RULE-BASED ATS">
+          <StageTrace stages={stages} columns={ATS_STAGE_COLUMNS} />
+          <p className="mt-6 text-sm text-text-dim leading-relaxed">The profile is on record. An evaluation compares it with the job of one application.</p>
           <div className="mt-4"><Button to={`/admin/candidates/${candidateId}`}>Open candidate profile</Button></div>
+        </Panel>
+        <Panel className="mt-6" title="Applications" meta="Run an evaluation against the job of an application" pad={false}>
+          {waiting.length === 0 ? <EmptyState title="No application for a job">A general application has no job to be compared with.</EmptyState> : (
+            <ul className="divide-y divide-line">
+              {waiting.map((a) => (
+                <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-3 md:px-5">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{jobOf(a.jobId)}</p>
+                    <p className="text-xs text-text-dim">Applied {formatDate(a.submittedAt)}</p>
+                  </div>
+                  <Badge>Not evaluated</Badge>
+                  {can('ats:run') && <Button size="sm" onClick={() => run(a.id, { applicationId: a.id })} disabled={Boolean(running)}>{running === a.id ? 'Evaluating' : 'Run evaluation'}</Button>}
+                </li>
+              ))}
+            </ul>
+          )}
         </Panel>
       </>
     );
   }
 
-  const reviewed = result.review.state !== 'Pending review';
+  const reviewed = result.review.state !== 'PENDING';
   const stages = ATS_STAGES.map((stage, i) => {
     if (i < ATS_STAGES.length - 1) return { ...stage, state: 'done' };
     return { ...stage, state: reviewed ? 'done' : 'current' };
   });
-
-  async function runAgain() {
-    setRunMessage('Requesting a new evaluation.');
-    try {
-      const response = await aiService.compareCandidateToJob(candidateId, result.jobId);
-      setRunMessage(response.connected ? 'A new evaluation was requested.' : response.message);
-    } catch (error) {
-      setRunMessage(`The evaluation could not be requested. ${error.message}`);
-    }
-  }
+  const weights = result.weights || {};
+  const components = ATS_COMPONENTS.map((part) => ({ ...part, value: result[part.score], share: weights[part.weight] }));
+  const weightTotal = components.reduce((sum, part) => sum + (part.share || 0), 0);
 
   return (
     <>
       <PageHeader
-        eyebrow="Recruitment / ATS results"
+        eyebrow="Recruitment / Rule-based ATS"
         title={candidate.name}
-        description={`Evaluated against ${jobOf(result.jobId)} on ${formatDateTime(result.runAt)}.`}
+        description={`Evaluated against ${jobOf(result.jobId)}.`}
         actions={(
           <>
             <Button variant="ghost" to="/admin/ats">Back to ATS results</Button>
             <Button to={`/admin/candidates/${candidateId}`}>Candidate profile</Button>
-            <Button onClick={runAgain}>Run evaluation again</Button>
+            {can('ats:run') && (
+              <Button onClick={() => run('again', { candidateId, jobId: result.jobId })} disabled={Boolean(running)}>{running ? 'Evaluating' : 'Run evaluation again'}</Button>
+            )}
           </>
         )}
       />
 
-      {runMessage && <div className="mb-5" role="status"><Notice tone="blue">{runMessage}</Notice></div>}
+      <div className="mb-5">{scope}</div>
+      {runMessage}
 
       {results.length > 1 && (
         <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Evaluated jobs">
@@ -145,62 +219,76 @@ export default function AtsResult({ candidateId }) {
               type="button"
               role="tab"
               aria-selected={r.id === result.id}
-              onClick={() => setSearchParams({ job: r.jobId })}
+              onClick={() => { setSearchParams({ job: r.jobId }); setRunNote(null); }}
               className={cx(
                 'border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:border-accent',
                 r.id === result.id ? 'border-accent bg-accent/10 text-text font-semibold' : 'border-line-strong text-text-dim hover:text-text',
               )}
             >
-              {jobOf(r.jobId)} <span className="ml-2 tabular-nums text-text-dim">{r.overall}</span>
+              {jobOf(r.jobId)} <span className="ml-2 tabular-nums text-text-dim">{r.totalScore}</span>
             </button>
           ))}
         </div>
       )}
 
-      <Panel title="Pipeline" meta={reviewed ? 'All eight stages complete' : 'Seven stages complete. Waiting for a recruiter.'}>
-        <StageTrace stages={stages} />
+      <Panel title="Pipeline" meta={reviewed ? 'RULE-BASED ATS. Every stage is complete.' : 'RULE-BASED ATS. Scored and waiting for a recruiter.'}>
+        <StageTrace stages={stages} columns={ATS_STAGE_COLUMNS} />
       </Panel>
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="space-y-6 min-w-0">
-          <Panel title="Overall match">
+          <Panel title="Total score">
             <div className="flex flex-col items-center text-center">
-              <ScoreRing value={result.overall} caption="of 100" />
+              <ScoreRing value={result.totalScore} caption="of 100" />
               <div className="mt-4"><Badge>{result.band}</Badge></div>
-              <p className="mt-4 text-xs text-text-dim leading-relaxed">
-                Decision support only. This figure summarises the checks beside it and does not advance or reject anyone.
-              </p>
             </div>
             <div className="mt-5 border-t border-line pt-4">
-              <DefinitionList items={[['Evaluated', formatDateTime(result.runAt)], ['AI service', 'Not connected. Sample result.']]} />
+              <DefinitionList
+                items={[
+                  ['Engine', `Rule based, version ${result.engineVersion}`],
+                  ['Evaluated', formatDateTime(result.runAt)],
+                  ['Run by', result.runByName || 'Not recorded'],
+                ]}
+              />
             </div>
           </Panel>
 
           <ReviewPanel key={result.id} result={result} />
+
+          {application && (
+            <Panel title="Application" meta={`Submitted ${formatDate(application.submittedAt)}`}>
+              <ShortlistPanel key={application.id} item={application} />
+            </Panel>
+          )}
         </div>
 
         <div className="space-y-6 min-w-0">
-          <Panel title="Required skills" meta={`${result.matchedSkills.length} of ${result.requiredSkills.length} matched by exact name`}>
-            <p className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim mb-2">Matched</p>
-            <div className="flex flex-wrap gap-2">
-              {result.matchedSkills.length ? result.matchedSkills.map((s) => <Chip key={s} tone="teal">{s}</Chip>) : <span className="text-sm text-text-dim">None</span>}
-            </div>
-            <p className="mt-4 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim mb-2">Missing</p>
-            <div className="flex flex-wrap gap-2">
-              {result.missingSkills.length ? result.missingSkills.map((s) => <Chip key={s} tone="amber">{s}</Chip>) : <span className="text-sm text-text-dim">None</span>}
-            </div>
-            <p className="mt-4 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim mb-2">Preferred skills</p>
-            <div className="flex flex-wrap gap-2">
-              {result.preferredMatched.map((s) => <Chip key={s} tone="blue">{s}</Chip>)}
-              {result.preferredMissing.map((s) => <Chip key={s}>{s} (not found)</Chip>)}
-            </div>
+          <Panel title="Score breakdown" meta={`The total is the weighted average of the parts that apply. Weights used here add up to ${weightTotal}.`} pad={false}>
+            <ul className="divide-y divide-line">
+              {components.map((part) => {
+                const scored = part.share !== undefined && part.value !== null && part.value !== undefined;
+                return (
+                  <li key={part.score} className="px-4 py-3 md:px-5">
+                    <div className="flex items-baseline gap-3">
+                      <span className="min-w-0 flex-1 text-sm font-semibold">{part.label}</span>
+                      <span className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim whitespace-nowrap">{scored ? `Weight ${part.share}` : 'Not scored'}</span>
+                      <span className="w-10 text-right font-display text-lg font-semibold tabular-nums">{scored ? part.value : ''}</span>
+                    </div>
+                    <div className="mt-2 h-1 w-full bg-line-strong" aria-hidden="true">
+                      {scored && <div className="h-full bg-[#5b9dff]" style={{ width: `${Math.max(0, Math.min(100, part.value))}%` }} />}
+                    </div>
+                    {!scored && <p className="mt-2 text-xs text-text-dim">The job gives nothing to compare for this part, so it is left out of the total.</p>}
+                  </li>
+                );
+              })}
+            </ul>
           </Panel>
 
           <Panel title="Rule-based checks" meta="Deterministic. The same inputs always give the same result." pad={false}>
             <ul className="divide-y divide-line">
-              {result.ruleChecks.map((check) => (
+              {result.checks.map((check) => (
                 <li key={check.rule} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 md:px-5">
-                  <span className="w-48 shrink-0 text-sm font-semibold">{check.rule}</span>
+                  <span className="w-44 shrink-0 text-sm font-semibold">{check.rule}</span>
                   <span className="flex-1 text-sm text-text-dim">{check.detail}</span>
                   <span><Badge>{check.result}</Badge></span>
                 </li>
@@ -208,63 +296,16 @@ export default function AtsResult({ candidateId }) {
             </ul>
           </Panel>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            <Panel title="Relevant experience">
-              <p className="text-sm leading-relaxed">{result.experienceSummary}</p>
-              <p className="mt-2 text-xs text-text-dim">Role asks for {result.experienceRequired}</p>
-              {result.experienceGaps.length > 0 && (
-                <div className="mt-4 border-t border-line pt-3">
-                  <p className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim mb-2">Experience gaps</p>
-                  <MarkedList items={result.experienceGaps} tone="amber" />
-                </div>
-              )}
-            </Panel>
-            <Panel title="Education match">
-              <Badge>{result.education.result}</Badge>
-              <p className="mt-3 text-sm leading-relaxed">{result.education.note}</p>
-            </Panel>
-            <Panel title="Domain relevance">
-              <Badge>{result.domain.level}</Badge>
-              <p className="mt-3 text-sm leading-relaxed">{result.domain.note}</p>
-            </Panel>
-          </div>
-
-          <Panel title="AI comparison and explanation" meta="Sample text standing in for the AI layer, which is not connected yet.">
-            <p className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[#8ab8ff] mb-2">Semantic reading</p>
-            <p className="text-sm leading-relaxed">{result.semanticNote}</p>
-            <p className="mt-5 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[#8ab8ff] mb-2">Match explanation</p>
-            <p className="text-sm leading-relaxed">{result.explanation}</p>
-          </Panel>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <Panel title="Strengths"><MarkedList items={result.strengths} tone="teal" empty="None identified." /></Panel>
-            <Panel title="Potential gaps"><MarkedList items={result.potentialGaps} tone="amber" empty="None identified." /></Panel>
-          </div>
-
-          <Panel title="Evidence" meta="Where each claim comes from in the resume" pad={false}>
-            <ul className="divide-y divide-line">
-              {result.evidence.map((item) => (
-                <li key={item.claim} className="px-4 py-4 md:px-5">
-                  <p className="text-sm font-semibold">{item.claim}</p>
-                  <blockquote className="mt-2 border-l-2 border-[#5b9dff]/60 pl-3 text-sm text-text-dim leading-relaxed">{item.excerpt}</blockquote>
-                  <p className="mt-2 text-xs text-text-dim">{item.source}</p>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-
-          <Panel title="History" meta="Every step is recorded for audit">
-            <ol className="space-y-4">
-              {result.history.map((entry, i) => (
-                <li key={`${entry.at}-${i}`} className="border-l border-line-strong pl-4">
-                  <p className="text-sm">{entry.action}</p>
-                  <p className="mt-0.5 text-xs text-text-dim">{entry.actor}, {formatDateTime(entry.at)}</p>
-                </li>
-              ))}
-            </ol>
+          <Panel title="Skills" meta={`${result.matchedSkills.length} of ${result.requiredSkills.length} required skills matched by name`}>
+            <SkillGroup title="Required, matched" items={result.matchedSkills} tone="teal" empty="None" />
+            <div className="mt-4"><SkillGroup title="Required, missing" items={result.missingSkills} tone="amber" empty="None" /></div>
+            <div className="mt-4"><SkillGroup title="Preferred, matched" items={result.preferredMatched} tone="blue" empty="None" /></div>
+            <div className="mt-4"><SkillGroup title="Preferred, not found" items={result.preferredMissing} tone="dim" empty="None" /></div>
           </Panel>
         </div>
       </div>
+
+      <AiComparison key={result.id} result={result} />
     </>
   );
 }

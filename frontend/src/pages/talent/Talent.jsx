@@ -8,8 +8,24 @@ import {
   TALENT_HERO, CAREER_POSITIONING, SPECIALISATION_MAP,
   TALENT_JOURNEY, TALENT_CTA,
 } from './talentContent.js';
-import { getPublishedJobs, JOB_CATEGORIES, JOB_LOCATIONS } from './jobsContent.js';
+import { JOB_CATEGORIES, JOB_LOCATIONS, jobChips, hasChip } from './jobsContent.js';
 import { ApplyModal } from './JobDetail.jsx';
+import { useJobs } from '../../lib/usePublicData.js';
+import { checkDocument } from '../../components/forms/validation.js';
+
+/*
+  Talent - the candidate-facing page (route: /talent).
+
+  The open positions come from the backend (useJobs -> GET
+  /api/public/jobs), which returns published jobs only. There is no
+  bundled fallback list: while the request runs the section shows a
+  loading state, and if it fails it says so and offers a retry.
+
+  A general application (no specific job) opens the same five-step
+  application overlay the job pages use, from the "General Application"
+  buttons and from the CV drop area, which hands the chosen file to the
+  overlay as the resume.
+*/
 
 export default function Talent() {
   useEffect(() => {
@@ -173,7 +189,11 @@ function SpecialisationMap() {
   );
 }
 
-/* ============ OPEN POSITIONS ============ */
+/* ============ OPEN POSITIONS ============
+   Search and filters work on the list the API returned. `status` is
+   the request's state: loading, ready or error. The filter chips are
+   the fixed lists plus any other category or location a listed job
+   has, so every job can be found by a chip. */
 function OpenPositions() {
   const [ref, inView] = useInView(0.05);
   const [query, setQuery] = useState('');
@@ -181,14 +201,17 @@ function OpenPositions() {
   const [location, setLocation] = useState(null);
   const [applyGeneral, setApplyGeneral] = useState(false);
 
-  const jobs = getPublishedJobs();
+  const { status, jobs, reload } = useJobs();
   const filtered = jobs.filter(j => {
     const q = query.trim().toLowerCase();
     const matchesQuery = !q || j.title.toLowerCase().includes(q) || j.keywords.some(k => k.toLowerCase().includes(q));
-    const matchesCategory = !category || j.category === category;
-    const matchesLocation = !location || j.location === location;
+    const matchesCategory = !category || hasChip(j, 'category', category);
+    const matchesLocation = !location || hasChip(j, 'location', location);
     return matchesQuery && matchesCategory && matchesLocation;
   });
+
+  const categoryChips = jobChips(JOB_CATEGORIES, jobs, 'category');
+  const locationChips = jobChips(JOB_LOCATIONS, jobs, 'location');
 
   const hasActiveFilters = query || category || location;
   function clearFilters() { setQuery(''); setCategory(null); setLocation(null); }
@@ -199,7 +222,7 @@ function OpenPositions() {
         <MeasurementLabel className="block mb-4">Open Positions</MeasurementLabel>
         <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight mb-2">Current opportunities.</h2>
         <p className="text-text-dim text-sm mb-10 max-w-lg">
-          Representative open positions, shown here as an illustrative showcase of live search scope.
+          Open positions currently listed by ALLSEMIS. Search by title or keyword, or filter by category and location.
         </p>
 
         {/* Search + filters */}
@@ -213,7 +236,7 @@ function OpenPositions() {
           />
           <div className="flex flex-wrap gap-2">
             <span className="font-mono text-[0.62rem] uppercase tracking-widest text-text-faint self-center mr-1">Category:</span>
-            {JOB_CATEGORIES.map(c => (
+            {categoryChips.map(c => (
               <button
                 key={c}
                 onClick={() => setCategory(c === category ? null : c)}
@@ -227,7 +250,7 @@ function OpenPositions() {
           </div>
           <div className="flex flex-wrap gap-2">
             <span className="font-mono text-[0.62rem] uppercase tracking-widest text-text-faint self-center mr-1">Location:</span>
-            {JOB_LOCATIONS.map(l => (
+            {locationChips.map(l => (
               <button
                 key={l}
                 onClick={() => setLocation(l === location ? null : l)}
@@ -247,7 +270,40 @@ function OpenPositions() {
         </div>
 
         {/* Results */}
-        {filtered.length === 0 ? (
+        {status === 'loading' && (
+          <div role="status" className="flex flex-col border border-line">
+            <span className="sr-only">Loading positions</span>
+            {[0, 1, 2].map((row) => (
+              <div key={row} className="px-5 py-5 md:py-6 border-b border-line last:border-b-0 animate-pulse motion-reduce:animate-none" aria-hidden="true">
+                <div className="h-2 w-44 max-w-full bg-line-strong mb-3.5" />
+                <div className="h-4 w-72 max-w-full bg-line-strong mb-3.5" />
+                <div className="h-2 w-full max-w-md bg-line" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div role="alert" className="border border-dashed border-line-strong p-10 text-center">
+            <p className="text-text-dim text-sm mb-5">Positions could not be loaded.</p>
+            <button onClick={reload} className="font-mono text-xs uppercase tracking-widest text-accent hover:text-accent-2 transition-colors px-4 py-2 border border-accent/40">
+              Try again
+            </button>
+          </div>
+        )}
+
+        {status === 'ready' && jobs.length === 0 && (
+          <div className="border border-dashed border-line-strong p-10 text-center">
+            <p className="text-text-dim text-sm mb-5">
+              No open positions are listed right now. You can still send a general application.
+            </p>
+            <button onClick={() => setApplyGeneral(true)} className="font-mono text-xs uppercase tracking-widest text-accent hover:text-accent-2 transition-colors px-4 py-2 border border-accent/40">
+              General Application
+            </button>
+          </div>
+        )}
+
+        {status === 'ready' && jobs.length > 0 && (filtered.length === 0 ? (
           <div className="border border-dashed border-line-strong p-10 text-center">
             <p className="text-text-dim text-sm mb-5">No positions match your current filters.</p>
             <div className="flex flex-wrap justify-center gap-3">
@@ -292,14 +348,17 @@ function OpenPositions() {
                   <Link to={`/talent/jobs/${j.slug}`} className="font-mono text-xs uppercase tracking-widest text-center px-4 py-2 border border-line-strong hover:border-accent hover:text-accent transition-colors">
                     View Role
                   </Link>
-                  <Link to={`/talent/jobs/${j.slug}`} className="font-mono text-xs uppercase tracking-widest text-center px-4 py-2 bg-text text-bg hover:bg-accent transition-colors">
-                    Apply
-                  </Link>
+                  {/* Not offered when applications are switched off for the job. */}
+                  {j.applicationEnabled && (
+                    <Link to={`/talent/jobs/${j.slug}`} className="font-mono text-xs uppercase tracking-widest text-center px-4 py-2 bg-text text-bg hover:bg-accent transition-colors">
+                      Apply
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}
           </div>
-        )}
+        ))}
 
         {/* General application */}
         <div className="mt-12 text-center border-t border-line pt-10">
@@ -311,9 +370,7 @@ function OpenPositions() {
         </div>
       </div>
 
-      {applyGeneral && (
-        <ApplyModal job={{ title: 'General Application' }} general onClose={() => setApplyGeneral(false)} />
-      )}
+      {applyGeneral && <ApplyModal onClose={() => setApplyGeneral(false)} />}
     </section>
   );
 }
@@ -351,10 +408,24 @@ function HowWeWork() {
   );
 }
 
-/* ============ CV / TALENT COMMUNITY ============ */
+/* ============ CV / TALENT COMMUNITY ============
+   Dropping or choosing a CV here starts a general application with
+   that file as the resume: the application overlay opens so the
+   candidate can add their details and send it. A file that is not a
+   PDF, DOC or DOCX of up to 5 MB is refused here with the reason. */
 function CvCommunity() {
   const [ref, inView] = useInView(0.2);
   const [dragOver, setDragOver] = useState(false);
+  const [resume, setResume] = useState(null);
+  const [fileError, setFileError] = useState('');
+
+  function take(file) {
+    if (!file) return;
+    const problem = checkDocument(file);
+    setFileError(problem ? `"${file.name}" was not attached. ${problem}` : '');
+    if (!problem) setResume(file);
+  }
+
   return (
     <section id="cv-community" ref={(el) => { ref.current = el; }} className="border-b border-line py-20 md:py-28">
       <div className="max-w-3xl mx-auto px-5 md:px-10 text-center">
@@ -367,7 +438,7 @@ function CvCommunity() {
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => { e.preventDefault(); setDragOver(false); }}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); take(e.dataTransfer.files[0]); }}
           className={`relative border-2 border-dashed p-10 md:p-14 transition-colors duration-300 ${
             dragOver ? 'border-accent bg-accent/5' : 'border-line-strong'
           }`}
@@ -388,14 +459,22 @@ function CvCommunity() {
           <p className="text-text-dim text-sm mb-6">Drag and drop, or choose a file</p>
           <label className="inline-flex text-sm font-semibold px-5 py-3 bg-text text-bg hover:bg-accent transition-colors cursor-pointer">
             Choose File
-            <input type="file" className="hidden" accept=".pdf,.doc,.docx" />
+            <input
+              type="file"
+              className="hidden"
+              accept=".pdf,.doc,.docx"
+              onChange={(e) => { take(e.target.files[0]); e.target.value = ''; }}
+            />
           </label>
         </div>
+        {fileError && <p role="alert" className="font-mono text-xs text-red-400 mt-4">! {fileError}</p>}
 
         <Link to="/contact?type=candidate" className="inline-flex text-accent text-sm font-mono uppercase tracking-widest hover:text-accent-2 transition-colors mt-8">
           Or reach us directly →
         </Link>
       </div>
+
+      {resume && <ApplyModal initialResume={resume} onClose={() => setResume(null)} />}
     </section>
   );
 }

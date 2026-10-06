@@ -1,15 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SECTORS } from './Expertise.jsx';
-import { EXPERTISE_SLUGS } from '../lib/expertiseRoutes.js';
+import { useSectors } from '../lib/usePublicData.js';
 
 /*
-  ExpertiseBands - horizontal 8-column industry canvas.
+  ExpertiseBands - horizontal industry canvas, one column per sector.
 
-  Desktop (md+, >=768px): one continuous flex row, fixed height. Sector
-  01 is expanded (40% width) on first render by default; hovering a
-  column transfers the expansion to it while the other 7 share the
-  remaining 60% (~8.57% each) - width transitions only, no vertical
+  The sectors are the published ones, read from the backend
+  (useSectors), in the order set in the admin. While they load the
+  canvas keeps its frame, so the page does not jump. With no published
+  sector, or when the API cannot be reached, nothing is rendered and
+  the rest of the page is unaffected.
+
+  Desktop (md+, >=768px): one continuous flex row, fixed height. The
+  first sector is expanded (40% width) on first render by default;
+  hovering a column transfers the expansion to it while the others
+  share the remaining 60% (~8.57% each with eight sectors) - width
+  transitions only, no vertical
   movement, no card styling, no rail, no panel. The active state
   persists after the pointer leaves the canvas and transfers smoothly
   when a different column is hovered - this is deliberately not an
@@ -24,16 +30,26 @@ import { EXPERTISE_SLUGS } from '../lib/expertiseRoutes.js';
   grayscale -> color reveal. This is a distinct mobile presentation,
   not the desktop columns compressed down.
 
-  Independent file, reusing only the SECTORS data from Expertise.jsx
-  (which remains completely untouched as the shipped fallback).
+  What stays here, keyed by the sector's fixed id, is presentation only:
+  where each photograph is anchored (ART) and the inspection detail of
+  the semiconductor column. A sector without an entry (one created in
+  the admin) is anchored at its centre.
 */
 
-// Desktop column gap (px). 7 gaps between 8 columns; column widths are
-// computed as a percentage of (100% - total gap width), so the gaps
-// are never additive on top of the row's own width - the row always
-// sums to exactly 100% of its container, active state or not.
+// Desktop column gap (px). One gap between each pair of columns; column
+// widths are computed as a percentage of (100% - total gap width), so
+// the gaps are never additive on top of the row's own width - the row
+// always sums to exactly 100% of its container, active state or not.
 const GAP_PX = 6;
-const GAP_COUNT = 7;
+
+// The share of the row the expanded column takes, and each of the
+// others, for any number of sectors. With three or more the expanded
+// one takes 40% and the rest share 60% (60 / 7 each with eight).
+function columnShares(count) {
+  if (count <= 1) return { active: 100, rest: 0 };
+  const active = count === 2 ? 60 : 40;
+  return { active, rest: (100 - active) / (count - 1) };
+}
 
 const ART = {
   semiconductor: { position: '50% 45%' },
@@ -45,6 +61,8 @@ const ART = {
   'business-finance': { position: '50% 40%' },
   'banking-fintech': { position: '65% 50%' },
 };
+const CENTRED = { position: '50% 50%' };
+const artFor = (id) => (Object.hasOwn(ART, id) ? ART[id] : CENTRED);
 
 function ExploreMark({ className = '' }) {
   return (
@@ -75,11 +93,18 @@ function InspectionDetail() {
 }
 
 export default function ExpertiseBands({ activeSector: activeSectorProp, setActiveSector: setActiveSectorProp, pulseKey, embedded = false, heightClass } = {}) {
-  const [internalActive, setInternalActive] = useState(SECTORS[0].id);
+  const { status, sectors } = useSectors();
+  const [internalActive, setInternalActive] = useState(null);
   const [pulsingId, setPulsingId] = useState(null);
   const isControlled = activeSectorProp !== undefined && setActiveSectorProp !== undefined;
-  const activeId = isControlled ? activeSectorProp : internalActive;
+  // No sector chosen yet (null), or one that is no longer published,
+  // means the first sector. This is worked out here on every render,
+  // not written back, so nothing is set while rendering.
+  const chosenId = isControlled ? activeSectorProp : internalActive;
+  const activeId = sectors.some((s) => s.id === chosenId) ? chosenId : (sectors[0]?.id ?? null);
   const setActiveId = isControlled ? setActiveSectorProp : setInternalActive;
+  const sectorIds = sectors.map((s) => s.id).join('|');
+  const shares = columnShares(sectors.length);
   const navigate = useNavigate();
   const canvasHeight = heightClass || (embedded ? 'h-[420px] md:h-[460px]' : 'h-[520px]');
 
@@ -95,8 +120,8 @@ export default function ExpertiseBands({ activeSector: activeSectorProp, setActi
   // Hover/activate above is unchanged - it only ever previews/expands
   // the column. This is the one addition needed to fix "clicking a
   // band does nothing".
-  function goToSector(id) {
-    navigate(`/expertise/${EXPERTISE_SLUGS[id]}`);
+  function goToSector(sector) {
+    navigate(`/expertise/${sector.slug}`);
   }
 
   // A dropdown selection (pulseKey change) scrolls the matching mobile
@@ -114,7 +139,8 @@ export default function ExpertiseBands({ activeSector: activeSectorProp, setActi
 
   // Mobile: whichever slide is most centered in the scroll track
   // becomes active, via IntersectionObserver (no scroll-jacking, just
-  // reading normal scroll position).
+  // reading normal scroll position). The slides exist once the sectors
+  // have loaded, so the observer is set up for that list.
   useEffect(() => {
     const track = mobileTrackRef.current;
     if (!track) return;
@@ -131,18 +157,36 @@ export default function ExpertiseBands({ activeSector: activeSectorProp, setActi
     Object.values(slideRefs.current).forEach(el => el && io.observe(el));
     return () => io.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [sectorIds]);
 
-  const canvas = (
+  // Nothing published, or the sectors could not be loaded: no canvas.
+  if (status !== 'loading' && sectors.length === 0) return null;
+
+  // While the sectors load: the canvas frame at its final size, on both
+  // layouts, so the sections below do not move when they arrive.
+  const canvas = status === 'loading' ? (
+    <div role="status">
+      <span className="sr-only">Loading sectors</span>
+      <div className="hidden md:block max-w-7xl mx-auto px-5 md:px-10" aria-hidden="true">
+        <div className={`${canvasHeight} border border-line bg-bg-raised animate-pulse motion-reduce:animate-none`} />
+      </div>
+      <div className="md:hidden max-w-7xl mx-auto px-5" aria-hidden="true">
+        <div className="-mx-5 px-5 flex gap-4 overflow-hidden pb-3">
+          <div className="shrink-0 w-[82vw] aspect-[3/4] bg-bg-raised animate-pulse motion-reduce:animate-none" />
+          <div className="shrink-0 w-[82vw] aspect-[3/4] bg-bg-raised animate-pulse motion-reduce:animate-none" />
+        </div>
+      </div>
+    </div>
+  ) : (
     <>
-      {/* ============ DESKTOP: one continuous 8-column row ============ */}
+      {/* ============ DESKTOP: one continuous row, a column per sector ============ */}
       <div className="hidden md:block max-w-7xl mx-auto px-5 md:px-10">
         <div className={`flex gap-1.5 ${canvasHeight} border border-line overflow-hidden`}>
-          {SECTORS.map((s) => {
+          {sectors.map((s, index) => {
             const isActive = activeId === s.id;
-            const widthPct = isActive ? 40 : 60 / 7;
+            const widthPct = isActive ? shares.active : shares.rest;
             const showLabel = widthPct >= 11;
-            const art = ART[s.id] || { position: '50% 50%' };
+            const art = artFor(s.id);
             return (
               <div
                 key={s.id}
@@ -151,20 +195,20 @@ export default function ExpertiseBands({ activeSector: activeSectorProp, setActi
                 aria-pressed={isActive}
                 onMouseEnter={() => activate(s.id)}
                 onFocus={() => activate(s.id)}
-                onClick={() => goToSector(s.id)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToSector(s.id); } }}
-                style={{ width: `calc((100% - ${GAP_PX * GAP_COUNT}px) * ${widthPct / 100})` }}
+                onClick={() => goToSector(s)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToSector(s); } }}
+                style={{ width: `calc((100% - ${GAP_PX * (sectors.length - 1)}px) * ${widthPct / 100})` }}
                 className="group/col relative h-full overflow-hidden cursor-pointer transition-[width] duration-500 ease-[cubic-bezier(.16,.8,.24,1)]"
               >
-                <img
+                {s.image && <img
                   src={s.image}
                   alt={s.alt}
-                  loading={s.num <= '02' ? 'eager' : 'lazy'}
+                  loading={index < 2 ? 'eager' : 'lazy'}
                   style={{ objectPosition: art.position }}
                   className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out ${
                     isActive ? 'grayscale-0 scale-105' : 'grayscale scale-100'
                   }`}
-                />
+                />}
 
                 <div className={`absolute inset-0 transition-opacity duration-500 ${
                   isActive
@@ -222,9 +266,9 @@ export default function ExpertiseBands({ activeSector: activeSectorProp, setActi
           ref={mobileTrackRef}
           className="-mx-5 px-5 flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-3"
         >
-          {SECTORS.map((s) => {
+          {sectors.map((s, index) => {
             const isActive = activeId === s.id;
-            const art = ART[s.id] || { position: '50% 50%' };
+            const art = artFor(s.id);
             return (
               <div
                 key={s.id}
@@ -233,18 +277,18 @@ export default function ExpertiseBands({ activeSector: activeSectorProp, setActi
                 role="button"
                 tabIndex={0}
                 aria-pressed={isActive}
-                onClick={() => goToSector(s.id)}
+                onClick={() => goToSector(s)}
                 className="relative shrink-0 w-[82vw] aspect-[3/4] snap-center overflow-hidden cursor-pointer"
               >
-                <img
+                {s.image && <img
                   src={s.image}
                   alt={s.alt}
-                  loading={s.num <= '02' ? 'eager' : 'lazy'}
+                  loading={index < 2 ? 'eager' : 'lazy'}
                   style={{ objectPosition: art.position }}
                   className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out ${
                     isActive ? 'grayscale-0 scale-105' : 'grayscale scale-100'
                   }`}
-                />
+                />}
                 <div className={`absolute inset-0 transition-opacity duration-500 ${
                   isActive
                     ? 'bg-gradient-to-t from-bg via-bg/60 to-bg/10'

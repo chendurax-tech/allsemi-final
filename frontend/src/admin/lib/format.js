@@ -18,3 +18,10 @@ export function formatDateTime(value) {
 export function today() {
   return new Date().toISOString().slice(0, 10);
 }
+
+export function formatBytes(bytes) {
+  if (typeof bytes !== 'number' || Number.isNaN(bytes)) return 'Size not recorded';
+  if (bytes < 1024) return `${bytes} bytes`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
