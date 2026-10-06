@@ -9,6 +9,7 @@ import { record } from '../services/auditService.js';
 import { signedUrlFor } from '../services/storage/privateFiles.js';
 import { deleteCandidateCascade, linkCandidate } from '../services/candidateService.js';
 import { shortlistApplication, sendShortlistEmail } from '../services/shortlistService.js';
+import { sendDecisionEmail } from '../services/decisionEmailService.js';
 import { candidates, applications, referrals } from './resources.js';
 
 /*
@@ -37,6 +38,20 @@ export const shortlist = asyncHandler(async (req, res) => {
 
 export const shortlistEmail = asyncHandler(async (req, res) => {
   const { application, email } = await sendShortlistEmail(req, assertObjectId(req.params.id));
+  ok(res, { application: application.toJSON(), email });
+});
+
+// ---------- regret and selection emails ----------
+// Sent only by these two routes, each for an application that carries
+// the label it belongs to. A label never sends one, and neither
+// changes the application's status (services/decisionEmailService.js).
+export const regretEmail = asyncHandler(async (req, res) => {
+  const { application, email } = await sendDecisionEmail(req, assertObjectId(req.params.id), 'regret');
+  ok(res, { application: application.toJSON(), email });
+});
+
+export const selectionEmail = asyncHandler(async (req, res) => {
+  const { application, email } = await sendDecisionEmail(req, assertObjectId(req.params.id), 'selection');
   ok(res, { application: application.toJSON(), email });
 });
 

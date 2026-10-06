@@ -1,3 +1,4 @@
+import { forgetEmails } from '../services/email/emailLog.js';
 import {
   Job, Candidate, Application, Requirement, Referral, Enquiry, Insight, Story, Expertise, Service, Location, ATSResult,
   insightOnLanding,
@@ -122,6 +123,7 @@ export const requirements = crudController({
   },
   async beforeDelete(doc) {
     if (doc.attachment?.key) await dropFile(doc.attachment, { requirementId: String(doc._id) });
+    await forgetEmails('requirement', doc._id);
   },
 });
 
@@ -148,6 +150,7 @@ export const referrals = crudController({
   async beforeDelete(doc) {
     // After conversion the candidate record may point at the same
     // stored resume. The file is removed only when nothing else does.
+    await forgetEmails('referral', doc._id);
     const key = doc.resume?.key;
     if (!key) return;
     const [onCandidates, onApplications, onOtherReferrals] = await Promise.all([
@@ -168,6 +171,7 @@ export const enquiries = crudController({
   auditFields: ['type', 'internalNotes'],
   async beforeDelete(doc) {
     if (doc.attachment?.key) await dropFile(doc.attachment, { enquiryId: String(doc._id) });
+    await forgetEmails('enquiry', doc._id);
   },
 });
 

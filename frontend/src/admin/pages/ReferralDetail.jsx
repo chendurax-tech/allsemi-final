@@ -8,6 +8,8 @@ import { PageHeader, Panel, Badge, Button, EmptyState, DefinitionList, Notice, i
 import DocumentButton from '../components/DocumentButton.jsx';
 import Notes from '../components/Notes.jsx';
 import EditDrawer from '../components/EditDrawer.jsx';
+import EmailHistory from '../components/EmailHistory.jsx';
+import { useConfirm } from '../components/Feedback.jsx';
 import { formatDateTime, formatBytes } from '../lib/format.js';
 
 /*
@@ -31,6 +33,7 @@ const OPEN_STATUSES = REFERRAL_STATUSES.filter((status) => status !== 'CONVERTED
 export default function ReferralDetail({ id }) {
   const { state, status, errors, reload, upsert, remove, put } = useAdminStore();
   const { can } = useAuth();
+  const ask = useConfirm();
   const navigate = useNavigate();
   const [busy, setBusy] = useState('');
   const [note, setNote] = useState(null);
@@ -97,7 +100,13 @@ export default function ReferralDetail({ id }) {
   }
 
   async function destroy() {
-    if (!window.confirm(`Delete the referral of ${referral.candidateName}? This cannot be undone.`)) return;
+    const agreed = await ask({
+      title: 'Delete referral?',
+      message: `This will permanently remove the referral of ${referral.candidateName}. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (!agreed) return;
     setBusy('delete');
     setNote(null);
     try {
@@ -214,6 +223,9 @@ export default function ReferralDetail({ id }) {
               </>
             ) : <p className="text-sm text-text-dim">No resume was sent with this referral.</p>}
           </Panel>
+
+          {/* What the server sent when this referral arrived. */}
+          <EmailHistory entityType="referral" entityId={id} />
 
           {can('referrals:delete') && (
             <Panel title="Delete referral">

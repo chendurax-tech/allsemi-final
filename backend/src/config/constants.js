@@ -29,6 +29,38 @@ export const RECRUITMENT_LABELS = ['INTERVIEWED', 'REJECTED', 'SELECTED'];
 //   FAILED          the email service refused or could not be reached
 export const SHORTLIST_EMAIL_STATES = ['NOT_SENT', 'SENDING', 'SENT', 'LOGGED', 'NOT_CONFIGURED', 'FAILED'];
 
+/*
+  Emails a recruiter sends to a candidate about an application, each by
+  its own button, after the label it belongs to has been added:
+    regret     the application carries the REJECTED label
+    selection  the application carries the SELECTED label
+  Adding a label never sends one. Each has the same states as the
+  shortlist email and is sent at most once per application.
+*/
+export const DECISION_EMAILS = {
+  regret: { label: 'REJECTED', other: 'SELECTED', template: 'regretNotification', name: 'regret email' },
+  selection: { label: 'SELECTED', other: 'REJECTED', template: 'selectionNotification', name: 'selection email' },
+};
+
+/*
+  The email record (models/EmailLog.js).
+
+  EMAIL_KINDS: who an email is for.
+    TEAM_NOTIFICATION   to ADMIN_NOTIFICATION_EMAIL, automatic
+    ACKNOWLEDGEMENT     to the person who sent a form, automatic
+    CANDIDATE_DECISION  to a candidate, only by a recruiter's action
+  EMAIL_LOG_STATES: SHORTLIST_EMAIL_STATES plus CAPPED, an
+  acknowledgement that was not sent because the address had already
+  received several within the hour.
+  EMAIL_FAILURE_CATEGORIES: why the email service did not take a
+  message, as one word. `sender_not_verified` is the one that needs an
+  administrator: the domain in EMAIL_FROM is not verified in Resend, so
+  Resend refuses every message from it.
+*/
+export const EMAIL_KINDS = ['TEAM_NOTIFICATION', 'ACKNOWLEDGEMENT', 'CANDIDATE_DECISION'];
+export const EMAIL_LOG_STATES = [...SHORTLIST_EMAIL_STATES, 'CAPPED'];
+export const EMAIL_FAILURE_CATEGORIES = ['sender_not_verified', 'invalid_sender', 'credentials', 'quota', 'rate_limited', 'recipient', 'provider', 'timeout', 'network', 'rejected', 'no_recipient'];
+
 // The statuses used before the workflow was reduced, and what each
 // becomes. Read by scripts/migrate-recruitment.js only.
 export const LEGACY_STATUS_MAP = {

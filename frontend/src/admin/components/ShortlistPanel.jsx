@@ -4,6 +4,8 @@ import { useAdminStore } from '../store.jsx';
 import { useAuth } from '../auth.jsx';
 import { Badge, Button, Notice } from './ui.jsx';
 import { formatDateTime } from '../lib/format.js';
+import { useConfirm, useNotify } from './Feedback.jsx';
+import { failureReason, EMAIL_SEND_FAILED } from '../lib/emailStates.js';
 
 /*
   ShortlistPanel - the one workflow action on an application.
@@ -19,6 +21,10 @@ import { formatDateTime } from '../lib/format.js';
   still shortlisted, the panel says plainly that no email went out, and
   the email can be sent from here later.
 
+  Shortlisting asks first, in the admin's own confirmation dialog, and
+  the result is also announced in a notification (components/Feedback.jsx).
+  The browser's own alert and confirm boxes are not used.
+
   `item` is the application. onChanged(application) is called with the
   record as the server returned it.
 */
@@ -28,7 +34,7 @@ const EMAIL = {
   SENT: { tone: 'teal', text: (at) => `The candidate was emailed${at ? ` on ${formatDateTime(at)}` : ''}.` },
   LOGGED: { tone: 'amber', text: () => 'No email was sent. Email is in development mode, so the message was only written to the server log.' },
   NOT_CONFIGURED: { tone: 'amber', text: () => 'No email was sent. The email service is not connected yet.' },
-  FAILED: { tone: 'red', text: () => 'The email could not be sent. The email service did not accept it.' },
+  FAILED: { tone: 'red', text: (_at, failure) => `The email could not be sent. ${failureReason(failure) || 'The email service did not accept it.'}` },
   SENDING: { tone: 'amber', text: () => 'The email is being sent.' },
   NOT_SENT: { tone: 'amber', text: () => 'No shortlist email has been sent for this application.' },
 };
@@ -36,6 +42,8 @@ const EMAIL = {
 export default function ShortlistPanel({ item, onChanged }) {
   const { put } = useAdminStore();
   const { can } = useAuth();
+  const ask = useConfirm();
+  const notify = useNotify();
   const [application, setApplication] = useState(item);
   const [busy, setBusy] = useState('');
   const [note, setNote] = useState('');
@@ -66,18 +74,36 @@ export default function ShortlistPanel({ item, onChanged }) {
       const result = await request();
       accept(result.application);
       panel.current?.focus({ preventScroll: true });
+      announce(kind, result.application);
     } catch (failure) {
       // Refused because someone else did it first: show what the server holds.
       if (failure.status === 409) {
         try { accept(await applicationsApi.get(application.id)); } catch { /* the message below still explains */ }
+        notify({ tone: 'info', message: /already shortlisted/i.test(failure.message) ? 'Candidate is already shortlisted.' : failure.message });
+      } else {
+        notify({ tone: 'error', message: kind === 'email' ? EMAIL_SEND_FAILED : 'The application could not be shortlisted. Nothing was changed.' });
       }
       setNote(failure.message);
     }
     setBusy('');
   }
 
-  function shortlist() {
-    if (!window.confirm('Shortlist this application? The candidate is told by email, and this cannot be undone from here.')) return;
+  // The outcome as a notification. The panel keeps the detail.
+  function announce(kind, updated) {
+    const state = updated.shortlist?.email?.status;
+    const done = kind === 'shortlist' ? 'Shortlisted. ' : '';
+    if (state === 'SENT') notify({ tone: 'success', message: `${done}Shortlist email sent successfully.` });
+    else if (state === 'FAILED') notify({ tone: 'error', message: kind === 'shortlist' ? `Shortlisted. ${EMAIL_SEND_FAILED}` : EMAIL_SEND_FAILED });
+    else notify({ tone: 'info', message: `${done}No shortlist email was sent. The panel says why.` });
+  }
+
+  async function shortlist() {
+    const agreed = await ask({
+      title: 'Shortlist candidate?',
+      message: 'The candidate will be notified by email. This action cannot be undone from here.',
+      confirmLabel: 'Shortlist',
+    });
+    if (!agreed) return;
     run('shortlist', () => applicationsApi.shortlist(application.id));
   }
 
@@ -108,7 +134,7 @@ export default function ShortlistPanel({ item, onChanged }) {
               ? `Shortlisted by ${application.shortlist.byName || 'a recruiter'} on ${formatDateTime(application.shortlist.at)}.`
               : 'Shortlisted before shortlist emails existed.'}
           </p>
-          <div className="mt-3" role="status"><Notice tone={email.tone}>{email.text(application.shortlist?.email?.at)}</Notice></div>
+          <div className="mt-3" role="status"><Notice tone={email.tone}>{email.text(application.shortlist?.email?.at, application.shortlist?.email?.failure)}</Notice></div>
           {allowed && emailState !== 'SENT' && emailState !== 'SENDING' && (
             <div className="mt-3">
               <Button size="sm" onClick={sendEmail} disabled={Boolean(busy)}>{busy === 'email' ? 'Sending' : 'Send shortlist email'}</Button>

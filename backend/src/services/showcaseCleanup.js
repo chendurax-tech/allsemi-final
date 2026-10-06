@@ -1,3 +1,4 @@
+import { forgetEmails } from './email/emailLog.js';
 import { readFile } from 'node:fs/promises';
 import {
   Job, Candidate, Application, Requirement, Referral, Enquiry, ATSResult,
@@ -250,6 +251,12 @@ export async function applyShowcaseCleanup(plan, { actorName = 'System' } = {}) 
   for (const { name, Model } of RECRUITMENT) {
     const ids = plan.collections[name].remove.map((item) => item.id);
     done.records[name] = ids.length ? (await Model.deleteMany({ _id: { $in: ids } })).deletedCount ?? ids.length : 0;
+  }
+
+  // The email record of the removed records goes with them. It holds
+  // ids and outcomes only, and would otherwise point at nothing.
+  for (const [name, entityType] of [['Application', 'application'], ['Requirement', 'requirement'], ['Referral', 'referral'], ['Enquiry', 'enquiry']]) {
+    await forgetEmails(entityType, plan.collections[name].remove.map((item) => item.id));
   }
 
   // A kept job may hold an AI comparison that includes a removed

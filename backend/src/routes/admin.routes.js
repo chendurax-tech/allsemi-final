@@ -11,6 +11,7 @@ import * as ats from '../controllers/atsController.js';
 import * as jobRequirements from '../controllers/jobRequirementsController.js';
 import * as media from '../controllers/mediaController.js';
 import * as system from '../controllers/systemController.js';
+import * as emails from '../controllers/emailController.js';
 import * as auth from '../controllers/authController.js';
 import { jobCreateSchema, jobUpdateSchema, requirementProfileSchema, candidateComparisonSchema } from '../validators/jobs.js';
 import {
@@ -73,6 +74,19 @@ router.get('/applications/:id/resume-url', downloadLimiter, can(P.APPLICATIONS_R
 // The only workflow action. Labels are edited with PATCH above.
 router.post('/applications/:id/shortlist', can(P.APPLICATIONS_SHORTLIST), recruitment.shortlist);
 router.post('/applications/:id/shortlist-email', can(P.APPLICATIONS_SHORTLIST), recruitment.shortlistEmail);
+// The regret and the selection email: each by its own button, for an
+// application that carries the Rejected or the Selected label. A label
+// alone sends nothing. Same permission as shortlisting: the right to
+// tell a candidate about a decision.
+router.post('/applications/:id/regret-email', can(P.APPLICATIONS_SHORTLIST), recruitment.regretEmail);
+router.post('/applications/:id/selection-email', can(P.APPLICATIONS_SHORTLIST), recruitment.selectionEmail);
+
+// ---- the email record ----
+// What was sent about one record, and sending an automatic email again
+// after it failed. The permission follows the record the email is
+// about and is checked in the handler (controllers/emailController.js).
+router.get('/emails', emails.list);
+router.post('/emails/:id/resend', emails.resend);
 
 // ---- requirements ----
 router.get('/requirements', can(P.REQUIREMENTS_READ), resources.requirements.list);

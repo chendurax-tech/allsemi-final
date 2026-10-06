@@ -1071,6 +1071,10 @@ Referrals that were converted into this candidate keep their own record but lose
 | `GET /api/admin/applications/:id/resume-url` | `applications:read` and `resumes:read` |
 | `POST /api/admin/applications/:id/shortlist` | `applications:shortlist` |
 | `POST /api/admin/applications/:id/shortlist-email` | `applications:shortlist` |
+| `POST /api/admin/applications/:id/regret-email` | `applications:shortlist` |
+| `POST /api/admin/applications/:id/selection-email` | `applications:shortlist` |
+| `GET /api/admin/emails` | The read permission of the record the emails are about |
+| `POST /api/admin/emails/:id/resend` | The read and write permissions of that record |
 
 There are no create or delete endpoints. Applications are created by the public form (one new application per submission) and removed with their candidate.
 
@@ -1198,10 +1202,89 @@ Returns 200:
 - **At most one accepted email per application.** Once the status is `SENT`, no further attempt is allowed.
 - 409 `CONFLICT` when the application is not shortlisted ("Shortlist the application first."), when the email was already sent, or while another attempt is in progress.
 - A shortlisted record that has no `shortlist` details gets them first, with `at: null`, `byId: null` and an empty `byName`.
-- The attempt is audited as `application.shortlist_email` (metadata `state`, `candidateId`).
+- The attempt is audited as `application.shortlist_email` (metadata `state`, `candidateId`, and after a refusal the reason and the email service's answer).
 - 404 `NOT_FOUND` for an unknown application. 400 `BAD_REQUEST` for an id that is not valid.
 
 Returns 200 with the same shape as the shortlist action: `{ application, email }`.
+
+When an attempt ends `FAILED`, `shortlist.email.failure` says why, as one word (see "Why an email failed" below), and the audit entry also carries `reason`, `providerStatus`, `providerError` and `providerMessage`: the email service's status, error name and sentence, with any address removed and never a key.
+
+#### The regret email and the selection email
+
+**POST /api/admin/applications/:id/regret-email** and **POST /api/admin/applications/:id/selection-email** (no body). Permission `applications:shortlist`. Each sends one fixed-wording email to the candidate of the application, and only when a signed-in user calls it. Adding a label never sends either.
+
+- The regret email needs the `REJECTED` label on the application, the selection email the `SELECTED` label. Without it: 409 `CONFLICT` ("Add the Rejected label to this application and save it first...").
+- An application that carries both labels is refused with 409 `CONFLICT` until one is removed.
+- **At most one accepted email of each kind per application.** Each attempt first claims the email with a conditional update, exactly as the shortlist email does. Once the state is `SENT` every further call answers 409 `CONFLICT`, also after the label was removed and added again. While another attempt is running the answer is 409 as well.
+- Nothing else is changed: not the status, not the labels, not the shortlist details, not the candidate. No evaluation runs and no AI is called.
+- When the email service does not accept it the answer is still 200, with `email: "FAILED"` (or `NOT_CONFIGURED`, or `LOGGED` in development). The label stays, and the same call sends it again later.
+- The attempt is audited as `application.regret_email` or `application.selection_email` (metadata `state`, `candidateId`, and after a refusal `reason`, `providerStatus`, `providerError`, `providerMessage`).
+- 404 `NOT_FOUND` for an unknown application. 400 `BAD_REQUEST` for an id that is not valid.
+
+Returns 200 with `{ application, email }`. Every application carries `decisionEmails`, for both kinds, whether or not anything was sent:
+
+```json
+"decisionEmails": {
+  "regret": { "status": "SENT", "at": "2026-10-06T10:00:00.000Z", "attempts": 1, "failure": "", "sentAt": "2026-10-06T10:00:00.000Z", "byName": "Sample Recruiter" },
+  "selection": { "status": "NOT_SENT", "at": null, "attempts": 0, "failure": "", "sentAt": null, "byName": "" }
+}
+```
+
+`status` is one of the shortlist email states. `at` is the last attempt, `sentAt` and `byName` are set when the email service accepted the message, and `failure` is the reason of a failed attempt.
+
+The emails say only that the application is not going forward, or that the candidate was selected and will be contacted about the next steps. They carry no ATS score, AI analysis, note, reason, id or anything from the resume.
+
+#### Why an email failed
+
+`failure` on the shortlist, regret and selection emails, and `failure.category` in the email record, is one of (`EMAIL_FAILURE_CATEGORIES` in `src/config/constants.js`):
+
+| Value | Meaning |
+| --- | --- |
+| `sender_not_verified` | Resend refused the sender: the domain in `EMAIL_FROM` is not verified in the Resend account (or the test sender was used for another address). Every email fails this way until that is fixed. |
+| `invalid_sender` | `EMAIL_FROM` is not a sender Resend accepts. |
+| `credentials` | Resend did not accept the API key. |
+| `quota` | The sending quota of the Resend account is used up. |
+| `rate_limited` | Resend answered 429. |
+| `recipient` | Resend refused the recipient's address. |
+| `no_recipient` | The record has no address to send to. |
+| `provider` | Resend answered with a server error. |
+| `timeout`, `network` | Resend did not answer within 15 seconds, or could not be reached. |
+| `rejected` | Any other refusal. |
+
+#### The email record
+
+**GET /api/admin/emails?entityType=...&entityId=...** lists the emails sent, or tried, about one record, oldest first. `entityType` is `requirement`, `enquiry`, `referral` or `application`. The caller needs the read permission of that kind of record (403 otherwise). 400 for another `entityType` or an id that is not valid.
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "665f1c2e9b3a4d0012ab34d1",
+      "template": "enquiryConfirmation",
+      "kind": "ACKNOWLEDGEMENT",
+      "recipient": "SENDER",
+      "entityType": "enquiry",
+      "entityId": "665f1c2e9b3a4d0012ab34c0",
+      "status": "FAILED",
+      "automatic": true,
+      "attempts": 1,
+      "at": "2026-10-06T10:00:00.000Z",
+      "sentAt": null,
+      "failure": { "category": "sender_not_verified" },
+      "canResend": true,
+      "actorName": ""
+    }
+  ]
+}
+```
+
+- `kind` is `TEAM_NOTIFICATION` (to `ADMIN_NOTIFICATION_EMAIL`), `ACKNOWLEDGEMENT` (to the person who submitted) or `CANDIDATE_DECISION` (the shortlist, regret and selection emails). `recipient` is `TEAM`, `SENDER` or `CANDIDATE`. The address itself is not in the record.
+- `status` is one of the shortlist email states, or `CAPPED`: an acknowledgement that was held back because the address had already received three within the hour.
+- `failure` is `null` unless the status is `FAILED`. A role with `audit:read` also receives `httpStatus`, `providerError` and `message`, the email service's own answer.
+- There is one entry per email and record. An automatic email is attempted once: nothing sends it a second time by itself.
+
+**POST /api/admin/emails/:id/resend** (no body) sends an automatic email again, written from the stored record with the same wording, when its status is `FAILED`, `NOT_CONFIGURED`, `LOGGED`, `CAPPED` or `NOT_SENT`. The caller needs the read and the write permission of the record. Returns 200 with the entry as it now is, whatever the outcome (`status` says whether it was sent). 409 `CONFLICT` once the email has been sent ("This email has already been sent. It is not sent twice."), while another attempt is running, and for a `CANDIDATE_DECISION` email, which is sent with its own action on the application. 404 when the entry or its record no longer exists. Audit entry `email.resent`.
 
 The resume attached to an application is the one sent with it, and each application keeps its own. A later public submission never replaces the resume on the candidate profile or on an earlier application, so the resume sent with a later application is opened through that application's `resume-url`.
 
@@ -2409,6 +2492,9 @@ Records. `<entity>` is `job`, `candidate`, `application`, `requirement`, `referr
 | `application.shortlisted` | An application is shortlisted. | `from`, `to` (`SHORTLISTED`), `candidateId`, `jobId` (empty for a general application) |
 | `candidate.application_shortlisted` | The same event, written on the candidate so it appears in the candidate's history. | `applicationId` |
 | `application.shortlist_email` | An attempt to send the shortlist email ended, from the shortlist action or from `shortlist-email`. One entry per attempt. | `state` (`SENT`, `LOGGED`, `NOT_CONFIGURED` or `FAILED`), `candidateId` |
+| `application.regret_email` | An attempt to send the regret email ended. One entry per attempt. | `state`, `candidateId`, and after a refusal `reason`, `providerStatus`, `providerError`, `providerMessage` |
+| `application.selection_email` | An attempt to send the selection email ended. One entry per attempt. | The same |
+| `email.resent` | A member of staff sent an automatic email again from the email record. Written on the record the email is about. | `template`, `state`, and `reason` after a refusal |
 | `referral.converted` | A referral is converted. | `from`, `to`, `candidateId`, `newCandidate` |
 | `candidate.document_accessed`, `application.document_accessed`, `referral.document_accessed`, `requirement.document_accessed`, `enquiry.document_accessed` | A signed link to a private document is issued. | `fileName` |
 

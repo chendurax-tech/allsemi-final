@@ -10,4 +10,5 @@ export { ATSResult } from './ATSResult.js';
 export { Insight, Story, Expertise, Service, Location, insightOnLanding, storyOnLanding } from './content.js';
 export { AuditLog } from './AuditLog.js';
 export { AiUsage } from './AiUsage.js';
+export { EmailLog } from './EmailLog.js';
 export { SiteSettings } from './SiteSettings.js';

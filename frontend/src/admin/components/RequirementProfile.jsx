@@ -8,6 +8,7 @@ import { WORK_MODES } from '../data/enums.js';
 import { WEIGHT_SOURCE_LABELS } from '../data/atsStages.js';
 import { formatDateTime } from '../lib/format.js';
 import { aiFailureText, aiFailureCode } from '../lib/aiErrors.js';
+import { useConfirm } from './Feedback.jsx';
 
 /*
   RequirementProfile - the optional requirement profile of one job, on
@@ -138,6 +139,7 @@ const weightSourceOf = (profile) => {
 function Editor({ job }) {
   const { state, status, engine, reloadEngine, put, reload } = useAdminStore();
   const { can } = useAuth();
+  const ask = useConfirm();
   const profile = job.requirementProfile || null;
   const canWrite = can('jobs:write');
   const canRun = can('ats:run');
@@ -246,7 +248,13 @@ function Editor({ job }) {
 
   async function removeProfile() {
     if (pending.current) return;
-    if (!window.confirm('Remove the requirement profile of this job? The rule-based ATS goes back to the baseline weights for it. This cannot be undone.')) return;
+    const agreed = await ask({
+      title: 'Remove requirement profile?',
+      message: 'The rule-based ATS goes back to the baseline weights for this job. This cannot be undone.',
+      confirmLabel: 'Remove',
+      tone: 'danger',
+    });
+    if (!agreed) return;
     setDone('');
     setRerun(null);
     begin('remove');
@@ -270,7 +278,14 @@ function Editor({ job }) {
   // nothing either.
   async function draftWithAi() {
     if (pending.current) return;
-    if (hasContent(form) && !window.confirm('Replace what is in the form with an AI draft? What you typed in the form is lost. The saved profile stays as it is until you press Save.')) return;
+    if (hasContent(form)) {
+      const agreed = await ask({
+        title: 'Replace the form with an AI draft?',
+        message: 'What you typed in the form is lost. The saved profile stays as it is until you press Save.',
+        confirmLabel: 'Replace',
+      });
+      if (!agreed) return;
+    }
     setDone('');
     setRerun(null);
     begin('draft');

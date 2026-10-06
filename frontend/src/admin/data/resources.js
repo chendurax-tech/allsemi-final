@@ -2,7 +2,7 @@ import { JOB_CATEGORIES, JOB_LOCATIONS } from '../../pages/talent/jobsContent.js
 import { CATEGORIES, DEFAULT_AUTHOR } from '../../lib/insightsContent.js';
 import { SERVICE_ICONS } from '../../pages/employers/servicesContent.js';
 import { applicationsApi, requirementsApi, enquiriesApi } from '../../lib/api/index.js';
-import ShortlistPanel from '../components/ShortlistPanel.jsx';
+import ApplicationActions, { RequirementEmails, EnquiryEmails } from '../components/ApplicationActions.jsx';
 import {
   APPLICATION_STATUSES, APPLICATION_SOURCES, RECRUITMENT_LABELS, REQUIREMENT_PRIORITIES, REQUIREMENT_STATUSES, HIRING_TYPES,
   WORK_MODES, REFERRAL_STATUSES, ENQUIRY_STATUSES, ENQUIRY_TYPES, JOB_STATUSES, CONTENT_STATUSES, EMPLOYMENT_TYPES,
@@ -33,13 +33,18 @@ import { formatDate, today } from '../lib/format.js';
   its own match(item, value, state). Filter and select options may be
   a function of the loaded data.
 
-  panel: a component shown in the edit drawer above the form, for an
-  action that is more than a field edit (the shortlist action).
+  panel: a component shown in the edit drawer above the form, for what
+  is more than a field edit: the shortlist action and the candidate
+  emails of an application, and the record of the emails sent about a
+  requirement or an enquiry.
 
   Recruitment has one workflow step. An application is New until it is
   shortlisted, through ShortlistPanel and nothing else. Interviewed,
   Rejected and Selected are labels: tags that can be put on a candidate
-  or an application and filtered by, with no effect on anything.
+  or an application and filtered by. A label changes no status and
+  sends nothing. After the Rejected or the Selected label is saved on
+  an application, a recruiter can send the regret or the selection
+  email with its own button (components/DecisionEmailPanel.jsx).
 */
 
 const candidateName = (item, state) => state.candidates.find((c) => c.id === item.candidateId)?.name || 'Removed candidate';
@@ -174,7 +179,7 @@ export const RESOURCES = {
     permissions: { read: 'applications:read', write: 'applications:write' },
     drawerTitle: (item, state) => `${candidateName(item, state)} for ${jobTitle(item, state)}`,
     search: (item, state) => [candidateName(item, state), jobTitle(item, state), item.source].join(' '),
-    panel: ShortlistPanel,
+    panel: ApplicationActions,
     filters: [
       { key: 'status', label: 'Status', options: APPLICATION_STATUSES },
       LABEL_FILTER,
@@ -232,6 +237,7 @@ export const RESOURCES = {
     collection: 'requirements', title: 'Requirements', singular: 'requirement', eyebrow: 'Recruitment',
     description: 'Hiring requirements sent through the Hire Talent form or entered here: who is hiring, the role, what it needs and how urgent it is.',
     basePath: '/admin/requirements', editor: 'drawer', canCreate: true, canDelete: true, titleKey: 'role',
+    panel: RequirementEmails,
     permissions: { read: 'requirements:read', write: 'requirements:write', remove: 'requirements:delete' },
     search: (item) => [item.role, item.company, item.contactName, item.email, item.location, item.domain, (item.skills || []).join(' ')].join(' '),
     filters: [
@@ -313,6 +319,7 @@ export const RESOURCES = {
     collection: 'enquiries', title: 'Enquiries', singular: 'enquiry', eyebrow: 'Recruitment',
     description: 'Messages sent through the Contact page, by type: hiring, career, partnership, general or other.',
     basePath: '/admin/enquiries', editor: 'drawer', canDelete: true, titleKey: 'subject',
+    panel: EnquiryEmails,
     permissions: { read: 'enquiries:read', write: 'enquiries:write', remove: 'enquiries:delete' },
     drawerTitle: (item) => item.subject || `Enquiry from ${item.name}`,
     search: (item) => [item.name, item.email, item.subject, item.company, item.message].join(' '),

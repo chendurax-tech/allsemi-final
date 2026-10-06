@@ -9,11 +9,14 @@ import { escapeHtml } from '../../utils/sanitize.js';
   only what happened; they make no claims about timelines, outcomes or
   the company.
 
-  Two kinds of message, with different rules:
+  Three kinds of message, with different rules:
   - To the ALLSEMIS team: carries what was submitted. Every value that
     came from a form is escaped before it is placed into HTML.
-  - To a candidate who was shortlisted: fixed wording, sent once per
-    application by a recruiter's action (services/shortlistService.js).
+  - To a candidate, by a recruiter's action: the shortlist email, the
+    regret email and the selection email. Fixed wording, each sent once
+    per application (services/shortlistService.js,
+    services/decisionEmailService.js). None of them carries a score,
+    an analysis, a note, a reason or anything read from the resume.
   - To the person who submitted: FIXED wording only. The address was
     typed into a public form and is not verified, so the confirmation
     may reach someone who never used the site. It therefore repeats
@@ -195,7 +198,7 @@ export const templates = {
       subject: 'We received your message',
       ...layout({
         heading: 'Thank you.',
-        intro: 'We received your message and the right person will reply to this address.',
+        intro: 'We received your enquiry. The ALLSEMIS team will review it and get in touch with you at this address.',
         closing: 'If you did not send this, you can ignore this message.',
       }),
     };
@@ -206,7 +209,7 @@ export const templates = {
       subject: 'We received your referral',
       ...layout({
         heading: 'Thank you.',
-        intro: 'We received your referral. Our team will review the profile and contact the candidate directly if it looks like a fit.',
+        intro: 'We received your referral. Thank you for taking the time to recommend someone. Our team will review the profile and contact the candidate directly if it looks like a fit.',
         closing: 'If you did not send this, you can ignore this message.',
       }),
     };
@@ -224,6 +227,44 @@ export const templates = {
         intro: job
           ? `Your application for ${job.title} has been shortlisted. A member of the ALLSEMIS recruitment team will contact you at this address about the next step.`
           : 'Your application has been shortlisted. A member of the ALLSEMIS recruitment team will contact you at this address about the next step.',
+        closing: 'If you did not apply, reply to this email to let us know.',
+      }),
+    };
+  },
+
+  /*
+    The regret email: sent only when a recruiter presses "Send regret
+    email" on an application that carries the Rejected label. It says
+    that the application is not going forward and nothing else: no
+    reason, no score, no analysis, no note and nothing from the resume.
+  */
+  regretNotification({ job }) {
+    return {
+      subject: job ? `Update on your application for ${job.title}` : 'Update on your application',
+      ...layout({
+        heading: 'Thank you for your application.',
+        intro: job
+          ? `Thank you for applying for ${job.title} through ALLSEMIS and for the time you gave to your application. After careful consideration, we will not be taking your application for this role forward.`
+          : 'Thank you for applying through ALLSEMIS and for the time you gave to your application. After careful consideration, we will not be taking your application forward at this time.',
+        closing: 'We appreciate your interest and wish you every success in your search. You are welcome to apply for other roles on our website.',
+      }),
+    };
+  },
+
+  /*
+    The selection email: sent only when a recruiter presses "Send
+    selection email" on an application that carries the Selected label.
+    It says that the candidate was selected and that the team will be
+    in touch about the next steps. It states no terms, date or offer.
+  */
+  selectionNotification({ job }) {
+    return {
+      subject: job ? `You have been selected for ${job.title}` : 'You have been selected',
+      ...layout({
+        heading: 'You have been selected.',
+        intro: job
+          ? `We are pleased to let you know that you have been selected for ${job.title}. A member of the ALLSEMIS recruitment team will contact you at this address about the next steps.`
+          : 'We are pleased to let you know that you have been selected. A member of the ALLSEMIS recruitment team will contact you at this address about the next steps.',
         closing: 'If you did not apply, reply to this email to let us know.',
       }),
     };

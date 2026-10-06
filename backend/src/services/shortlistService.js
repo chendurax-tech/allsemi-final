@@ -48,10 +48,27 @@ const OUTCOME = {
 };
 
 // What the email service answered, as one of SHORTLIST_EMAIL_STATES.
-function emailState(result) {
+// 'already_sent' is the email record saying that this email was
+// accepted before: it is sent, and it is not sent a second time.
+export function emailState(result) {
   if (result?.sent) return result.logged ? 'LOGGED' : 'SENT';
+  if (result?.reason === 'already_sent') return 'SENT';
   if (result?.reason === 'not_configured') return 'NOT_CONFIGURED';
   return 'FAILED';
+}
+
+// Why an attempt failed, as one of EMAIL_FAILURE_CATEGORIES, and what
+// the audit log keeps about it. The email service's own sentence is
+// kept without any address in it.
+export function failureOf(state, result) {
+  if (state !== 'FAILED') return { category: '', audit: {} };
+  const failure = result?.failure || null;
+  const category = failure?.category || (result?.reason === 'no_recipient' ? 'no_recipient' : 'rejected');
+  const audit = { reason: category };
+  if (failure?.httpStatus) audit.providerStatus = failure.httpStatus;
+  if (failure?.providerError) audit.providerError = failure.providerError;
+  if (failure?.message) audit.providerMessage = failure.message.replace(/[^\s@()<>]{1,64}@[^\s@()<>]{1,255}/g, '[address]');
+  return { category, audit };
 }
 
 async function load(applicationId) {
@@ -91,21 +108,26 @@ async function attemptEmail(req, applicationId) {
   ]);
 
   let state = 'FAILED';
+  let result = null;
   try {
-    state = candidate ? emailState(await notifyShortlisted({ candidate, job })) : 'FAILED';
+    if (candidate) result = await notifyShortlisted({ candidate, job, application, actor: req.user });
+    state = candidate ? emailState(result) : 'FAILED';
   } catch (error) {
-    // send() does not throw; this is a guard so a fault here can never
+    // Sending does not throw; this is a guard so a fault here can never
     // leave the attempt marked as "sending".
     logger.error('shortlist.email_failed', { applicationId: String(applicationId), error });
   }
-  await Application.updateOne({ _id: applicationId }, { $set: { 'shortlist.email.status': state, 'shortlist.email.at': new Date() } });
+  const failed = failureOf(state, result);
+  await Application.updateOne({ _id: applicationId }, { $set: { 'shortlist.email.status': state, 'shortlist.email.at': new Date(), 'shortlist.email.failure': failed.category } });
   await record({
     req,
     action: 'application.shortlist_email',
     entityType: 'application',
     entityId: applicationId,
     summary: `Shortlist email${job ? ` for ${job.title}` : ''}: ${OUTCOME[state]}`,
-    metadata: { state, candidateId: String(application.candidateId) },
+    // When the email service refused it: its status, error name and
+    // sentence, so the cause can be read here. Never a key.
+    metadata: { state, candidateId: String(application.candidateId), ...failed.audit },
   });
   return state;
 }

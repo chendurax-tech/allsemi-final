@@ -86,6 +86,22 @@ const b2 = {
 const resendApiKey = str('RESEND_API_KEY');
 const emailFrom = str('EMAIL_FROM');
 
+/*
+  EMAIL_FROM as Resend needs it: an address, or a name followed by the
+  address in angle brackets. Only its domain is ever reported. Resend
+  sends from a domain that is verified in the Resend account and from
+  no other, so the domain is what an administrator needs to see.
+*/
+const PUBLIC_MAILBOX_DOMAINS = ['gmail.com', 'googlemail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com', 'icloud.com', 'proton.me', 'protonmail.com'];
+function describeSender(value) {
+  if (!value) return { set: false, valid: false, domain: '' };
+  const named = value.match(/^[^<>"]*<([^<>\s]+)>$/);
+  const address = named ? named[1] : value;
+  const valid = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(address);
+  return { set: true, valid, domain: valid ? address.split('@')[1].toLowerCase() : '' };
+}
+const emailSender = describeSender(emailFrom);
+
 const openai = {
   apiKey: str('OPENAI_API_KEY'),
   model: str('OPENAI_MODEL'),
@@ -231,6 +247,8 @@ export const env = {
 
   resendApiKey,
   emailFrom,
+  // { set, valid, domain } of EMAIL_FROM. Never the key.
+  emailSender,
   adminNotificationEmail: str('ADMIN_NOTIFICATION_EMAIL'),
 
   openai,
@@ -304,6 +322,15 @@ export function validateEnv() {
   if (env.mediaStorageDriver === 'cloudinary' && !integrations.cloudinary()) warnings.push('Cloudinary is selected for images but the CLOUDINARY_* variables are incomplete (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET are all needed). Image uploads will be refused.');
   if (env.emailDriver === 'resend' && !integrations.resend()) warnings.push('Resend is selected for email but RESEND_API_KEY or EMAIL_FROM is missing. Emails will not be sent.');
   if (env.emailDriver !== 'memory' && !env.adminNotificationEmail) warnings.push('ADMIN_NOTIFICATION_EMAIL is not set. Admin notifications will not be sent.');
+  // The sender. Resend refuses every message from a sender it does not
+  // accept, so a wrong EMAIL_FROM stops all email, not only one kind.
+  if (env.emailSender.set && !env.emailSender.valid) {
+    warnings.push('EMAIL_FROM is not a sender Resend accepts. Write it as no-reply@your-domain or ALLSEMIS <no-reply@your-domain>, without quotation marks around the value. Resend refuses every email until it is corrected.');
+  } else if (env.emailSender.domain === 'resend.dev') {
+    warnings.push('EMAIL_FROM uses resend.dev, the Resend test sender. Resend delivers from it only to the address of the Resend account itself, so emails to any other address, candidates included, are refused. Verify a domain in Resend and use an address on it.');
+  } else if (PUBLIC_MAILBOX_DOMAINS.includes(env.emailSender.domain)) {
+    warnings.push(`EMAIL_FROM is on ${env.emailSender.domain}, a public mailbox domain that cannot be verified in Resend. Resend refuses every email from it. Use an address on a domain that is verified in the Resend account.`);
+  }
 
   // A driver variable that still names the development fallback while
   // the credentials are complete: the provider is used, and this says
@@ -358,6 +385,9 @@ export function describeConfig() {
     cloudinaryConfigured: integrations.cloudinary(),
     b2Configured: integrations.b2(),
     resendConfigured: integrations.resend(),
+    // The domain emails are sent from, or null. Resend only sends from
+    // a domain that is verified in the Resend account.
+    emailSenderDomain: env.emailSender.domain || null,
     openaiConfigured: integrations.openai(),
     aiMonthlyBudgetSet: env.aiUsage.monthlyBudgetUsd !== null && env.aiUsage.monthlyBudgetUsd > 0,
   };

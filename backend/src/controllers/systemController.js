@@ -25,6 +25,7 @@ export const getSettings = asyncHandler(async (req, res) => {
       b2Configured: config.b2Configured,
       cloudinaryConfigured: config.cloudinaryConfigured,
       resendConfigured: config.resendConfigured,
+      emailSenderDomain: config.emailSenderDomain,
       ai: aiStatus(),
     },
   });

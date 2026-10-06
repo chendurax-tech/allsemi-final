@@ -9,6 +9,7 @@ import ResourceForm, { SaveError, fieldsFor, missingRequired } from '../componen
 import { formatDateTime } from '../lib/format.js';
 import { useArrivalNotice } from '../lib/useArrivalNotice.js';
 import RequirementProfile from '../components/RequirementProfile.jsx';
+import { useConfirm } from '../components/Feedback.jsx';
 
 /*
   ResourceEditor - the full-page create/edit screen for resources that
@@ -30,6 +31,7 @@ import RequirementProfile from '../components/RequirementProfile.jsx';
 function EditorForm({ cfg, existing }) {
   const { state, upsert, remove } = useAdminStore();
   const { can } = useAuth();
+  const ask = useConfirm();
   const navigate = useNavigate();
   const [draft, setDraft] = useState(() => existing || cfg.blank());
   const [busy, setBusy] = useState('');
@@ -66,7 +68,13 @@ function EditorForm({ cfg, existing }) {
   }
 
   async function destroy() {
-    if (!window.confirm(`Delete this ${cfg.singular}? This cannot be undone.`)) return;
+    const agreed = await ask({
+      title: `Delete ${cfg.singular}?`,
+      message: `This will permanently remove this ${cfg.singular}. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (!agreed) return;
     setBusy('delete');
     setError(null);
     setNotice('');

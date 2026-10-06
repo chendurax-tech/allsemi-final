@@ -14,6 +14,7 @@ import AtsOverview from './pages/AtsOverview.jsx';
 import AtsResult from './pages/AtsResult.jsx';
 import Settings from './pages/Settings.jsx';
 import { Panel, EmptyState, Button } from './components/ui.jsx';
+import { FeedbackProvider } from './components/Feedback.jsx';
 
 /*
   AdminApp - the admin panel root, loaded lazily by App.jsx for any
@@ -98,6 +99,9 @@ function Gate() {
   // store and reads only what that role may read.
   return (
     <AdminStoreProvider key={user.id}>
+      {/* The admin's own confirmation dialog and notifications. No
+          screen uses the browser's own alert or confirm boxes. */}
+      <FeedbackProvider>
       <AdminLayout>
         <Routes>
           <Route path="/admin" element={<Dashboard />} />
@@ -126,6 +130,7 @@ function Gate() {
           <Route path="/admin/*" element={<NotFound />} />
         </Routes>
       </AdminLayout>
+      </FeedbackProvider>
     </AdminStoreProvider>
   );
 }

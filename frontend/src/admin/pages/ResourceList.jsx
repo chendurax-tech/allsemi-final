@@ -10,6 +10,7 @@ import DocumentButton from '../components/DocumentButton.jsx';
 import { LabelChips } from '../components/LabelPicker.jsx';
 import { formatDate } from '../lib/format.js';
 import { useArrivalNotice } from '../lib/useArrivalNotice.js';
+import { useConfirm } from '../components/Feedback.jsx';
 
 /*
   ResourceList - the list screen for every admin resource, rendered from
@@ -59,6 +60,7 @@ function Cell({ col, item, state }) {
 function DrawerEditor({ cfg, item, state, onClose, onDone }) {
   const { upsert, remove } = useAdminStore();
   const { can } = useAuth();
+  const ask = useConfirm();
   const [draft, setDraft] = useState(item);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState(null);
@@ -87,7 +89,13 @@ function DrawerEditor({ cfg, item, state, onClose, onDone }) {
   }
 
   async function destroy() {
-    if (!window.confirm(`Delete this ${cfg.singular}? This cannot be undone.`)) return;
+    const agreed = await ask({
+      title: `Delete ${cfg.singular}?`,
+      message: `This will permanently remove this ${cfg.singular}. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (!agreed) return;
     setBusy('delete');
     setError(null);
     try {

@@ -6,6 +6,7 @@ import { PageHeader, Panel, Button, Badge, DefinitionList, EmptyState, Notice, c
 import ResourceForm, { SaveError } from '../components/ResourceForm.jsx';
 import { ATS_COMPONENTS } from '../data/atsStages.js';
 import { formatDateTime } from '../lib/format.js';
+import { useConfirm } from '../components/Feedback.jsx';
 
 /*
   Settings - three tabs:
@@ -162,6 +163,7 @@ function SystemTab({ settings }) {
             ['Cloudinary credentials', configured(system.cloudinaryConfigured)],
             ['Email: driver in use', system.email],
             ['Resend credentials', configured(system.resendConfigured)],
+            ['Email sender domain', system.emailSenderDomain ? `${system.emailSenderDomain}. Resend only sends from a domain that is verified in the Resend account.` : 'Not set'],
           ]}
         />
         {developmentDrivers.length > 0 && (
@@ -268,6 +270,7 @@ function OneTimePassword({ secret, onHide }) {
 }
 
 function Users() {
+  const ask = useConfirm();
   const { user: me } = useAuth();
   const [users, retry, setUsers] = useLoaded(usersApi.list);
   const [draft, setDraft] = useState({ name: '', email: '', role: 'RECRUITER' });
@@ -305,8 +308,14 @@ function Users() {
 
   const update = (account, changes, done) => act(account.id, async () => replace(await usersApi.update(account.id, changes)), done);
 
-  const reset = (account) => {
-    if (!window.confirm(`Reset the password of ${account.email}? They are signed out everywhere and must use the new temporary password.`)) return;
+  const reset = async (account) => {
+    const agreed = await ask({
+      title: 'Reset password?',
+      message: `This resets the password of ${account.email}. They are signed out everywhere and must use the new temporary password.`,
+      confirmLabel: 'Reset password',
+      tone: 'danger',
+    });
+    if (!agreed) return;
     act(account.id, async () => {
       const result = await usersApi.resetPassword(account.id);
       replace(result.user);

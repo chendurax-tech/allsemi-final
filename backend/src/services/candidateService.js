@@ -1,5 +1,6 @@
 import { Candidate, Application, ATSResult, Referral, Job } from '../models/index.js';
 import { removePrivateFile } from './storage/privateFiles.js';
+import { forgetEmails } from './email/emailLog.js';
 import { logger } from '../utils/logger.js';
 
 /*
@@ -126,6 +127,8 @@ export async function deleteCandidateCascade(candidate) {
       logger.error('candidate.resume_delete_failed', { candidateId: String(candidate._id), error });
     }
   }
+  // The email record of the applications goes with them.
+  await forgetEmails('application', applications.map((application) => application._id));
   await Application.deleteMany({ candidateId: candidate._id });
   await ATSResult.deleteMany({ candidateId: candidate._id });
   // An AI comparison of several candidates is about all of them

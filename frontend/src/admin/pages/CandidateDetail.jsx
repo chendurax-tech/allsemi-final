@@ -7,7 +7,8 @@ import { label } from '../data/enums.js';
 import { PageHeader, Panel, Badge, Button, Chip, EmptyState, DefinitionList, Notice } from '../components/ui.jsx';
 import EditDrawer from '../components/EditDrawer.jsx';
 import LabelPicker, { LabelChips } from '../components/LabelPicker.jsx';
-import ShortlistPanel from '../components/ShortlistPanel.jsx';
+import ApplicationActions from '../components/ApplicationActions.jsx';
+import { useConfirm } from '../components/Feedback.jsx';
 import DocumentButton from '../components/DocumentButton.jsx';
 import Notes from '../components/Notes.jsx';
 import { formatDate, formatDateTime, formatBytes } from '../lib/format.js';
@@ -37,6 +38,7 @@ export default function CandidateDetail({ id }) {
   const { state, remove, put } = useAdminStore();
   const { can } = useAuth();
   const navigate = useNavigate();
+  const ask = useConfirm();
   const [detail, setDetail] = useState(null);
   const [load, setLoad] = useState({ status: 'loading', message: '' });
   const [labelsBusy, setLabelsBusy] = useState(false);
@@ -115,7 +117,13 @@ export default function CandidateDetail({ id }) {
   }
 
   async function destroy() {
-    if (!window.confirm(`Delete ${candidate.name}? The profile, every application, every ATS result and the stored resumes are removed. This cannot be undone.`)) return;
+    const agreed = await ask({
+      title: 'Delete candidate?',
+      message: `This will permanently remove the candidate and related recruitment records: the profile of ${candidate.name}, every application, every ATS result and the stored resumes. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    });
+    if (!agreed) return;
     setDeleting(true);
     setDeleteError('');
     try {
@@ -264,7 +272,7 @@ export default function CandidateDetail({ id }) {
                     <p className="text-sm font-semibold">{jobOf(a.jobId)}</p>
                     <p className="mt-0.5 text-xs text-text-dim">{label(a.source)}, {formatDate(a.submittedAt)}</p>
                     {(a.labels || []).length > 0 && <div className="mt-2"><LabelChips value={a.labels} /></div>}
-                    <div className="mt-3"><ShortlistPanel item={a} onChanged={read} /></div>
+                    <div className="mt-3"><ApplicationActions item={a} onChanged={read} /></div>
                   </li>
                 ))}
               </ul>

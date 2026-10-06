@@ -70,6 +70,12 @@ export const applicationsApi = {
   // where email is what happened to the candidate's shortlist email.
   shortlist: (id) => api.post(`/api/admin/applications/${seg(id)}/shortlist`).then((r) => r.data),
   shortlistEmail: (id) => api.post(`/api/admin/applications/${seg(id)}/shortlist-email`).then((r) => r.data),
+  // The regret and the selection email. Each is sent only by its own
+  // button, for an application that carries the Rejected or the
+  // Selected label, and at most once. Both resolve to
+  // { application, email } like the shortlist calls.
+  regretEmail: (id) => api.post(`/api/admin/applications/${seg(id)}/regret-email`).then((r) => r.data),
+  selectionEmail: (id) => api.post(`/api/admin/applications/${seg(id)}/selection-email`).then((r) => r.data),
   resumeUrl: (id) => signedLink(`/api/admin/applications/${seg(id)}/resume-url`),
 };
 
@@ -113,6 +119,15 @@ export const atsApi = {
   // whole ATS result with its new aiComparison, and can take about a
   // minute.
   compareWithAi: (id) => api.post(`/api/admin/ats-results/${seg(id)}/ai-comparison`).then((r) => r.data),
+};
+
+// The email record: what was sent about one record (a requirement, an
+// enquiry, a referral or an application), and sending an automatic
+// email again after it failed. An email the service has accepted is
+// never sent twice: the server refuses it.
+export const emailsApi = {
+  list: (entityType, entityId) => api.get('/api/admin/emails', { entityType, entityId }).then((r) => r.data),
+  resend: (id) => api.post(`/api/admin/emails/${seg(id)}/resend`).then((r) => r.data),
 };
 
 // The AI usage figures for the dashboard. The server adds up its own
