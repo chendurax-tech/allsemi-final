@@ -281,7 +281,7 @@ export default function CandidateComparison() {
                       const aiFit = Number.isFinite(result.aiComparison?.overallMatch) ? result.aiComparison.overallMatch : null;
                       return (
                         <li key={result.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5">
-                          <input id={id} type="checkbox" checked={ticked} disabled={!canRun || busy || (full && !ticked)} onChange={() => toggle(result.id)} className="h-4 w-4 shrink-0 accent-[#a78bfa]" />
+                          <input id={id} type="checkbox" checked={ticked} disabled={!canRun || busy || (full && !ticked)} onChange={() => toggle(result.id)} className="h-4 w-4 shrink-0 accent-accent" />
                           <label htmlFor={id} className={cx('min-w-0 flex-1 basis-40 break-words text-sm font-semibold', canRun && !busy && 'cursor-pointer')}>{nameOf(result.candidateId)}</label>
                           <span className="text-xs tabular-nums text-text-dim">Rule-based score {result.totalScore}</span>
                           <span className="text-xs tabular-nums text-text-dim">{aiFit === null ? 'No AI comparison yet' : `AI fit ${aiFit}`}</span>

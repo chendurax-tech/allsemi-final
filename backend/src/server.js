@@ -2,6 +2,7 @@ import { env, validateEnv, describeConfig } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { createApp } from './app.js';
 import { logger } from './utils/logger.js';
+import { startJobSyncSchedule } from './services/jobSync/scheduler.js';
 import { Application, Candidate } from './models/index.js';
 import { APPLICATION_STATUSES } from './config/constants.js';
 
@@ -48,6 +49,8 @@ async function main() {
   const app = createApp();
   const server = app.listen(env.port, () => {
     logger.info('server.listening', describeConfig());
+    // The job sync on a schedule, when JOB_SYNC_INTERVAL_MINUTES asks for one.
+    startJobSyncSchedule();
   });
 
   let closing = false;

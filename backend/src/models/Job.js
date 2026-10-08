@@ -92,8 +92,10 @@ const jobSchema = new Schema({
   category: { type: String, default: '', trim: true, maxlength: 80 },
   department: { type: String, default: '', trim: true, maxlength: 120 },
   location: { type: String, default: '', trim: true, maxlength: 120 },
-  employmentType: { type: String, enum: EMPLOYMENT_TYPES, default: 'Full-time' },
-  experienceLevel: { type: String, enum: EXPERIENCE_LEVELS, default: 'Mid-Senior' },
+  // Empty only on a job imported from a source that does not state it:
+  // an imported job never shows a value the source did not give.
+  employmentType: { type: String, enum: ['', ...EMPLOYMENT_TYPES], default: 'Full-time' },
+  experienceLevel: { type: String, enum: ['', ...EXPERIENCE_LEVELS], default: 'Mid-Senior' },
   summary: { type: String, default: '', maxlength: 600 },
   description: { type: String, default: '', maxlength: 8000 },
   responsibilities: { type: [String], default: [] },
@@ -111,7 +113,38 @@ const jobSchema = new Schema({
   publishedAt: { type: Date, default: null },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+
+  /*
+    Where the job comes from (services/jobSync/). `manual` for a job
+    typed in the admin. An imported job carries the official source's
+    identity: `source` + `sourceJobId` are unique together, so a job seen
+    again is updated, never created twice. For an imported job the
+    official posting is the source of truth: its fields (SOURCE_FIELDS
+    in services/jobSync/syncService.js) are written only by the sync and
+    are not editable in the admin.
+      syncStatus  ACTIVE      on the source at the last sync
+                  MISSING     absent from the last `missingCount`
+                              successful syncs, not yet closed
+                  CLOSED      closed at the source, or missing long
+                              enough: the job was archived by the sync
+    `closedBySync` tells a job the sync archived (and may reopen) from
+    one staff archived themselves (which the sync never reopens).
+    `sourceFingerprint` is a hash of the official content, to tell a
+    real change from a repeat.
+  */
+  source: { type: String, default: 'manual', trim: true, maxlength: 60, index: true },
+  sourceJobId: { type: String, default: null, trim: true, maxlength: 200 },
+  sourceUrl: { type: String, default: '', trim: true, maxlength: 600 },
+  sourceUpdatedAt: { type: Date, default: null },
+  sourceFingerprint: { type: String, default: '' },
+  lastSyncedAt: { type: Date, default: null },
+  syncStatus: { type: String, enum: ['', 'ACTIVE', 'MISSING', 'CLOSED'], default: '' },
+  missingCount: { type: Number, default: 0 },
+  closedBySync: { type: Boolean, default: false },
 }, { timestamps: true });
+
+// One job per source identity. Manual jobs have no sourceJobId.
+jobSchema.index({ source: 1, sourceJobId: 1 }, { unique: true, partialFilterExpression: { sourceJobId: { $type: 'string' } } });
 
 jobSchema.plugin(baseSchemaPlugin, { hidden: ['createdBy', 'updatedBy', 'candidateComparison'] });
 

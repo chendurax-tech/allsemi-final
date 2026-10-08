@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useSeo, fixedPageSeo } from '../../lib/seo.js';
 import { Link } from 'react-router-dom';
 import {
   useInView, useParallax, useRadialHighlight,
@@ -12,9 +13,7 @@ import {
 } from './aboutContent.js';
 
 export default function About() {
-  useEffect(() => {
-    document.title = 'ALLSEMIS | About';
-  }, []);
+  useSeo(fixedPageSeo('/about'));
 
   return (
     <>
@@ -41,7 +40,7 @@ function AboutHero() {
       className="relative h-[88vh] min-h-[560px] max-h-[900px] flex flex-col justify-end overflow-hidden border-b border-line"
     >
       <div ref={heroLayerRef} className="absolute inset-0 transition-transform duration-300 ease-out">
-        <img
+        <img fetchPriority="high"
           src={ABOUT_HERO.image}
           alt={ABOUT_HERO.alt}
           className="absolute inset-0 w-full h-full object-cover grayscale-[0.55] scale-105"

@@ -80,3 +80,27 @@ export const aiLimiter = limiter({
   keyGenerator: (req) => (req.user?.id ? `user:${req.user.id}` : req.ip),
   message: 'Too many AI comparisons. Please wait a few minutes and try again.',
 });
+
+// The public website assistant (rule-based), per visitor address. A
+// short burst limit stops rapid repeats; the hourly limit bounds the
+// load one visitor can cause.
+export const chatBurstLimiter = limiter({
+  windowMs: 60 * 1000,
+  limit: 10,
+  message: 'You are sending messages quickly. Please wait a moment and try again.',
+});
+export const chatHourLimiter = limiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 60,
+  message: 'You have sent a lot of messages in a short time. Please try again later, or browse the openings on the Talent page.',
+});
+
+// Reading a resume (text extraction and parsing) runs on this server
+// and takes real CPU time, so it has its own limit per signed-in user.
+// It calls no AI service.
+export const extractionLimiter = limiter({
+  windowMs: 10 * 60 * 1000,
+  limit: 30,
+  keyGenerator: (req) => (req.user?.id ? `user:${req.user.id}` : req.ip),
+  message: 'Too many resumes read in a short time. Please wait a few minutes and try again.',
+});

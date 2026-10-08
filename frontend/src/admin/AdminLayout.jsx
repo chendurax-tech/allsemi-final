@@ -4,6 +4,8 @@ import { useAuth } from './auth.jsx';
 import { label } from './data/enums.js';
 import { cx, Button, Drawer, Notice } from './components/ui.jsx';
 import { PasswordForm } from './pages/Login.jsx';
+import ThemeToggle from '../components/ThemeToggle.jsx';
+import AiUsageAlert from './components/AiUsageAlert.jsx';
 
 // Each section names the permission needed to read it. A section the
 // signed-in role cannot read is left out of the navigation; opening its
@@ -17,7 +19,7 @@ const NAV = [
       { to: '/admin/jobs', label: 'Jobs', need: 'jobs:read' },
       { to: '/admin/candidates', label: 'Candidates', need: 'candidates:read' },
       { to: '/admin/applications', label: 'Applications', need: 'applications:read' },
-      { to: '/admin/requirements', label: 'Requirements', need: 'requirements:read' },
+      { to: '/admin/requirements', label: 'Hiring Requirements', need: 'requirements:read' },
       { to: '/admin/referrals', label: 'Referrals', need: 'referrals:read' },
       { to: '/admin/ats', label: 'ATS results', need: 'ats:read' },
       { to: '/admin/enquiries', label: 'Enquiries', need: 'enquiries:read' },
@@ -35,6 +37,8 @@ const NAV = [
   },
   { label: 'System', items: [{ to: '/admin/settings', label: 'Settings', need: 'settings:read' }] },
 ];
+
+const CRUMB_NAMES = { requirements: 'hiring requirements' };
 
 function Brand() {
   return (
@@ -118,8 +122,9 @@ export default function AdminLayout({ children }) {
 
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
-  // A record id in the address is shown as "record", not as the id.
-  const crumbs = pathname.split('/').filter(Boolean).map((part) => (/^[a-f0-9]{24}$/i.test(part) ? 'record' : part.replace(/-/g, ' ')));
+  // A record id in the address is shown as "record", not as the id, and
+  // a section whose name differs from its address shows its name.
+  const crumbs = pathname.split('/').filter(Boolean).map((part) => (/^[a-f0-9]{24}$/i.test(part) ? 'record' : CRUMB_NAMES[part] || part.replace(/-/g, ' ')));
   const openPassword = () => { setMenuOpen(false); setPasswordOpen(true); };
 
   return (
@@ -135,10 +140,11 @@ export default function AdminLayout({ children }) {
           <Button variant="secondary" size="sm" className="lg:hidden" onClick={() => setMenuOpen(true)} aria-expanded={menuOpen}>Menu</Button>
           <p className="min-w-0 truncate font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-dim">{crumbs.join(' / ')}</p>
           <div className="ml-auto flex shrink-0 items-center gap-3">
+            <ThemeToggle />
             <Link to="/" className="text-xs font-semibold text-text-dim hover:text-accent transition-colors">View site</Link>
           </div>
         </header>
-        <main className="w-full max-w-[1400px] flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="w-full max-w-[1400px] flex-1 px-4 py-6 md:px-8 md:py-8"><AiUsageAlert />{children}</main>
       </div>
 
       {menuOpen && (

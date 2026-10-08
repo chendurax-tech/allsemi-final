@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Link, useParams, Navigate } from 'react-router-dom';
+import { useSeo, breadcrumbJsonLd, jobPostingJsonLd } from '../../lib/seo.js';
+import { Link, useParams, useSearchParams, Navigate } from 'react-router-dom';
 import {
   useInView, MeasurementLabel, TechnicalGrid,
 } from '../../lib/motionPrimitives.jsx';
@@ -26,10 +27,31 @@ export default function JobDetail() {
   const { status, job, reload } = useJob(slug);
   const { jobs } = useJobs();
   const [applyOpen, setApplyOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  // The head of a published job, with JobPosting structured data when
+  // its location names a place (see jobPostingJsonLd).
+  useSeo(job ? {
+    title: `${job.title}${job.location ? `, ${job.location}` : ''} | ALLSEMIS Jobs`,
+    description: job.summary || `${job.title}: ${[job.employmentType, job.experienceLevel, job.location].filter(Boolean).join(', ')}. Apply with ALLSEMIS.`,
+    path: `/talent/jobs/${job.slug}`,
+    jsonLd: [
+      breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Talent', path: '/talent' }, { name: job.title, path: `/talent/jobs/${job.slug}` }]),
+      jobPostingJsonLd(job),
+    ],
+  } : null);
+
+  // "?apply=1" (the Apply link of the website assistant) opens the same
+  // application overlay as the Apply Now button, once, for a job that
+  // accepts applications. The parameter is then removed, so closing the
+  // overlay or reloading does not open it again.
   useEffect(() => {
-    if (job) document.title = `ALLSEMIS | ${job.title}`;
-  }, [job]);
+    if (!job || searchParams.get('apply') !== '1') return;
+    if (job.applicationEnabled) setApplyOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('apply');
+    setSearchParams(next, { replace: true });
+  }, [job, searchParams, setSearchParams]);
 
   if (status === 'missing') return <Navigate to="/talent" replace />;
   if (status !== 'ready') return <JobPending loading={status === 'loading'} onRetry={reload} />;

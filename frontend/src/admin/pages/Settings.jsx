@@ -179,7 +179,7 @@ function SystemTab({ settings }) {
 }
 
 const AREA_LABELS = {
-  jobs: 'Jobs', candidates: 'Candidates', resumes: 'Resumes', applications: 'Applications', requirements: 'Requirements',
+  jobs: 'Jobs', candidates: 'Candidates', resumes: 'Resumes', applications: 'Applications', requirements: 'Hiring requirements',
   referrals: 'Referrals', enquiries: 'Enquiries', ats: 'ATS', content: 'Website content', media: 'Image uploads',
   settings: 'Settings', users: 'Users', audit: 'Audit log',
 };
@@ -254,7 +254,7 @@ function OneTimePassword({ secret, onHide }) {
   }
 
   return (
-    <div className="border border-[#e8b65a]/45 bg-[#e8b65a]/10 p-4" role="status">
+    <div className="border border-warn/45 bg-warn/10 p-4" role="status">
       <p className="text-sm font-semibold">Temporary password for {secret.email}</p>
       <p className="mt-2 select-all break-all border border-line-strong bg-bg px-3 py-2 font-mono text-sm">{secret.password}</p>
       <p className="mt-2 text-xs leading-relaxed text-text-dim">

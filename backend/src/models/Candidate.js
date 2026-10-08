@@ -34,6 +34,21 @@ const candidateSchema = new Schema({
     type: [new Schema({ title: String, employer: String, period: String, highlights: [String] }, { _id: false })],
     default: [],
   },
+  // Added for resume extraction (services/resume/). Both are optional and
+  // empty on every candidate stored before them. They are filled only
+  // when a recruiter approves them from a resume extraction draft.
+  certifications: { type: [String], default: [] },
+  projects: {
+    type: [new Schema({
+      name: { type: String, default: '' },
+      period: { type: String, default: '' },
+      role: { type: String, default: '' },
+      description: { type: String, default: '' },
+      highlights: { type: [String], default: [] },
+      technologies: { type: [String], default: [] },
+    }, { _id: false })],
+    default: [],
+  },
   resume: { type: privateFileSchema, default: null },
   // Tags for staff (INTERVIEWED, REJECTED, SELECTED). A candidate has
   // no workflow status of their own: the status lives on each

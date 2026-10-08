@@ -99,10 +99,16 @@ function reducer(state, action) {
       const list = state.data[action.collection];
       const exists = list.some((item) => item.id === action.item.id);
       const next = exists ? list.map((item) => (item.id === action.item.id ? action.item : item)) : [action.item, ...list];
-      return { ...state, data: set('data', next) };
+      const total = state.totals[action.collection] + (exists ? 0 : 1);
+      return { ...state, data: set('data', next), totals: set('totals', total) };
     }
-    case 'drop':
-      return { ...state, data: set('data', state.data[action.collection].filter((item) => !action.matches(item))) };
+    case 'drop': {
+      // The server total follows the rows removed here.
+      const list = state.data[action.collection];
+      const next = list.filter((item) => !action.matches(item));
+      const total = Math.max(0, state.totals[action.collection] - (list.length - next.length));
+      return { ...state, data: set('data', next), totals: set('totals', total) };
+    }
     default:
       return state;
   }

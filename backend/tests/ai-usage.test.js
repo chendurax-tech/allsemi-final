@@ -14,7 +14,7 @@ import {
   local server, goes to the real fetch, which is put back when the test
   ends.
 
-  The settings a test changes (prices, budget, thresholds, the key) are
+  The settings a test changes (prices, alert thresholds, the key) are
   put back the same way, so the tests do not depend on their order.
 */
 
@@ -38,7 +38,8 @@ after(async () => { await stopServer(); });
 
 // ------------------------------------------------------------ helpers
 
-const NO_SETTINGS = { monthlyBudgetUsd: null, inputCostPerMillion: null, outputCostPerMillion: null, thresholds: { notice: 50, warning: 75, critical: 90 } };
+const NO_ALERTS = { notice: null, warning: null, critical: null };
+const NO_SETTINGS = { inputCostPerMillion: null, outputCostPerMillion: null, alertThresholds: NO_ALERTS, alertThresholdsRise: true };
 
 // Changes env.aiUsage (or env.openai) for one test and puts it back.
 function withSettings(t, target, values) {
@@ -539,70 +540,97 @@ test('dashboard figures: today and this month are added up from the ledger, in U
 // Thresholds
 // =====================================================================
 
-test('thresholds: 50, 75 and 90 percent of the budget are Notice, Warning and Critical, and can be changed', () => {
-  const defaults = { notice: 50, warning: 75, critical: 90 };
+test('alert thresholds: an estimated spend in US dollars reaches Notice, Warning or Critical; none set is Normal', () => {
+  const all = { notice: 5, warning: 10, critical: 20 };
   const expected = [
-    [0, 'healthy'], [49.9, 'healthy'], [50, 'notice'], [74.9, 'notice'], [75, 'warning'], [89.9, 'warning'], [90, 'critical'], [100, 'critical'], [250, 'critical'],
+    [0, 'normal'], [4.99, 'normal'], [5, 'notice'], [9.99, 'notice'], [10, 'warning'], [19.99, 'warning'], [20, 'critical'], [250, 'critical'],
   ];
-  for (const [percent, level] of expected) assert.equal(usageLevel(percent, defaults), level, `${percent}%`);
-  for (const nothing of [null, undefined, Number.NaN, Number.POSITIVE_INFINITY, '80']) assert.equal(usageLevel(nothing, defaults), null, String(nothing));
+  for (const [spend, level] of expected) assert.equal(usageLevel(spend, all), level, `$${spend}`);
+  for (const nothing of [null, undefined, Number.NaN, Number.POSITIVE_INFINITY, '80']) assert.equal(usageLevel(nothing, all), 'normal', String(nothing));
 
-  const custom = { notice: 10, warning: 20, critical: 30 };
-  assert.deepEqual([9.9, 10, 19.9, 20, 29.9, 30].map((percent) => usageLevel(percent, custom)), ['healthy', 'notice', 'notice', 'warning', 'warning', 'critical']);
-  // The defaults of this server are 50, 75 and 90.
-  assert.deepEqual(env.aiUsage.thresholds, defaults);
-  assert.equal(usageLevel(60), 'notice');
+  // No threshold set: never an alert, whatever the spend.
+  assert.equal(usageLevel(1_000_000, NO_ALERTS), 'normal');
+  // Each threshold is optional on its own.
+  assert.deepEqual([1, 12, 30].map((spend) => usageLevel(spend, { notice: null, warning: 10, critical: null })), ['normal', 'warning', 'warning']);
+  assert.deepEqual([1, 12, 30].map((spend) => usageLevel(spend, { notice: null, warning: null, critical: 25 })), ['normal', 'normal', 'critical']);
+  // The test server sets none.
+  assert.deepEqual(env.aiUsage.alertThresholds, NO_ALERTS);
+  assert.equal(usageLevel(60), 'normal');
 });
 
-test('thresholds: the dashboard level follows the estimated spend of the month against the budget', async (t) => {
+test('alert thresholds: the dashboard alert follows the estimated spend of the current calendar month (UTC)', async (t) => {
   await clearLedger();
   openAiStub(t);
   const spend = async (amount) => {
     await clearLedger();
     await ctx.models.AiUsage.create(entryAt(new Date(), { estimatedCostUsd: amount }));
-    return (await usage()).budget;
+    return (await usage()).alert;
   };
-
-  // No budget: the spend is estimated and there is no level.
-  withSettings(t, env.aiUsage, { monthlyBudgetUsd: null });
-  assert.deepEqual(await spend(999), { monthlyUsd: null, percentUsed: null, remainingUsd: null, level: null, levelLabel: 'No budget set', thresholds: { notice: 50, warning: 75, critical: 90 } });
-  // A budget of 0 is not a budget.
-  env.aiUsage.monthlyBudgetUsd = 0;
-  assert.equal((await spend(1)).level, null);
-
-  // A budget of 20 US dollars.
-  env.aiUsage.monthlyBudgetUsd = 20;
-  const cases = [
-    [0, 0, 20, 'healthy', 'Healthy'],
-    [9.98, 49.9, 10.02, 'healthy', 'Healthy'],
-    [10, 50, 10, 'notice', 'Notice'],
-    [14.98, 74.9, 5.02, 'notice', 'Notice'],
-    [15, 75, 5, 'warning', 'Warning'],
-    [17.98, 89.9, 2.02, 'warning', 'Warning'],
-    [18, 90, 2, 'critical', 'Critical'],
-    [20, 100, 0, 'critical', 'Critical'],
-    [50, 250, 0, 'critical', 'Critical'],
-  ];
-  for (const [amount, percentUsed, remainingUsd, level, levelLabel] of cases) {
-    assert.deepEqual(await spend(amount), { monthlyUsd: 20, percentUsed, remainingUsd, level, levelLabel, thresholds: { notice: 50, warning: 75, critical: 90 } }, `${amount} of 20`);
-  }
-  // Last month's spend does not count against this month's budget.
-  await clearLedger();
   const now = new Date();
-  await ctx.models.AiUsage.create(entryAt(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1) - 1), { estimatedCostUsd: 19 }));
-  assert.deepEqual([(await usage()).budget.percentUsed, (await usage()).budget.level], [0, 'healthy']);
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const month = monthStart.toISOString().slice(0, 7);
 
-  // Other thresholds are honoured.
-  env.aiUsage.thresholds = { notice: 10, warning: 20, critical: 30 };
-  assert.deepEqual([(await spend(1.9)).level, (await spend(2)).level, (await spend(4)).level, (await spend(6)).level], ['healthy', 'notice', 'warning', 'critical']);
-  assert.deepEqual((await usage()).budget.thresholds, { notice: 10, warning: 20, critical: 30 });
+  // No thresholds: usage is still estimated, and there is no alert.
+  withSettings(t, env.aiUsage, { alertThresholds: NO_ALERTS });
+  assert.deepEqual(await spend(999), {
+    level: 'normal', levelLabel: 'Normal', reason: null, message: null, thresholdsSet: false, thresholds: NO_ALERTS, measuredUsd: 999,
+    period: { label: 'this calendar month (UTC)', from: monthStart.toISOString(), to: monthEnd.toISOString() }, key: `${month}:normal`,
+  });
+
+  env.aiUsage.alertThresholds = { notice: 5, warning: 10, critical: 20 };
+  const cases = [
+    [0, 'normal', 'Normal', null],
+    [4.99, 'normal', 'Normal', null],
+    [5, 'notice', 'Notice', /^AI usage notice: estimated ALLSEMIS AI usage has reached the configured notice threshold\.$/],
+    [10, 'warning', 'Warning', /^AI usage warning: estimated AI usage is high\. Check the OpenAI account and add credits if needed\.$/],
+    [19.99, 'warning', 'Warning', /warning/],
+    [20, 'critical', 'Critical', /^AI usage critical: estimated AI usage has reached the configured critical threshold\. Check the OpenAI account and add credits if needed\.$/],
+    [50, 'critical', 'Critical', /critical/],
+  ];
+  for (const [amount, level, levelLabel, message] of cases) {
+    const alert = await spend(amount);
+    assert.deepEqual([alert.level, alert.levelLabel, alert.reason, alert.thresholdsSet, alert.measuredUsd, alert.key], [level, levelLabel, level === 'normal' ? null : 'threshold', true, amount, `${month}:${level}`], `$${amount}`);
+    if (message) assert.match(alert.message, message, `$${amount}`);
+    else assert.equal(alert.message, null, `$${amount}`);
+    assert.ok(!/budget|balance|remaining/i.test(JSON.stringify(alert)), 'no budget, balance or remaining credit is claimed');
+  }
+
+  // The same level gives the same key however many requests follow, so
+  // the admin panel shows one alert for it, not one per request.
+  await clearLedger();
+  for (const cost of [6, 1, 1]) await ctx.models.AiUsage.create(entryAt(new Date(), { estimatedCostUsd: cost }));
+  const first = (await usage()).alert;
+  await ctx.models.AiUsage.create(entryAt(new Date(), { estimatedCostUsd: 0.5 }));
+  assert.deepEqual([first.level, (await usage()).alert.key], ['notice', first.key]);
+
+  // Last month's usage does not count in this month.
+  await clearLedger();
+  await ctx.models.AiUsage.create(entryAt(new Date(monthStart.getTime() - 1), { estimatedCostUsd: 99 }));
+  assert.deepEqual([(await usage()).alert.measuredUsd, (await usage()).alert.level], [0, 'normal']);
+  await clearLedger();
+});
+
+test('alert thresholds never block AI: a request well past the critical threshold is still sent and works', async (t) => {
+  await clearLedger();
+  const stub = openAiStub(t);
+  const fx = await fixture('past-critical');
+  withSettings(t, env.aiUsage, { alertThresholds: { notice: 0.000001, warning: 0.000002, critical: 0.000003 } });
+  await ctx.models.AiUsage.create(entryAt(new Date(), { estimatedCostUsd: 500 }));
+  assert.equal((await usage()).alert.level, 'critical');
+
+  const response = await fx.routes.CANDIDATE_COMPARISON();
+  assert.equal(response.status, 200, 'the request is not refused');
+  assert.equal(stub.calls.length, 1, 'and it reached OpenAI');
+  assert.equal((await ledger()).pop().success, true);
+  assert.equal((await usage()).alert.level, 'critical', 'the alert stays informational');
   await clearLedger();
 });
 
 // Loads config/env.js in a new process with exactly the given variables.
 function loadConfig(overrides) {
   const script = "const m = await import('./src/config/env.js'); console.log(JSON.stringify({ aiUsage: m.env.aiUsage, config: m.describeConfig(), ...m.validateEnv() }));";
-  const names = ['AI_MONTHLY_BUDGET_USD', 'AI_USAGE_NOTICE_PERCENT', 'AI_USAGE_WARNING_PERCENT', 'AI_USAGE_CRITICAL_PERCENT', 'OPENAI_INPUT_COST_PER_1M_TOKENS', 'OPENAI_OUTPUT_COST_PER_1M_TOKENS', 'OPENAI_API_KEY', 'OPENAI_MODEL'];
+  const names = ['AI_USAGE_NOTICE_USD', 'AI_USAGE_WARNING_USD', 'AI_USAGE_CRITICAL_USD', 'OPENAI_INPUT_COST_PER_1M_TOKENS', 'OPENAI_OUTPUT_COST_PER_1M_TOKENS', 'OPENAI_API_KEY', 'OPENAI_MODEL'];
   const blank = Object.fromEntries(names.map((name) => [name, '']));
   const result = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
     cwd: new URL('..', import.meta.url),
@@ -613,35 +641,38 @@ function loadConfig(overrides) {
   return JSON.parse(result.stdout);
 }
 
-test('thresholds and prices: read from the environment, with 50, 75 and 90 as the defaults', () => {
+test('alert thresholds and prices: read from the environment, all optional, none by default', () => {
   const empty = loadConfig({});
-  assert.deepEqual(empty.aiUsage, { monthlyBudgetUsd: null, inputCostPerMillion: null, outputCostPerMillion: null, thresholds: { notice: 50, warning: 75, critical: 90 }, thresholdsValid: true });
-  assert.equal(empty.config.aiMonthlyBudgetSet, false);
+  assert.deepEqual(empty.aiUsage, { inputCostPerMillion: null, outputCostPerMillion: null, alertThresholds: NO_ALERTS, alertThresholdsRise: true });
+  assert.equal(empty.config.aiUsageAlertsSet, false);
   assert.ok(!empty.warnings.some((warning) => /AI_USAGE|COST_PER_1M/.test(warning)));
 
-  const set = loadConfig({ AI_MONTHLY_BUDGET_USD: '25.50', AI_USAGE_NOTICE_PERCENT: '40', AI_USAGE_WARNING_PERCENT: '60', AI_USAGE_CRITICAL_PERCENT: '80', OPENAI_INPUT_COST_PER_1M_TOKENS: '0.75', OPENAI_OUTPUT_COST_PER_1M_TOKENS: '4.5' });
-  assert.deepEqual(set.aiUsage, { monthlyBudgetUsd: 25.5, inputCostPerMillion: 0.75, outputCostPerMillion: 4.5, thresholds: { notice: 40, warning: 60, critical: 80 }, thresholdsValid: true });
-  assert.equal(set.config.aiMonthlyBudgetSet, true);
-  // The budget is not printed with the configuration, only whether there is one.
-  assert.ok(!JSON.stringify(set.config).includes('25.5'));
+  const set = loadConfig({ AI_USAGE_NOTICE_USD: '5', AI_USAGE_WARNING_USD: '10.5', AI_USAGE_CRITICAL_USD: '20', OPENAI_INPUT_COST_PER_1M_TOKENS: '0.75', OPENAI_OUTPUT_COST_PER_1M_TOKENS: '4.5' });
+  assert.deepEqual(set.aiUsage, { inputCostPerMillion: 0.75, outputCostPerMillion: 4.5, alertThresholds: { notice: 5, warning: 10.5, critical: 20 }, alertThresholdsRise: true });
+  assert.equal(set.config.aiUsageAlertsSet, true);
+  // The amounts are not printed with the configuration, only whether any is set.
+  assert.ok(!JSON.stringify(set.config).includes('10.5'));
 
-  // Thresholds that do not rise are a typing mistake: defaults, and a warning.
+  // One threshold alone is fine; 0 is the same as not set.
+  assert.deepEqual(loadConfig({ AI_USAGE_WARNING_USD: '10' }).aiUsage.alertThresholds, { notice: null, warning: 10, critical: null });
+  assert.deepEqual(loadConfig({ AI_USAGE_NOTICE_USD: '0' }).aiUsage.alertThresholds, NO_ALERTS);
+
+  // Thresholds that do not rise are kept, and start-up says so.
   for (const wrong of [
-    { AI_USAGE_NOTICE_PERCENT: '80', AI_USAGE_WARNING_PERCENT: '75' },
-    { AI_USAGE_WARNING_PERCENT: '95' },
-    { AI_USAGE_NOTICE_PERCENT: '0' },
-    { AI_USAGE_NOTICE_PERCENT: '75', AI_USAGE_WARNING_PERCENT: '75' },
+    { AI_USAGE_NOTICE_USD: '20', AI_USAGE_WARNING_USD: '10' },
+    { AI_USAGE_WARNING_USD: '30', AI_USAGE_CRITICAL_USD: '30' },
+    { AI_USAGE_NOTICE_USD: '50', AI_USAGE_CRITICAL_USD: '25' },
   ]) {
     const loaded = loadConfig(wrong);
-    assert.deepEqual(loaded.aiUsage.thresholds, { notice: 50, warning: 75, critical: 90 }, JSON.stringify(wrong));
-    assert.ok(loaded.warnings.some((warning) => /AI_USAGE_NOTICE_PERCENT/.test(warning) && /50, 75, 90/.test(warning)), JSON.stringify(wrong));
+    assert.equal(loaded.aiUsage.alertThresholdsRise, false, JSON.stringify(wrong));
+    assert.ok(loaded.warnings.some((warning) => /AI_USAGE_NOTICE_USD/.test(warning) && /never limit/.test(warning)), JSON.stringify(wrong));
   }
   // One price without the other is ignored, and start-up says so.
   const half = loadConfig({ OPENAI_INPUT_COST_PER_1M_TOKENS: '2' });
   assert.ok(half.warnings.some((warning) => /OPENAI_INPUT_COST_PER_1M_TOKENS/.test(warning) && /ignored/.test(warning)));
 
   // A value that is not an amount stops the server with its name.
-  for (const [name, value] of [['AI_MONTHLY_BUDGET_USD', '-5'], ['AI_MONTHLY_BUDGET_USD', 'twenty'], ['OPENAI_OUTPUT_COST_PER_1M_TOKENS', 'x'], ['AI_USAGE_NOTICE_PERCENT', 'half']]) {
+  for (const [name, value] of [['AI_USAGE_WARNING_USD', '-5'], ['AI_USAGE_CRITICAL_USD', 'twenty'], ['OPENAI_OUTPUT_COST_PER_1M_TOKENS', 'x'], ['AI_USAGE_NOTICE_USD', 'half']]) {
     const loaded = loadConfig({ [name]: value });
     assert.equal(loaded.failed, true, `${name}=${value}`);
     assert.ok(loaded.stderr.includes(name), `${name}=${value}: the message names the variable`);
@@ -656,7 +687,7 @@ test('billing and quota errors: a clear answer, one request, nothing changed, an
   await clearLedger();
   const stub = openAiStub(t);
   const fx = await fixture('quota');
-  withSettings(t, env.aiUsage, { monthlyBudgetUsd: null });
+  withSettings(t, env.aiUsage, { alertThresholds: NO_ALERTS });
   const key = process.env.OPENAI_API_KEY;
   const providerText = `You exceeded your current quota, please check your plan and billing details. ${key} PROVIDER-RAW-TEXT`;
   const snapshot = async () => JSON.stringify({
@@ -693,13 +724,14 @@ test('billing and quota errors: a clear answer, one request, nothing changed, an
   assert.equal(await snapshot(), before, 'no application, candidate, review, score, comparison or profile changed');
   assert.equal(ctx.outbox.length, 0, 'and no email was sent');
 
-  // The dashboard: the service is refused for billing and the level is
-  // Critical, although nothing was spent and no budget is set.
+  // The dashboard: the service is refused for billing and the alert is
+  // Critical, although nothing was spent and no threshold is set.
   let summary = await usage();
   assert.deepEqual([summary.service.state, summary.service.quotaExceeded], ['QUOTA_EXCEEDED', true]);
   assert.match(summary.service.message, /no credit left, has reached its spend limit or has no active billing/);
   assert.match(summary.service.message, /Nothing in recruitment was changed/);
-  assert.deepEqual([summary.budget.level, summary.budget.levelLabel, summary.budget.monthlyUsd, summary.month.estimatedSpendUsd], ['critical', 'Critical', null, 0]);
+  assert.deepEqual([summary.alert.level, summary.alert.levelLabel, summary.alert.reason, summary.alert.thresholdsSet, summary.month.estimatedSpendUsd], ['critical', 'Critical', 'quota', false, 0]);
+  assert.match(summary.alert.message, /^AI usage critical: .*Check the OpenAI account and add credits if needed\.$/);
   assert.deepEqual([summary.today.requests, summary.today.failed, summary.today.succeeded], [calls, calls, 0]);
   assert.equal(summary.lastRequest.errorCategory, 'quota');
   assert.ok(!JSON.stringify(summary).includes(key) && !JSON.stringify(summary).includes('PROVIDER-RAW-TEXT'));
@@ -721,14 +753,14 @@ test('billing and quota errors: a clear answer, one request, nothing changed, an
   const third = await apply(fx.job, { email: 'usage.quota.three@example.com' });
   assert.equal(third.application.status, 'NEW');
 
-  // Once a request works again the warning goes, and the level is the
-  // budget's again.
+  // Once a request works again the warning goes, and the level follows
+  // the thresholds again.
   stub.responder = valid();
   assert.equal((await fx.routes.CANDIDATE_COMPARISON()).status, 200);
   summary = await usage();
-  assert.deepEqual([summary.service.state, summary.service.quotaExceeded, summary.budget.level, summary.budget.levelLabel], ['AVAILABLE', false, null, 'No budget set']);
-  env.aiUsage.monthlyBudgetUsd = 100;
-  assert.equal((await usage()).budget.level, 'healthy');
+  assert.deepEqual([summary.service.state, summary.service.quotaExceeded, summary.alert.level, summary.alert.reason], ['AVAILABLE', false, 'normal', null]);
+  env.aiUsage.alertThresholds = { notice: 100, warning: null, critical: null };
+  assert.equal((await usage()).alert.level, 'normal');
 
   // A plain rate limit is not a billing problem.
   stub.responder = () => jsonResponse(429, { error: { message: providerText, type: 'requests', code: 'rate_limit_exceeded' } });
@@ -736,7 +768,7 @@ test('billing and quota errors: a clear answer, one request, nothing changed, an
   assert.deepEqual([limited.status, limited.body.error.code], [502, 'AI_FAILED']);
   assert.equal((await ledger()).pop().errorCategory, 'rate_limit');
   summary = await usage();
-  assert.deepEqual([summary.service.state, summary.service.quotaExceeded, summary.budget.level], ['ATTENTION', false, 'healthy']);
+  assert.deepEqual([summary.service.state, summary.service.quotaExceeded, summary.alert.level], ['ATTENTION', false, 'normal']);
   assert.match(summary.service.message, /busy/);
 });
 
@@ -825,7 +857,7 @@ test('usage figures: for the roles that can start an AI request, and they never 
   assert.equal((await admin.delete(usagePath)).status, 404);
 
   const summary = await usage(admin);
-  assert.deepEqual(Object.keys(summary).sort(), ['budget', 'currency', 'estimated', 'generatedAt', 'lastRequest', 'model', 'month', 'pricing', 'service', 'timeZone', 'today']);
+  assert.deepEqual(Object.keys(summary).sort(), ['alert', 'currency', 'estimated', 'generatedAt', 'lastRequest', 'model', 'month', 'pricing', 'service', 'timeZone', 'today']);
   assert.equal(summary.estimated, true, 'the figures say that they are an estimate');
   assert.deepEqual([summary.service.state, summary.service.quotaExceeded], ['NOT_USED_YET', false]);
   const text = JSON.stringify(summary);

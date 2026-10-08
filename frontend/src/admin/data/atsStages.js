@@ -1,12 +1,13 @@
 // The stages an evaluation passes through in this release, in order.
 // The screens draw this sequence wherever a result or the process is
 // shown, so the product never reads as "resume in, percentage out".
-// Every stage here is something the rule-based engine really does:
-// there is no resume text extraction. The AI comparison is not a stage:
+// Every stage here is something the system really does. The profile is
+// what the candidate typed, or resume data a recruiter approved from a
+// draft (rules, no AI). The AI comparison is not a stage:
 // it is a separate step a recruiter may start on the result screen.
 export const ATS_STAGES = [
   { key: 'resume', label: 'Resume', sub: 'Stored privately' },
-  { key: 'profile', label: 'Profile', sub: 'From the application form' },
+  { key: 'profile', label: 'Profile', sub: 'Form, or approved resume' },
   { key: 'job', label: 'Job requirements', sub: 'Skills, level and location' },
   { key: 'rules', label: 'Rule-based checks', sub: 'Deterministic and exact' },
   { key: 'score', label: 'Score', sub: 'Weighted total out of 100' },

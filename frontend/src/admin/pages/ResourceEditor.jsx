@@ -9,6 +9,7 @@ import ResourceForm, { SaveError, fieldsFor, missingRequired } from '../componen
 import { formatDateTime } from '../lib/format.js';
 import { useArrivalNotice } from '../lib/useArrivalNotice.js';
 import RequirementProfile from '../components/RequirementProfile.jsx';
+import { JobSourcePanel } from '../components/JobSync.jsx';
 import { useConfirm } from '../components/Feedback.jsx';
 
 /*
@@ -28,6 +29,8 @@ import { useConfirm } from '../components/Feedback.jsx';
   (components/RequirementProfile.jsx). No other resource has one.
 */
 
+const JOB_SOURCE_FIELDS = ['title', 'summary', 'description', 'location', 'department', 'category', 'employmentType', 'experienceLevel', 'responsibilities', 'requiredSkills', 'preferredSkills'];
+
 function EditorForm({ cfg, existing }) {
   const { state, upsert, remove } = useAdminStore();
   const { can } = useAuth();
@@ -40,7 +43,11 @@ function EditorForm({ cfg, existing }) {
   const isNew = !existing;
   const canWrite = can(cfg.permissions.write);
   const canPublish = can(cfg.permissions.publish);
-  const fields = fieldsFor(cfg.fields, can);
+  // An imported job's official fields come from its source and change
+  // only there (the server refuses an edit too): they are shown, not
+  // edited. Mirrors SOURCE_FIELDS in backend services/jobSync.
+  const imported = cfg.collection === 'jobs' && Boolean(existing?.sourceJobId && existing.source !== 'manual');
+  const fields = fieldsFor(cfg.fields, can).map((field) => (imported && JOB_SOURCE_FIELDS.includes(field.key) ? { ...field, type: 'readonly', required: false, hint: 'From the official job source.' } : field));
 
   // kind names the button that is busy: 'save' or a status value.
   async function save(next, kind, done) {
@@ -169,6 +176,12 @@ function EditorForm({ cfg, existing }) {
       {cfg.collection === 'jobs' && (
         <div className="mt-6">
           <RequirementProfile job={existing} />
+        </div>
+      )}
+      {/* Jobs only: where the job comes from. It does not change the job. */}
+      {cfg.collection === 'jobs' && existing && (
+        <div className="mt-6 grid gap-6 xl:grid-cols-2">
+          <JobSourcePanel job={existing} />
         </div>
       )}
     </>

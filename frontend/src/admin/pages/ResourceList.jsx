@@ -11,6 +11,7 @@ import { LabelChips } from '../components/LabelPicker.jsx';
 import { formatDate } from '../lib/format.js';
 import { useArrivalNotice } from '../lib/useArrivalNotice.js';
 import { useConfirm } from '../components/Feedback.jsx';
+import { JobSyncPanel } from '../components/JobSync.jsx';
 
 /*
   ResourceList - the list screen for every admin resource, rendered from
@@ -91,7 +92,7 @@ function DrawerEditor({ cfg, item, state, onClose, onDone }) {
   async function destroy() {
     const agreed = await ask({
       title: `Delete ${cfg.singular}?`,
-      message: `This will permanently remove this ${cfg.singular}. This cannot be undone.`,
+      message: cfg.deleteMessage || `This will permanently remove this ${cfg.singular}. This cannot be undone.`,
       confirmLabel: 'Delete',
       tone: 'danger',
     });
@@ -223,6 +224,8 @@ export default function ResourceList({ resource }) {
       <PageHeader eyebrow={cfg.eyebrow} title={cfg.title} description={cfg.description} actions={newAction} />
 
       {cfg.listNotice && <div className="mb-5"><Notice tone="blue">{cfg.listNotice}</Notice></div>}
+
+      {cfg.collection === 'jobs' && <div className="mb-5"><JobSyncPanel /></div>}
 
       <Panel pad={false}>
         <div className="flex flex-col gap-3 border-b border-line px-4 py-3 md:flex-row md:flex-wrap md:items-center md:px-5">

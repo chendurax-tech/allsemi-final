@@ -1,8 +1,18 @@
 ﻿import React, { useRef, useEffect, useState } from 'react';
 
+// The same loop at 960 x 540 for phones, where the letters are about
+// 270px wide: a quarter of the download, and the same picture. Chosen
+// once, when the hero first renders.
+const heroVideoSrc = () => (
+  typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 767px)').matches
+    ? '/hero-loop-mobile.mp4'
+    : '/hero-loop.mp4'
+);
+
 export default function Hero() {
   const videoRef = useRef(null);
   const [videoReady, setVideoReady] = useState(false);
+  const [videoSrc] = useState(heroVideoSrc);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -35,6 +45,11 @@ export default function Hero() {
       id="heroSection"
       className="relative min-h-[85svh] md:min-h-screen flex flex-col justify-center px-5 md:px-10 pt-24 md:pt-32 pb-10 md:pb-14 overflow-hidden"
     >
+      {/* The page heading. The ALLSEMIS letters below are drawn (mask
+          and video), so the words are given here for search engines
+          and screen readers. */}
+      <h1 className="sr-only">ALLSEMIS: semiconductor and VLSI engineering recruitment. Talent. Engineered.</h1>
+
       {/* Masked title - poster shows instantly, video fades in */}
       <div className="relative w-full max-w-6xl mx-auto">
         {/* Hidden clip-path defs: exact letterform geometry (derived from allsemi-mask.svg's
@@ -70,7 +85,7 @@ export default function Hero() {
               videoReady ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <source src="/hero-loop.mp4" type="video/mp4" />
+            <source src={videoSrc} type="video/mp4" />
           </video>
 
           {/* Mask on top of video, letters are the cutout */}

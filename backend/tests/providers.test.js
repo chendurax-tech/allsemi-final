@@ -889,9 +889,10 @@ test('b2 driver: the endpoint, the region, the bucket, and what each operation a
   assert.deepEqual(seen.sent[1].input, { Bucket: 'sample-private-bucket', Prefix: key });
   assert.equal(seen.sent.length, 2);
 
-  // The driver has no way to read an object back through the API
-  // server: B2 documents are only ever reached by a presigned link.
-  assert.deepEqual(Object.keys(driver).sort(), ['list', 'put', 'remove', 'signedUrl']);
+  // A person reaches a B2 document only by a presigned link. read() is
+  // for server-side work on a stored document (resume text extraction)
+  // and is checked in tests/resume-extraction.test.js.
+  assert.deepEqual(Object.keys(driver).sort(), ['list', 'put', 'read', 'remove', 'signedUrl']);
 });
 
 test('b2 driver: listing names every key the bucket holds, hidden versions included, page by page', async () => {

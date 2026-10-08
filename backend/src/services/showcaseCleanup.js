@@ -1,7 +1,8 @@
 import { forgetEmails } from './email/emailLog.js';
+import { removeLegacyDerivedData } from './legacyDerivedData.js';
 import { readFile } from 'node:fs/promises';
 import {
-  Job, Candidate, Application, Requirement, Referral, Enquiry, ATSResult,
+  Job, Candidate, Application, Requirement, Referral, Enquiry, ATSResult, ResumeExtraction,
   Insight, Story, Expertise, Service, Location, SiteSettings, User, AuditLog,
 } from '../models/index.js';
 import { removePrivateFile, listStoredFiles, removeStoredFile, storageHolding } from './storage/privateFiles.js';
@@ -264,6 +265,9 @@ export async function applyShowcaseCleanup(plan, { actorName = 'System' } = {}) 
   // so it goes with any one of them.
   const removedCandidates = plan.collections.Candidate.remove.map((item) => item.id);
   if (removedCandidates.length) {
+    // The resume extraction drafts of a removed candidate go with them.
+    await ResumeExtraction.deleteMany({ candidateId: { $in: removedCandidates } });
+    await removeLegacyDerivedData({ candidateIds: removedCandidates });
     await Job.updateMany({ 'candidateComparison.candidates.candidateId': { $in: removedCandidates } }, { $set: { candidateComparison: null } }, { timestamps: false });
   }
 

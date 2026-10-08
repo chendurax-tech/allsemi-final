@@ -95,6 +95,50 @@ export async function createB2Driver(sdk) {
     },
 
     /*
+      The bytes of one object, for server-side work on a stored
+      document (resume text extraction). Nothing here is sent to a
+      browser: downloads still go through signedUrl. Returns null when
+      the key is not in the bucket. `maxBytes` stops a read of an
+      object larger than expected before it is held in memory.
+    */
+    async read(key, { maxBytes = Infinity } = {}) {
+      let response;
+      try {
+        response = await client.send(new GetObjectCommand({ Bucket, Key: key }));
+      } catch (error) {
+        if (error?.name === 'NoSuchKey' || error?.name === 'NotFound' || error?.$metadata?.httpStatusCode === 404) return null;
+        throw error;
+      }
+      const tooBig = () => Object.assign(new Error('The stored object is larger than allowed for this read.'), { code: 'OBJECT_TOO_LARGE' });
+      if (Number.isFinite(Number(response?.ContentLength)) && Number(response.ContentLength) > maxBytes) throw tooBig();
+      const body = response?.Body;
+      if (!body) return Buffer.alloc(0);
+      if (body instanceof Uint8Array) {
+        if (body.length > maxBytes) throw tooBig();
+        return Buffer.from(body);
+      }
+      if (typeof body[Symbol.asyncIterator] === 'function') {
+        const chunks = [];
+        let size = 0;
+        for await (const chunk of body) {
+          size += chunk.length;
+          if (size > maxBytes) {
+            if (typeof body.destroy === 'function') body.destroy();
+            throw tooBig();
+          }
+          chunks.push(Buffer.from(chunk));
+        }
+        return Buffer.concat(chunks);
+      }
+      if (typeof body.transformToByteArray === 'function') {
+        const bytes = await body.transformToByteArray();
+        if (bytes.length > maxBytes) throw tooBig();
+        return Buffer.from(bytes);
+      }
+      throw new Error('The storage service returned a body that cannot be read.');
+    },
+
+    /*
       A B2 bucket keeps versions. Deleting a key without naming a
       version only hides the file: the bytes stay in the bucket. A
       removed resume must be gone, so every version of the key

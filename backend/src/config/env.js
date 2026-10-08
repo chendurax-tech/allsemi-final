@@ -108,38 +108,73 @@ const openai = {
 };
 
 /*
+  Job synchronisation from the official job source (services/jobSync/).
+  Off until JOB_SYNC_SOURCE_URL is set.
+    JOB_SYNC_SOURCE_TYPE        json-feed (an API or feed in the documented
+                                JSON shape) or jsonld-pages (job pages that
+                                carry schema.org JobPosting data)
+    JOB_SYNC_SOURCE_URL         the feed, or the listing page / sitemap
+    JOB_SYNC_SOURCE_KEY         the source identity stored on each job
+    JOB_SYNC_SOURCE_NAME        how the admin names the source
+    JOB_SYNC_LINK_PATTERN       jsonld-pages only: which links on a listing
+                                page are job pages (a regular expression)
+    JOB_SYNC_INTERVAL_MINUTES   run inside the server every N minutes (0 = off;
+                                use the command or the token endpoint instead)
+    JOB_SYNC_MISSING_THRESHOLD  consecutive successful syncs a job must be
+                                missing from the source before it is closed
+    JOB_SYNC_NEW_STATUS         published or draft: the status of a new job
+    JOB_SYNC_TOKEN              the bearer token of the trigger endpoint for
+                                an external scheduler (empty = endpoint off)
+*/
+const jobSync = {
+  sourceType: str('JOB_SYNC_SOURCE_TYPE', 'json-feed'),
+  sourceUrl: str('JOB_SYNC_SOURCE_URL'),
+  sourceKey: str('JOB_SYNC_SOURCE_KEY', 'company-site').toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 60) || 'company-site',
+  sourceName: str('JOB_SYNC_SOURCE_NAME', 'Company website').slice(0, 80),
+  linkPattern: str('JOB_SYNC_LINK_PATTERN'),
+  intervalMinutes: Math.max(0, int('JOB_SYNC_INTERVAL_MINUTES', 0)),
+  missingThreshold: Math.max(1, int('JOB_SYNC_MISSING_THRESHOLD', 2)),
+  newStatus: str('JOB_SYNC_NEW_STATUS', 'published') === 'draft' ? 'draft' : 'published',
+  token: str('JOB_SYNC_TOKEN'),
+};
+
+/*
   The internal AI usage estimate (services/aiUsageService.js). None of
   these is a credential and none is needed for the AI features to work.
+  OpenAI is used pay-as-you-go: ALLSEMIS has no budget and never limits,
+  delays or refuses an AI request because of these values.
 
-  - AI_MONTHLY_BUDGET_USD: what ALLSEMIS plans to spend on OpenAI in a
-    calendar month. The dashboard compares the estimated spend with it.
-    Not set: spend is still estimated, without a level.
   - OPENAI_INPUT_COST_PER_1M_TOKENS / OPENAI_OUTPUT_COST_PER_1M_TOKENS:
     the price of the configured model in US dollars per million tokens.
     Set both to override the list price the code knows for a model
     (MODEL_LIST_PRICES in config/constants.js), or to price a model it
-    does not know.
-  - AI_USAGE_NOTICE_PERCENT, AI_USAGE_WARNING_PERCENT,
-    AI_USAGE_CRITICAL_PERCENT: the share of the budget at which the
-    dashboard shows Notice, Warning and Critical.
+    does not know. Used only to estimate what each request cost.
+  - AI_USAGE_NOTICE_USD, AI_USAGE_WARNING_USD, AI_USAGE_CRITICAL_USD:
+    AI usage alert thresholds, in estimated US dollars for the current
+    calendar month (UTC). When the month's estimated spend reaches one,
+    the admin panel shows a Notice, Warning or Critical alert asking the
+    admin to check the OpenAI account and add credits if needed. Each
+    is optional; an empty value (or 0) is no alert at that level. They
+    are not a budget, not a limit and not the OpenAI balance.
 */
-const USAGE_THRESHOLD_DEFAULTS = { notice: 50, warning: 75, critical: 90 };
-const requestedThresholds = {
-  notice: int('AI_USAGE_NOTICE_PERCENT', USAGE_THRESHOLD_DEFAULTS.notice),
-  warning: int('AI_USAGE_WARNING_PERCENT', USAGE_THRESHOLD_DEFAULTS.warning),
-  critical: int('AI_USAGE_CRITICAL_PERCENT', USAGE_THRESHOLD_DEFAULTS.critical),
+const positive = (name) => {
+  const value = amount(name);
+  return value !== null && value > 0 ? value : null;
 };
-// Three steps that rise, each above 0. Anything else is a typing
-// mistake: the defaults are used and start-up says so.
-const thresholdsValid = requestedThresholds.notice > 0
-  && requestedThresholds.notice < requestedThresholds.warning
-  && requestedThresholds.warning < requestedThresholds.critical;
+const alertThresholds = {
+  notice: positive('AI_USAGE_NOTICE_USD'),
+  warning: positive('AI_USAGE_WARNING_USD'),
+  critical: positive('AI_USAGE_CRITICAL_USD'),
+};
+// The thresholds that are set must rise from notice to critical.
+// Anything else is almost certainly a typing mistake; start-up says
+// so. They are still used: the highest level reached is shown.
+const setThresholds = ['notice', 'warning', 'critical'].map((name) => alertThresholds[name]).filter((value) => value !== null);
 const aiUsage = {
-  monthlyBudgetUsd: amount('AI_MONTHLY_BUDGET_USD'),
   inputCostPerMillion: amount('OPENAI_INPUT_COST_PER_1M_TOKENS'),
   outputCostPerMillion: amount('OPENAI_OUTPUT_COST_PER_1M_TOKENS'),
-  thresholds: thresholdsValid ? requestedThresholds : USAGE_THRESHOLD_DEFAULTS,
-  thresholdsValid,
+  alertThresholds,
+  alertThresholdsRise: setThresholds.every((value, i) => i === 0 || value > setThresholds[i - 1]),
 };
 
 // "Configured" means every value the provider needs is present.
@@ -224,6 +259,9 @@ export const env = {
 
   mongodbUri: str('MONGODB_URI'),
   frontendUrls: list('FRONTEND_URL', isProduction ? '' : 'http://localhost:5173'),
+  // The public address of the website, for the sitemap (services/
+  // sitemap.js). Empty: the first FRONTEND_URL.
+  publicSiteUrl: str('PUBLIC_SITE_URL').replace(/\/+$/, ''),
 
   sessionSecret: str('SESSION_SECRET'),
   sessionTtlHours: int('SESSION_TTL_HOURS', 12),
@@ -253,6 +291,7 @@ export const env = {
 
   openai,
   aiUsage,
+  jobSync,
 
   seed: {
     adminEmail: str('SEED_ADMIN_EMAIL'),
@@ -277,6 +316,15 @@ export function validateEnv() {
   const problems = [];
   const warnings = [];
 
+  if (env.jobSync.sourceUrl) {
+    if (!['json-feed', 'jsonld-pages'].includes(env.jobSync.sourceType)) problems.push('JOB_SYNC_SOURCE_TYPE must be json-feed or jsonld-pages.');
+    if (!/^https?:\/\//i.test(env.jobSync.sourceUrl)) problems.push('JOB_SYNC_SOURCE_URL must be a full http(s) address.');
+    else if (env.isProduction && !/^https:\/\//i.test(env.jobSync.sourceUrl)) warnings.push('JOB_SYNC_SOURCE_URL is not https: the job source is read without encryption.');
+    if (env.jobSync.linkPattern) {
+      try { new RegExp(env.jobSync.linkPattern); } catch { problems.push('JOB_SYNC_LINK_PATTERN is not a valid regular expression.'); }
+    }
+  }
+  if (env.jobSync.token && env.jobSync.token.length < 32) problems.push('JOB_SYNC_TOKEN must be at least 32 characters (or empty to turn the trigger endpoint off).');
   if (!env.mongodbUri) problems.push('MONGODB_URI is required.');
   if (!env.sessionSecret) problems.push('SESSION_SECRET is required.');
   else if (env.sessionSecret.length < 32) problems.push('SESSION_SECRET must be at least 32 characters.');
@@ -298,6 +346,7 @@ export function validateEnv() {
     if (env.emailDriver === 'memory') problems.push('EMAIL_DRIVER=memory is for tests only.');
     if (env.emailDriver === 'log') warnings.push('EMAIL_DRIVER=log in production: no email is sent. Set RESEND_API_KEY and EMAIL_FROM (a sender on a domain verified in Resend) and remove EMAIL_DRIVER.');
     if (env.frontendUrls.some((origin) => origin.startsWith('http://'))) problems.push('FRONTEND_URL must use https in production.');
+    if (env.publicSiteUrl && !/^https:\/\/[^/]+$/.test(env.publicSiteUrl)) problems.push('PUBLIC_SITE_URL must be an https origin such as https://www.example.com.');
     if (env.trustProxy === 0) warnings.push('TRUST_PROXY=0 in production: behind a hosting proxy every visitor appears to come from the proxy address, so rate limits are shared by everyone. Set it to the exact number of proxies in front of this API: 1 when browsers call the Render address directly, 2 when the frontend host forwards /api to it. Do not set it higher than the real count: a larger number lets a visitor forge the address.');
   }
 
@@ -347,8 +396,8 @@ export function validateEnv() {
     warnings.push(`${env.openai.apiKey ? 'OPENAI_API_KEY is set but OPENAI_MODEL is not' : 'OPENAI_MODEL is set but OPENAI_API_KEY is not'}. The AI comparison needs both and stays unavailable until both are set.`);
   }
 
-  if (!env.aiUsage.thresholdsValid) {
-    warnings.push('AI_USAGE_NOTICE_PERCENT, AI_USAGE_WARNING_PERCENT and AI_USAGE_CRITICAL_PERCENT must be three rising whole numbers above 0. The defaults (50, 75, 90) are used.');
+  if (!env.aiUsage.alertThresholdsRise) {
+    warnings.push('AI_USAGE_NOTICE_USD, AI_USAGE_WARNING_USD and AI_USAGE_CRITICAL_USD should rise from notice to critical. They are used as set: the admin panel shows the highest alert level reached. They never limit AI requests.');
   }
   if ((env.aiUsage.inputCostPerMillion === null) !== (env.aiUsage.outputCostPerMillion === null)) {
     warnings.push('OPENAI_INPUT_COST_PER_1M_TOKENS and OPENAI_OUTPUT_COST_PER_1M_TOKENS are used together. Only one is set, so both are ignored.');
@@ -389,6 +438,7 @@ export function describeConfig() {
     // a domain that is verified in the Resend account.
     emailSenderDomain: env.emailSender.domain || null,
     openaiConfigured: integrations.openai(),
-    aiMonthlyBudgetSet: env.aiUsage.monthlyBudgetUsd !== null && env.aiUsage.monthlyBudgetUsd > 0,
+    // Whether any AI usage alert threshold is set (not the amounts).
+    aiUsageAlertsSet: Object.values(env.aiUsage.alertThresholds).some((value) => value !== null),
   };
 }

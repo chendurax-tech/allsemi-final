@@ -4,6 +4,8 @@ import { notFound } from '../utils/AppError.js';
 import { text } from '../utils/query.js';
 import { Job, Insight, Story, Expertise, Service, Location, insightOnLanding, storyOnLanding } from '../models/index.js';
 import { getSiteSettings } from '../services/settingsService.js';
+import { publicJob, listPublishedJobs } from '../services/publicJobs.js';
+import { sitemapXml } from '../services/sitemap.js';
 
 /*
   Public, read-only content. Every query here is restricted to
@@ -18,36 +20,17 @@ import { getSiteSettings } from '../services/settingsService.js';
 // what is published now: a story or article that was just unpublished
 // is gone at the next page load, not a minute later.
 const cache = (res) => res.set('Cache-Control', 'public, max-age=0, must-revalidate');
-const day = (date) => (date ? new Date(date).toISOString().slice(0, 10) : '');
-
-function publicJob(job) {
-  return {
-    id: String(job._id),
-    slug: job.slug,
-    title: job.title,
-    category: job.category,
-    department: job.department,
-    location: job.location,
-    employmentType: job.employmentType,
-    experienceLevel: job.experienceLevel,
-    summary: job.summary,
-    description: job.description,
-    responsibilities: job.responsibilities,
-    requiredSkills: job.requiredSkills,
-    preferredSkills: job.preferredSkills,
-    keywords: job.keywords,
-    status: 'published',
-    featured: job.featured,
-    applicationEnabled: job.applicationEnabled,
-    publishedAt: day(job.publishedAt),
-    updatedAt: day(job.updatedAt),
-  };
-}
+// The sitemap of the public website (services/sitemap.js). Search
+// engines read it rarely, so a copy may be kept for an hour.
+export const sitemap = asyncHandler(async (req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.type('application/xml').send(await sitemapXml());
+});
 
 export const listJobs = asyncHandler(async (req, res) => {
-  const jobs = await Job.find({ status: 'published' }).sort({ featured: -1, publishedAt: -1 }).limit(500);
+  const jobs = await listPublishedJobs();
   cache(res);
-  ok(res, jobs.map(publicJob));
+  ok(res, jobs);
 });
 
 export const getJob = asyncHandler(async (req, res) => {

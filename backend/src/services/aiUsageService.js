@@ -96,18 +96,28 @@ export async function recordAiUsage(entry) {
 }
 
 /*
-  usageLevel - where a share of the budget sits against the thresholds.
-  At or above a threshold counts as reaching it.
+  usageLevel - the alert level an estimated spend (US dollars) has
+  reached: 'critical', 'warning', 'notice' or 'normal'. At or above a
+  threshold counts as reaching it; a threshold that is not set (null)
+  is never reached. The level only decides what the admin panel says.
+  It never limits, delays or refuses an AI request.
 */
-export function usageLevel(percent, thresholds = env.aiUsage.thresholds) {
-  if (typeof percent !== 'number' || !Number.isFinite(percent)) return null;
-  if (percent >= thresholds.critical) return 'critical';
-  if (percent >= thresholds.warning) return 'warning';
-  if (percent >= thresholds.notice) return 'notice';
-  return 'healthy';
+export function usageLevel(spendUsd, thresholds = env.aiUsage.alertThresholds) {
+  if (typeof spendUsd !== 'number' || !Number.isFinite(spendUsd)) return 'normal';
+  for (const level of ['critical', 'warning', 'notice']) {
+    const threshold = thresholds[level];
+    if (typeof threshold === 'number' && threshold > 0 && spendUsd >= threshold) return level;
+  }
+  return 'normal';
 }
 
-const LEVEL_LABELS = { healthy: 'Healthy', notice: 'Notice', warning: 'Warning', critical: 'Critical' };
+const LEVEL_LABELS = { normal: 'Normal', notice: 'Notice', warning: 'Warning', critical: 'Critical' };
+const PERIOD_LABEL = 'this calendar month (UTC)';
+const ALERT_MESSAGES = {
+  notice: 'AI usage notice: estimated ALLSEMIS AI usage has reached the configured notice threshold.',
+  warning: 'AI usage warning: estimated AI usage is high. Check the OpenAI account and add credits if needed.',
+  critical: 'AI usage critical: estimated AI usage has reached the configured critical threshold. Check the OpenAI account and add credits if needed.',
+};
 
 function totals(entries) {
   const out = { requests: entries.length, succeeded: 0, failed: 0, inputTokens: 0, outputTokens: 0, estimatedSpendUsd: 0, unpricedRequests: 0 };
@@ -184,12 +194,16 @@ export async function usageSummary({ now = new Date(), configured, model } = {})
     message = FAILURE_MESSAGES[last.errorCategory] || FAILURE_MESSAGES.provider;
   }
 
-  const budget = settings.monthlyBudgetUsd !== null && settings.monthlyBudgetUsd > 0 ? settings.monthlyBudgetUsd : null;
-  const percentUsed = budget ? Math.round((month.estimatedSpendUsd / budget) * 1000) / 10 : null;
-  // A quota or billing refusal is critical whatever the estimate says:
-  // the estimate only knows about requests made from here.
-  const level = quotaExceeded ? 'critical' : usageLevel(percentUsed, settings.thresholds);
+  const thresholds = { ...settings.alertThresholds };
+  const thresholdLevel = usageLevel(month.estimatedSpendUsd, thresholds);
+  // A quota or billing refusal from OpenAI is critical whatever the
+  // estimate says: the estimate only knows about requests made from
+  // here. It is OpenAI refusing, not ALLSEMIS.
+  const level = quotaExceeded ? 'critical' : thresholdLevel;
   const price = priceFor(model, settings);
+  let alertMessage = null;
+  if (quotaExceeded) alertMessage = `AI usage critical: ${FAILURE_MESSAGES.quota} Check the OpenAI account and add credits if needed.`;
+  else if (level !== 'normal') alertMessage = ALERT_MESSAGES[level];
 
   return {
     // Said in the data as well as on the page: these are estimates.
@@ -201,13 +215,20 @@ export async function usageSummary({ now = new Date(), configured, model } = {})
     service: { state, message, quotaExceeded },
     today: { ...today, from: dayStart },
     month: { ...month, from: monthStart, to: monthEnd },
-    budget: {
-      monthlyUsd: budget,
-      percentUsed,
-      remainingUsd: budget ? money(Math.max(0, budget - month.estimatedSpendUsd)) : null,
+    // The AI usage alert. Informational only: AI requests are never
+    // limited by it. `key` is the same for as long as the level and the
+    // period stay the same, so the admin panel shows one alert per
+    // level reached in a period, however many requests follow.
+    alert: {
       level,
-      levelLabel: level ? LEVEL_LABELS[level] : 'No budget set',
-      thresholds: { ...settings.thresholds },
+      levelLabel: LEVEL_LABELS[level],
+      reason: quotaExceeded ? 'quota' : (level === 'normal' ? null : 'threshold'),
+      message: alertMessage,
+      thresholdsSet: Object.values(thresholds).some((value) => value !== null),
+      thresholds,
+      measuredUsd: month.estimatedSpendUsd,
+      period: { label: PERIOD_LABEL, from: monthStart, to: monthEnd },
+      key: `${monthStart.toISOString().slice(0, 7)}:${level}${quotaExceeded ? ':quota' : ''}`,
     },
     pricing: price
       ? { known: true, source: price.source, inputPerMillionUsd: price.input, outputPerMillionUsd: price.output }

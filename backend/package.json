@@ -15,7 +15,8 @@
     "create-admin": "node scripts/create-admin.js",
     "migrate:recruitment": "node scripts/migrate-recruitment.js",
     "clean:showcase": "node scripts/clean-showcase.js",
-    "test": "node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js tests/session.test.js tests/health.test.js tests/requirements.test.js tests/ai-usage.test.js tests/emails.test.js",
+    "sync:jobs": "node scripts/sync-jobs.js",
+    "test": "node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js tests/session.test.js tests/health.test.js tests/requirements.test.js tests/ai-usage.test.js tests/emails.test.js tests/resume-extraction.test.js tests/resume-parser.test.js tests/resume-drafts.test.js tests/match-explanation.test.js tests/ats-reevaluation.test.js tests/chat.test.js tests/job-sync.test.js tests/hiring-requirements.test.js tests/sitemap.test.js",
     "check": "node scripts/check-syntax.js"
   },
   "dependencies": {
@@ -27,8 +28,10 @@
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
+    "mammoth": "^1.9.0",
     "mongoose": "^8.9.0",
     "multer": "^2.0.2",
+    "pdfjs-dist": "^4.10.38",
     "zod": "^3.24.1"
   },
   "devDependencies": {

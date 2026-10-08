@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useSeo, breadcrumbJsonLd } from '../../lib/seo.js';
+import { PAGE_SEO } from '../../lib/seoPages.js';
 import { Link, useParams } from 'react-router-dom';
 import { DimensionRule } from '../../components/EngineeringGlyphs.jsx';
 import { SEARCH_EVALUATION } from './sectorContent.js';
@@ -83,18 +85,7 @@ function SectorPending({ loading, onRetry }) {
 // No published sector has this address. Search engines are asked not to
 // index the page while this state is shown.
 function SectorNotFound() {
-  useEffect(() => {
-    const previousTitle = document.title;
-    document.title = 'ALLSEMIS | Sector not found';
-    const robots = document.createElement('meta');
-    robots.name = 'robots';
-    robots.content = 'noindex';
-    document.head.appendChild(robots);
-    return () => {
-      document.title = previousTitle;
-      robots.remove();
-    };
-  }, []);
+  useSeo({ title: 'ALLSEMIS | Sector not found', description: 'This sector is not available. It may have been moved or unpublished, or the address may be wrong.', robots: 'noindex' });
 
   return (
     <SectorFrame>
@@ -121,9 +112,17 @@ function SectorView({ sector, sectors }) {
   const heroImgRef = useRef(null);
   const [heroMounted, setHeroMounted] = useState(false);
 
-  useEffect(() => {
-    document.title = `ALLSEMIS | ${sector.name}`;
-  }, [sector.name]);
+  // The sectors listed in seoPages.js have their own search text; one
+  // added in the admin uses its own name and description. The
+  // breadcrumb always shows the sector's current name.
+  const path = `/expertise/${sector.slug}`;
+  const known = PAGE_SEO[path];
+  useSeo({
+    title: known ? known.title : `${sector.name} Recruitment | ALLSEMIS`,
+    description: known ? known.description : (sector.desc || sector.introduction || `ALLSEMIS recruits engineers for ${sector.name}.`),
+    path,
+    jsonLd: [breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Expertise', path: '/expertise' }, { name: sector.name, path }])],
+  });
 
   // Entrance for the oversized hero type - a single fade/rise on
   // mount, not looped, not scroll-triggered (the hero is already in
@@ -174,7 +173,7 @@ function SectorView({ sector, sectors }) {
           ref={heroImgRef}
           className="absolute inset-0 transition-transform duration-500 ease-out"
         >
-          {sector.image && <img
+          {sector.image && <img fetchPriority="high"
             src={sector.image}
             alt={sector.alt}
             className="absolute inset-0 w-full h-full object-cover grayscale-[0.55] scale-105"

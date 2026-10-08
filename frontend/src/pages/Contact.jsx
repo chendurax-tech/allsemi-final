@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useSeo, fixedPageSeo } from '../lib/seo.js';
 import { useSearchParams } from 'react-router-dom';
 import {
   useInView, useRadialHighlight,
@@ -82,9 +83,7 @@ export default function Contact() {
   const type = normalizeType(searchParams.get('type'));
   const contact = useSiteContact();
 
-  useEffect(() => {
-    document.title = 'ALLSEMIS | Contact';
-  }, []);
+  useSeo(fixedPageSeo('/contact'));
 
   function selectType(key) {
     setSearchParams(key === 'general' ? {} : { type: key }, { replace: false });

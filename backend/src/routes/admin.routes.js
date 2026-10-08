@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAuth, requirePermission, requirePasswordChanged } from '../middleware/auth.js';
 import { csrfProtection } from '../middleware/csrf.js';
 import { validate } from '../middleware/validate.js';
-import { uploadLimiter, downloadLimiter, aiLimiter } from '../middleware/rateLimiters.js';
+import { uploadLimiter, downloadLimiter, aiLimiter, extractionLimiter } from '../middleware/rateLimiters.js';
 import { singleImage, checkImage } from '../middleware/upload.js';
 import { PERMISSIONS as P } from '../config/permissions.js';
 import * as resources from '../controllers/resources.js';
@@ -13,6 +13,10 @@ import * as media from '../controllers/mediaController.js';
 import * as system from '../controllers/systemController.js';
 import * as emails from '../controllers/emailController.js';
 import * as auth from '../controllers/authController.js';
+import * as resumeExtraction from '../controllers/resumeExtractionController.js';
+import * as match from '../controllers/matchController.js';
+import * as jobSync from '../controllers/jobSyncController.js';
+import { resumeApprovalSchema, resumeDiscardSchema } from '../validators/resumeExtraction.js';
 import { jobCreateSchema, jobUpdateSchema, requirementProfileSchema, candidateComparisonSchema } from '../validators/jobs.js';
 import {
   candidateUpdateSchema, noteSchema, applicationUpdateSchema, requirementCreateSchema, requirementUpdateSchema,
@@ -51,6 +55,10 @@ router.get('/jobs/:id', can(P.JOBS_READ), resources.jobs.read);
 router.post('/jobs', can(P.JOBS_WRITE), validate(jobCreateSchema), resources.jobs.create);
 router.patch('/jobs/:id', can(P.JOBS_WRITE), validate(jobUpdateSchema), resources.jobs.update);
 router.delete('/jobs/:id', can(P.JOBS_DELETE), resources.jobs.remove);
+// The job synchronisation from the official job source: its status and
+// recent runs, and a run on demand.
+router.get('/job-sync', can(P.JOBS_READ), jobSync.status);
+router.post('/job-sync/run', can(P.JOBS_WRITE), jobSync.runNow);
 // The job's requirement profile: what the job asks for, structured.
 // Saving and removing are plain edits. The draft calls OpenAI, only
 // when a recruiter asks, and stores nothing.
@@ -80,6 +88,17 @@ router.post('/applications/:id/shortlist-email', can(P.APPLICATIONS_SHORTLIST), 
 // tell a candidate about a decision.
 router.post('/applications/:id/regret-email', can(P.APPLICATIONS_SHORTLIST), recruitment.regretEmail);
 router.post('/applications/:id/selection-email', can(P.APPLICATIONS_SHORTLIST), recruitment.selectionEmail);
+
+// ---- resume extraction: drafts and recruiter approval ----
+// Reading a resume runs on this server (no AI service) and only ever
+// makes a draft. The candidate changes only through approve, with the
+// fields the recruiter chose. Reading or approving needs the right to
+// edit candidates and to read resumes; seeing drafts needs the right to
+// read both.
+router.post('/applications/:id/resume-extraction', extractionLimiter, can(P.CANDIDATES_WRITE, P.RESUMES_READ), resumeExtraction.extract);
+router.get('/candidates/:id/resume-extractions', can(P.CANDIDATES_READ, P.RESUMES_READ), resumeExtraction.listForCandidate);
+router.post('/resume-extractions/:id/approve', can(P.CANDIDATES_WRITE, P.RESUMES_READ), validate(resumeApprovalSchema), resumeExtraction.approve);
+router.post('/resume-extractions/:id/discard', can(P.CANDIDATES_WRITE), validate(resumeDiscardSchema), resumeExtraction.discard);
 
 // ---- the email record ----
 // What was sent about one record, and sending an automatic email again
@@ -118,6 +137,11 @@ router.get('/ats-results', can(P.ATS_READ), ats.list);
 router.get('/ats-results/:id', can(P.ATS_READ), ats.read);
 router.post('/ats/run', can(P.ATS_RUN), validate(atsRunSchema), ats.run);
 router.patch('/ats-results/:id/review', can(P.ATS_REVIEW), validate(atsReviewSchema), ats.review);
+// Why a result scored as it did, and its skill gaps: laid out from the
+// stored result by rules (services/matchExplanation.js). No model.
+router.get('/ats-results/:id/explanation', can(P.ATS_READ), match.explanation);
+// The candidates evaluated against one job, by rule-based score.
+router.get('/jobs/:id/ranking', can(P.ATS_READ, P.CANDIDATES_READ), match.jobRanking);
 // "Compare with AI": one of the three routes that call OpenAI (all
 // behind aiLimiter), and only when a recruiter asks. Advisory: it
 // shortlists nobody.

@@ -1,5 +1,171 @@
 {
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/expertise/automotive-mobility",
+      "destination": "/expertise/mobility-communications",
+      "permanent": true
+    },
+    {
+      "source": "/expertise/aerospace-communications",
+      "destination": "/expertise/mobility-communications",
+      "permanent": true
+    }
+  ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://allsemi-backend.onrender.com/api/public/sitemap.xml"
+    },
+    {
+      "source": "/employers",
+      "destination": "/seo/employers.html"
+    },
+    {
+      "source": "/employers/permanent-staffing",
+      "destination": "/seo/employers/permanent-staffing.html"
+    },
+    {
+      "source": "/employers/project-staffing",
+      "destination": "/seo/employers/project-staffing.html"
+    },
+    {
+      "source": "/employers/rpo",
+      "destination": "/seo/employers/rpo.html"
+    },
+    {
+      "source": "/talent",
+      "destination": "/seo/talent.html"
+    },
+    {
+      "source": "/expertise",
+      "destination": "/seo/expertise.html"
+    },
+    {
+      "source": "/expertise/semiconductor-chip-engineering",
+      "destination": "/seo/expertise/semiconductor-chip-engineering.html"
+    },
+    {
+      "source": "/expertise/embedded-systems-electronics",
+      "destination": "/seo/expertise/embedded-systems-electronics.html"
+    },
+    {
+      "source": "/expertise/mobility-communications",
+      "destination": "/seo/expertise/mobility-communications.html"
+    },
+    {
+      "source": "/expertise/ai-infrastructure-cloud",
+      "destination": "/seo/expertise/ai-infrastructure-cloud.html"
+    },
+    {
+      "source": "/expertise/healthcare-medical-technology",
+      "destination": "/seo/expertise/healthcare-medical-technology.html"
+    },
+    {
+      "source": "/expertise/consumer-goods-retail",
+      "destination": "/seo/expertise/consumer-goods-retail.html"
+    },
+    {
+      "source": "/expertise/business-finance-consumer",
+      "destination": "/seo/expertise/business-finance-consumer.html"
+    },
+    {
+      "source": "/expertise/banking-finance-fintech",
+      "destination": "/seo/expertise/banking-finance-fintech.html"
+    },
+    {
+      "source": "/insights",
+      "destination": "/seo/insights.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/seo/about.html"
+    },
+    {
+      "source": "/contact",
+      "destination": "/seo/contact.html"
+    },
+    {
+      "source": "/refer",
+      "destination": "/seo/refer.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/spa.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/chip-frames/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/hero-loop.mp4",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/hero-loop-mobile.mp4",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/allsemi-logo-signal.mp4",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/admin",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/admin/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/seo/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    }
   ]
 }

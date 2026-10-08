@@ -121,7 +121,7 @@ export default function MediaUploader({ id, value, saved, onChange, disabled }) 
       >
         <div className="flex h-32 w-full shrink-0 items-center justify-center overflow-hidden border border-line bg-bg sm:w-48">
           {media.url && !broken && <img src={media.url} alt="" onError={() => setBroken(true)} className="h-full w-full object-cover" />}
-          {media.url && broken && <p className="px-3 text-center text-xs text-[#e8b65a]">The image at this address could not be loaded.</p>}
+          {media.url && broken && <p className="px-3 text-center text-xs text-warn">The image at this address could not be loaded.</p>}
           {!media.url && <p className="px-3 text-center font-mono text-[0.62rem] uppercase tracking-[0.14em] text-text-dim">No image</p>}
         </div>
 

@@ -55,6 +55,14 @@ function ParsedField({ id, initial, parse, onChange, rows, placeholder, disabled
 
 const splitComma = (text) => text.split(',').map((part) => part.trim()).filter(Boolean);
 const splitLines = (text) => text.split('\n').map((part) => part.trim()).filter(Boolean);
+// A read-only value as text: a list one item per line, an enum value by
+// its label.
+function readonlyText(field, value) {
+  if (Array.isArray(value)) return value.join('\n');
+  if (Array.isArray(field.options) && value) return field.options.find((option) => option.value === value)?.label || enumLabel(value);
+  return value;
+}
+
 const WIDE = ['textarea', 'lines', 'body', 'readonly', 'media', 'labels'];
 
 // A server message names a field by its path ("image.url"). The form
@@ -107,7 +115,7 @@ export default function ResourceForm({ fields, value, onChange, state, idPrefix 
         if (field.type === 'toggle') {
           control = (
             <label htmlFor={id} className={cx('flex items-center gap-3 border border-line-strong px-3 py-2', disabled ? 'opacity-60' : 'cursor-pointer')}>
-              <input id={id} type="checkbox" checked={!!current} disabled={disabled} onChange={(e) => set(field.key, e.target.checked)} className="h-4 w-4 accent-[#a78bfa]" />
+              <input id={id} type="checkbox" checked={!!current} disabled={disabled} onChange={(e) => set(field.key, e.target.checked)} className="h-4 w-4 accent-accent" />
               <span className="text-sm">{field.label}</span>
             </label>
           );
@@ -137,7 +145,7 @@ export default function ResourceForm({ fields, value, onChange, state, idPrefix 
         } else if (field.type === 'body') {
           control = <ParsedField id={id} rows={16} initial={blocksToText(current)} parse={textToBlocks} disabled={disabled} onChange={(next) => set(field.key, next)} />;
         } else if (field.type === 'readonly') {
-          control = <p id={id} className="whitespace-pre-line break-words border border-line bg-bg-raised/50 px-3 py-2 text-sm">{current || 'Not provided'}</p>;
+          control = <p id={id} className="whitespace-pre-line break-words border border-line bg-bg-raised/50 px-3 py-2 text-sm">{readonlyText(field, current) || 'Not provided'}</p>;
         } else if (field.type === 'number') {
           control = <input id={id} type="number" step={field.step || 'any'} value={current ?? ''} disabled={disabled} onChange={(e) => set(field.key, e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} />;
         } else {

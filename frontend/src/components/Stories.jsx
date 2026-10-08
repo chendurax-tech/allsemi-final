@@ -56,8 +56,11 @@ export default function Stories() {
             className="w-full h-full object-cover grayscale contrast-105 brightness-70 transition-all duration-700 ease-out group-hover:grayscale-0 group-hover:brightness-90 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100 max-md:!grayscale-0 max-md:!brightness-100 max-md:!contrast-100"
           />}
         </div>
+        {/* Separate keys: React then replaces the loading frame instead of
+            reusing its nodes for the story, which browsers count as a
+            layout shift. */}
         {loading ? (
-          <div role="status" className="relative">
+          <div key="loading" role="status" className="relative">
             <span className="sr-only">Loading stories</span>
             <div className="invisible" aria-hidden="true">
               <div className="font-display font-medium text-xl md:text-2xl lg:text-3xl leading-snug">{QUOTE_SPACE}</div>
@@ -76,7 +79,7 @@ export default function Stories() {
             </div>
           </div>
         ) : (
-        <div>
+        <div key="story">
           <blockquote className="font-display font-medium text-xl md:text-2xl lg:text-3xl leading-snug text-text-dim">
             {item.quote}
           </blockquote>

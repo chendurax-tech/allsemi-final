@@ -5,7 +5,7 @@ export { authApi } from './auth.js';
 export {
   jobsApi, candidatesApi, applicationsApi, requirementsApi, referralsApi, enquiriesApi,
   insightsApi, storiesApi, expertiseApi, servicesApi, locationsApi,
-  atsApi, settingsApi, usersApi, auditApi, ADMIN_RESOURCES,
+  atsApi, resumeApi, settingsApi, usersApi, auditApi, ADMIN_RESOURCES,
 } from './admin.js';
 export { uploadsApi, IMAGE_ACCEPT, IMAGE_MAX_BYTES } from './uploads.js';
-export { publicApi, formsApi, DOCUMENT_ACCEPT, DOCUMENT_MAX_BYTES } from './public.js';
+export { publicApi, formsApi, chatApi, DOCUMENT_ACCEPT, DOCUMENT_MAX_BYTES } from './public.js';

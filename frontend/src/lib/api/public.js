@@ -20,6 +20,14 @@ export const publicApi = {
   locations: (options) => api.get('/api/public/locations', undefined, options).then((r) => r.data),
 };
 
+// The website assistant (rule-based on the server; no AI service). Sends
+// one message with the jobs last shown (so "the second one" can be
+// understood). Resolves to { reply, intent, answerType, mode, jobs,
+// actions, sources, context }. The server stores nothing.
+export const chatApi = {
+  send: ({ message, context = {} }, options) => api.post('/api/public/chat', { message, context }, options).then((r) => r.data),
+};
+
 const submit = (path, fields, files, options) => upload(path, toFormData(fields, files), options).then((r) => r.data);
 
 export const formsApi = {

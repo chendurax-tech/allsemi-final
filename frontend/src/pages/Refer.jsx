@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { useSeo, fixedPageSeo } from '../lib/seo.js';
 import {
   useInView, TechnicalGrid, StaggerText, AnimatedUnderline, MeasurementLabel,
 } from '../lib/motionPrimitives.jsx';
@@ -35,9 +36,7 @@ import { useDomainOptions } from '../components/forms/options.js';
   referContent.js under the names the backend accepts.
 */
 export default function Refer() {
-  useEffect(() => {
-    document.title = 'ALLSEMIS | Refer Talent';
-  }, []);
+  useSeo(fixedPageSeo('/refer'));
 
   return (
     <>

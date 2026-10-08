@@ -53,6 +53,28 @@ export const jobsApi = {
   // resultIds: two to five ATS result ids of this job. One AI request.
   // Resolves to the comparison, which replaces the stored one.
   compareCandidates: (id, resultIds) => api.post(`/api/admin/jobs/${seg(id)}/candidate-comparison`, { resultIds }).then((r) => r.data.comparison),
+  // The candidates evaluated against the job, by rule-based score.
+  // Resolves to { job, order, ranking, unranked }. Reads only.
+  ranking: (id) => api.get(`/api/admin/jobs/${seg(id)}/ranking`).then((r) => r.data),
+  // The synchronisation from the official job source: { source, runs },
+  // and one run on demand (resolves to the run).
+  syncStatus: () => api.get('/api/admin/job-sync').then((r) => r.data),
+  syncNow: () => api.post('/api/admin/job-sync/run').then((r) => r.data),
+};
+
+// Resume extraction. The server reads the resume with local libraries
+// (no AI) and stores a DRAFT; the candidate changes only when a
+// recruiter approves chosen fields. No call here returns resume text.
+export const resumeApi = {
+  // Reads the resume sent with one application. Resolves to the draft.
+  extract: (applicationId) => api.post(`/api/admin/applications/${seg(applicationId)}/resume-extraction`).then((r) => r.data),
+  // The candidate's drafts, newest first.
+  list: (candidateId) => api.get(`/api/admin/candidates/${seg(candidateId)}/resume-extractions`).then((r) => r.data),
+  // body: { fields, values, append, note }. Resolves to
+  // { extraction, candidate, ats }: ats says whether the rule-based
+  // evaluation was run again (UPDATED, NONE, PARTIAL or FAILED).
+  approve: (id, body) => api.post(`/api/admin/resume-extractions/${seg(id)}/approve`, body).then((r) => r.data),
+  discard: (id, note = '') => api.post(`/api/admin/resume-extractions/${seg(id)}/discard`, { note }).then((r) => r.data),
 };
 
 export const candidatesApi = {
@@ -119,6 +141,10 @@ export const atsApi = {
   // whole ATS result with its new aiComparison, and can take about a
   // minute.
   compareWithAi: (id) => api.post(`/api/admin/ats-results/${seg(id)}/ai-comparison`).then((r) => r.data),
+  // Why the result scored as it did, and its skill gaps, laid out by the
+  // server from the stored result. Rules only. Resolves to
+  // { resultId, explanation, skillGap }.
+  explanation: (id) => api.get(`/api/admin/ats-results/${seg(id)}/explanation`).then((r) => r.data),
 };
 
 // The email record: what was sent about one record (a requirement, an

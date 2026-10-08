@@ -170,8 +170,8 @@ export default function Dashboard() {
           )}
 
           {sees.requirements && (
-            <Panel title="Recruitment requirements" meta={`${liveRequirements.length} not closed`} action={<Button size="sm" to="/admin/requirements">Open</Button>} pad={false}>
-              {liveRequirements.length === 0 ? <EmptyState title="No open requirements" /> : (
+            <Panel title="Hiring requirements" meta={`${liveRequirements.length} not closed`} action={<Button size="sm" to="/admin/requirements">Open</Button>} pad={false}>
+              {liveRequirements.length === 0 ? <EmptyState title="No open hiring requirements" /> : (
                 <ul className="divide-y divide-line">
                   {liveRequirements.map((r) => (
                     <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 md:px-5">
@@ -225,7 +225,7 @@ export default function Dashboard() {
                 <li key={row.label} className="flex items-center gap-4 px-4 py-3 md:px-5">
                   <Link to={row.to} className={`min-w-0 flex-1 truncate text-sm font-semibold ${linkCls}`}>{row.label}</Link>
                   <span className="text-xs text-text-dim tabular-nums">{row.published} published</span>
-                  <span className={`w-20 text-right text-xs tabular-nums ${row.drafts ? 'text-[#e8b65a]' : 'text-text-dim'}`}>{row.drafts} not live</span>
+                  <span className={`w-20 text-right text-xs tabular-nums ${row.drafts ? 'text-warn' : 'text-text-dim'}`}>{row.drafts} not live</span>
                 </li>
               ))}
             </ul>

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { env, integrations } from '../../config/env.js';
-import { notConfigured, notFound } from '../../utils/AppError.js';
+import { notConfigured, notFound, tooLarge } from '../../utils/AppError.js';
 
 /*
   Private document storage: resumes and the attachments sent with a
@@ -11,8 +11,10 @@ import { notConfigured, notFound } from '../../utils/AppError.js';
     signedUrl(key, { fileName, mimeType })    -> { url, expiresIn }
     remove(key)                               -> void
     list()                                    -> [key]
-  The local and memory drivers add read(key) for the development
-  download route, and the local driver has(key).
+    read(key, { maxBytes })                   -> Buffer | null
+  read() serves the development download route (local and memory) and
+  server-side work on a document such as resume text extraction
+  (readPrivateFile below, every driver). The local driver adds has(key).
 
   - Backblaze B2 (drivers/b2.js) is used whenever its credentials are
     set, and always in production. Objects are private; there is no
@@ -155,6 +157,36 @@ export async function signedUrlFor(file) {
   if (!holder) throw notFound('This document is held in a store that this server does not use, so it cannot be opened from here.');
   const store = await driver(holder);
   return store.signedUrl(file.key, { fileName: file.originalName, mimeType: file.mimeType });
+}
+
+/*
+  readPrivateFile - the bytes of a stored document, for work the server
+  does on it itself (resume text extraction). It never goes to a
+  browser: a person opens a document through signedUrlFor, which is
+  permission-checked and audited by its route. The caller checks the
+  permission before calling this.
+
+  Throws 404 when the store cannot be reached from this server or no
+  longer holds the file, and 413 when the stored file is larger than
+  `maxBytes`.
+*/
+export async function readPrivateFile(file, { maxBytes = Infinity } = {}) {
+  if (!file?.key) throw notFound('No document is stored for this record.');
+  if (Number.isFinite(file.size) && file.size > maxBytes) throw tooLarge('The stored document is larger than can be read.');
+  const holder = await storageHolding(file);
+  if (!holder) throw notFound('This document is held in a store that this server does not use, so it cannot be read from here.');
+  const store = await driver(holder);
+  if (typeof store.read !== 'function') throw notFound('This document cannot be read from here.');
+  let buffer;
+  try {
+    buffer = await store.read(file.key, { maxBytes });
+  } catch (error) {
+    if (error?.code === 'OBJECT_TOO_LARGE') throw tooLarge('The stored document is larger than can be read.');
+    throw error;
+  }
+  if (!buffer) throw notFound('The document is no longer stored.');
+  if (buffer.length > maxBytes) throw tooLarge('The stored document is larger than can be read.');
+  return buffer;
 }
 
 export async function removePrivateFile(file) {

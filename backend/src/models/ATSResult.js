@@ -109,6 +109,29 @@ const atsResultSchema = new Schema({
     reviewerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     reviewerName: { type: String, default: '' },
     updatedAt: { type: Date, default: null },
+    // True when the rules were re-run after this review was saved (after
+    // a recruiter approved resume data for the candidate) and the result
+    // changed: the review was a review of an earlier result. Saving a
+    // new review clears it. The review itself is kept as it was.
+    stale: { type: Boolean, default: false },
+    staleSince: { type: Date, default: null },
+    // The total score the result had when the review was saved.
+    scoreAtReview: { type: Number, default: null },
+  },
+  // The last time the rules were re-run because a recruiter approved
+  // resume data for the candidate (services/resume/approvalReevaluation.js),
+  // and what the result was before. Empty until that happens.
+  reevaluation: {
+    type: new Schema({
+      at: { type: Date, required: true },
+      reason: { type: String, enum: ['RESUME_APPROVED'], default: 'RESUME_APPROVED' },
+      extractionId: { type: Schema.Types.ObjectId, ref: 'ResumeExtraction', default: null },
+      byName: { type: String, default: '' },
+      previousTotalScore: { type: Number, default: null },
+      previousBand: { type: String, default: '' },
+      changed: { type: Boolean, default: false },
+    }, { _id: false }),
+    default: null,
   },
   runAt: { type: Date, default: Date.now },
   runByName: { type: String, default: 'System' },
@@ -136,8 +159,21 @@ atsResultSchema.set('toJSON', {
         note: doc.review.note,
         reviewerName: doc.review.reviewerName,
         updatedAt: doc.review.updatedAt,
+        stale: Boolean(doc.review.stale),
+        staleSince: doc.review.staleSince || null,
+        scoreAtReview: doc.review.scoreAtReview ?? null,
       };
     }
+    const again = doc.reevaluation;
+    out.reevaluation = again ? {
+      at: again.at,
+      reason: again.reason,
+      extractionId: again.extractionId ? String(again.extractionId) : null,
+      byName: again.byName || '',
+      previousTotalScore: again.previousTotalScore ?? null,
+      previousBand: again.previousBand || '',
+      changed: Boolean(again.changed),
+    } : null;
     // Always present: null until a comparison has been run. The id of
     // the person who ran it stays on the server; their name is enough.
     const ai = doc.aiComparison;

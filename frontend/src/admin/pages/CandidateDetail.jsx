@@ -11,6 +11,7 @@ import ApplicationActions from '../components/ApplicationActions.jsx';
 import { useConfirm } from '../components/Feedback.jsx';
 import DocumentButton from '../components/DocumentButton.jsx';
 import Notes from '../components/Notes.jsx';
+import ResumeIntelligence from '../components/ResumeIntelligence.jsx';
 import { formatDate, formatDateTime, formatBytes } from '../lib/format.js';
 
 /*
@@ -35,7 +36,7 @@ import { formatDate, formatDateTime, formatBytes } from '../lib/format.js';
 const stated = (value) => (value === '' || value === null || value === undefined ? 'Not stated' : value);
 
 export default function CandidateDetail({ id }) {
-  const { state, remove, put } = useAdminStore();
+  const { state, remove, put, reload } = useAdminStore();
   const { can } = useAuth();
   const navigate = useNavigate();
   const ask = useConfirm();
@@ -181,6 +182,19 @@ export default function CandidateDetail({ id }) {
             />
           </Panel>
 
+          <ResumeIntelligence
+            key={candidate.id}
+            candidate={candidate}
+            applications={applications}
+            jobOf={jobOf}
+            onApproved={async () => {
+              // The profile and its ATS results changed on the server.
+              await read();
+              reload('candidates');
+              reload('atsResults');
+            }}
+          />
+
           <Panel title="Skills" meta={`${candidate.skills.length} listed`}>
             {candidate.skills.length === 0 ? <p className="text-sm text-text-dim">No skills were listed.</p> : (
               <div className="flex flex-wrap gap-2">
@@ -215,6 +229,36 @@ export default function CandidateDetail({ id }) {
                   </li>
                 ))}
               </ul>
+            </Panel>
+          )}
+
+          {(candidate.certifications || []).length > 0 && (
+            <Panel title="Certifications">
+              <ul className="space-y-1">
+                {candidate.certifications.map((item) => <li key={item} className="text-sm">{item}</li>)}
+              </ul>
+            </Panel>
+          )}
+
+          {(candidate.projects || []).length > 0 && (
+            <Panel title="Projects">
+              <ol className="space-y-5">
+                {candidate.projects.map((project, index) => (
+                  <li key={`${project.name}-${index}`} className="border-l border-line-strong pl-4">
+                    <p className="text-sm font-semibold">{project.name}</p>
+                    {(project.period || project.role) && <p className="text-xs text-text-dim">{[project.role, project.period].filter(Boolean).join(', ')}</p>}
+                    {project.description && <p className="mt-2 text-sm text-text-dim leading-relaxed">{project.description}</p>}
+                    {(project.highlights || []).length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {project.highlights.map((h) => <li key={h} className="text-sm text-text-dim leading-relaxed">{h}</li>)}
+                      </ul>
+                    )}
+                    {(project.technologies || []).length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">{project.technologies.map((t) => <Chip key={t}>{t}</Chip>)}</div>
+                    )}
+                  </li>
+                ))}
+              </ol>
             </Panel>
           )}
 
@@ -289,7 +333,10 @@ export default function CandidateDetail({ id }) {
                         <span className="font-display text-xl font-semibold tabular-nums w-9">{r.totalScore}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-semibold">{jobOf(r.jobId)}</span>
-                          <span className="block text-xs text-text-dim">Review: {label(r.review.state)}</span>
+                          <span className="block text-xs text-text-dim">
+                            Review: {label(r.review.state)}
+                            {r.review.stale && <span className="text-warn"> (outdated: the result changed)</span>}
+                          </span>
                         </span>
                         <Badge>{r.band}</Badge>
                       </Link>

@@ -2,7 +2,15 @@
 
 const TOTAL_FRAMES = 50;
 const FRAME_BASE = '/chip-frames/';
-const framePath = n => `${FRAME_BASE}frame_${String(n).padStart(3, '0')}.png`;
+const frameName = n => `frame_${String(n).padStart(3, '0')}`;
+// WebP frames: 1280px wide, and 768px wide for narrow screens, where
+// the canvas is never wider than that. The original PNG is the
+// fallback for a frame that cannot be read.
+const framePath = (n, small) => `${FRAME_BASE}${small ? 'sm/' : ''}${frameName(n)}.webp`;
+const fallbackPath = n => `${FRAME_BASE}${frameName(n)}.png`;
+// Frames load in scroll order, a few at a time, so the ones needed
+// first arrive first and the download never floods the connection.
+const PARALLEL_FRAMES = 4;
 
 export default function ChipSequence() {
   const trackRef = useRef(null);
@@ -23,7 +31,7 @@ export default function ChipSequence() {
           if (e.isIntersecting) { setShouldLoad(true); io.disconnect(); }
         });
       },
-      { rootMargin: '400px 0px' }
+      { rootMargin: '800px 0px' }
     );
     io.observe(track);
     return () => io.disconnect();
@@ -39,10 +47,18 @@ export default function ChipSequence() {
     const chipCtx = chip.getContext('2d', { alpha: true });
     const fogCtx = fog.getContext('2d', { alpha: true });
     const images = new Array(TOTAL_FRAMES);
+    const small = window.matchMedia('(max-width: 767px)').matches;
     let firstReady = false;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
     let progressValue = 0;
     let fogParticles = [];
+    let canvasW = 0;
+    let canvasH = 0;
+    let canvasDpr = 0;
+    let lastFrame = 0;
+    let lastStage = '';
+    let inView = true;
+    let disposed = false;
 
     function makeFog(w, h) {
       const count = 30;
@@ -62,12 +78,19 @@ export default function ChipSequence() {
       return arr;
     }
 
+    // Sizes the canvases only when their size changes: setting a
+    // canvas's width or height reallocates and clears it.
     function resize() {
       const w = Math.max(1, chip.clientWidth);
       const h = Math.max(1, chip.clientHeight);
-      for (const cv of [chip, fog]) {
-        cv.width = w * dpr;
-        cv.height = h * dpr;
+      if (w !== canvasW || h !== canvasH || dpr !== canvasDpr) {
+        canvasW = w;
+        canvasH = h;
+        canvasDpr = dpr;
+        for (const cv of [chip, fog]) {
+          cv.width = w * dpr;
+          cv.height = h * dpr;
+        }
       }
       if (fogParticles.length === 0) fogParticles = makeFog(w, h);
     }
@@ -161,22 +184,34 @@ export default function ChipSequence() {
       chipCtx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
     }
 
+    // React state changes only when the readout changes, not on
+    // every scroll event.
     function updateStage(p) {
-      if (p < 0.15) setStage('assembled');
-      else if (p < 0.55) setStage('exploding');
-      else if (p < 0.9) setStage('die revealed');
-      else setStage('reassembled');
+      let next = 'reassembled';
+      if (p < 0.15) next = 'assembled';
+      else if (p < 0.55) next = 'exploding';
+      else if (p < 0.9) next = 'die revealed';
+      if (next !== lastStage) {
+        lastStage = next;
+        setStage(next);
+      }
     }
 
+    // The fog is animated only while the section is on screen.
     let raf = null;
     function tickLoop(t) {
+      if (!inView) {
+        raf = null;
+        return;
+      }
       raf = requestAnimationFrame(tickLoop);
-      const w = fog.clientWidth;
-      const h = fog.clientHeight;
-      drawFog(w, h, t);
+      drawFog(canvasW || fog.clientWidth, canvasH || fog.clientHeight, t);
       // chip is drawn only when frameIdx changes (below); fog every frame
       if (!firstReady) drawChip(1);
     }
+    const startLoop = () => {
+      if (!raf && inView && !disposed) raf = requestAnimationFrame(tickLoop);
+    };
 
     function progress() {
       const r = track.getBoundingClientRect();
@@ -185,30 +220,68 @@ export default function ChipSequence() {
       progressValue = p;
       if (barRef.current) barRef.current.style.width = `${p * 100}%`;
       const idx = Math.round(p * (TOTAL_FRAMES - 1)) + 1;
-      setFrameIdx(idx);
+      if (idx !== lastFrame) {
+        lastFrame = idx;
+        setFrameIdx(idx);
+        if (firstReady) drawChip(idx);
+      }
       updateStage(p);
-      if (firstReady) drawChip(idx);
     }
 
-    const first = new Image();
-    first.onload = () => {
-      images[0] = first;
-      firstReady = true;
-      progress();
-      if (!raf) raf = requestAnimationFrame(tickLoop);
-      for (let i = 2; i <= TOTAL_FRAMES; i++) {
+    // Loads one frame: the WebP, then the PNG if the WebP fails. The
+    // image is decoded before it is used, off the scroll path.
+    function loadFrame(n) {
+      return new Promise((resolve) => {
         const img = new Image();
-        img.onload = (n => () => { images[n - 1] = img; })(i);
-        img.src = framePath(i);
-        images[i - 1] = img;
+        img.decoding = 'async';
+        let triedFallback = false;
+        img.onload = () => {
+          const done = () => {
+            if (disposed) return resolve(false);
+            images[n - 1] = img;
+            resolve(true);
+          };
+          if (img.decode) img.decode().then(done, done);
+          else done();
+        };
+        img.onerror = () => {
+          if (triedFallback || disposed) return resolve(false);
+          triedFallback = true;
+          img.src = fallbackPath(n);
+        };
+        img.src = framePath(n, small);
+      });
+    }
+
+    // The rest of the frames, in order, PARALLEL_FRAMES at a time. When
+    // a frame arrives that the scroll position is waiting for, it is
+    // drawn at once.
+    function loadRest() {
+      let next = 2;
+      const worker = async () => {
+        while (!disposed && next <= TOTAL_FRAMES) {
+          const n = next;
+          next += 1;
+          const ok = await loadFrame(n);
+          if (ok && firstReady && n <= lastFrame) drawChip(lastFrame);
+        }
+      };
+      for (let i = 0; i < PARALLEL_FRAMES; i++) worker();
+    }
+
+    loadFrame(1).then((ok) => {
+      if (disposed) return;
+      if (ok) {
+        firstReady = true;
+        lastFrame = 0;
+        progress();
+        startLoop();
+        loadRest();
+      } else {
+        drawFallback();
+        startLoop();
       }
-    };
-    first.onerror = () => {
-      drawFallback();
-      if (!raf) raf = requestAnimationFrame(tickLoop);
-    };
-    first.src = framePath(1);
-    images[0] = first;
+    });
 
     let ticking = false;
     const onScroll = () => {
@@ -226,7 +299,15 @@ export default function ChipSequence() {
     window.addEventListener('resize', onResize, { passive: true });
     progress();
 
+    const visibility = new IntersectionObserver((entries) => {
+      inView = entries.some((e) => e.isIntersecting);
+      if (inView) startLoop();
+    });
+    visibility.observe(track);
+
     return () => {
+      disposed = true;
+      visibility.disconnect();
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
       if (raf) cancelAnimationFrame(raf);

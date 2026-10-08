@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { useSeo, breadcrumbJsonLd } from '../../lib/seo.js';
+import { PAGE_SEO } from '../../lib/seoPages.js';
 import { Link, useParams } from 'react-router-dom';
 import {
   useInView, TechnicalGrid, StaggerText, AnimatedUnderline, MeasurementLabel,
@@ -99,18 +101,7 @@ function ServicePending({ loading, onRetry }) {
 // No published service has this address. Search engines are asked not
 // to index the page while this state is shown.
 function ServiceNotFound() {
-  useEffect(() => {
-    const previousTitle = document.title;
-    document.title = 'ALLSEMIS | Service not found';
-    const robots = document.createElement('meta');
-    robots.name = 'robots';
-    robots.content = 'noindex';
-    document.head.appendChild(robots);
-    return () => {
-      document.title = previousTitle;
-      robots.remove();
-    };
-  }, []);
+  useSeo({ title: 'ALLSEMIS | Service not found', description: 'This service is not available. It may have been moved or unpublished, or the address may be wrong.', robots: 'noindex' });
 
   return (
     <ServiceFrame>
@@ -132,9 +123,17 @@ function ServiceView({ service, others }) {
   const [heroRef, mounted] = useInView(0.01);
   const [processRef, processInView] = useInView(0.2);
 
-  useEffect(() => {
-    document.title = `ALLSEMIS | ${service.name}`;
-  }, [service.name]);
+  // The services listed in seoPages.js have their own search text; one
+  // added in the admin uses its own name and description. The
+  // breadcrumb always shows the service's current name.
+  const path = `/employers/${service.slug}`;
+  const known = PAGE_SEO[path];
+  useSeo({
+    title: known ? known.title : `${service.name} | Engineering Recruitment | ALLSEMIS`,
+    description: known ? known.description : (service.description || service.page?.lead || `${service.name} from ALLSEMIS.`),
+    path,
+    jsonLd: [breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Employers', path: '/employers' }, { name: service.name, path }])],
+  });
 
   const { page } = service;
   const Glyph = glyphFor(service.icon);

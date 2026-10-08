@@ -585,6 +585,10 @@ Common behaviour:
 - If saving the record fails after the file was stored, the file is removed again.
 - Each submission writes an audit entry (section 10).
 
+#### GET /api/public/sitemap.xml
+
+The XML sitemap of the public website (the website serves it at `/sitemap.xml`; `frontend/vercel.json` forwards that address here). It lists the fixed pages (`/`, `/employers`, `/talent`, `/expertise`, `/insights`, `/about`, `/contact`, `/refer`) and the published sectors (`/expertise/<slug>`), services (`/employers/<slug>`), articles (`/insights/<slug>`, with the article date as `lastmod`) and jobs (`/talent/jobs/<slug>`, with the day the job last changed as `lastmod`). Addresses start with `PUBLIC_SITE_URL`, or the first `FRONTEND_URL` when it is not set. Nothing else is listed: no admin or API address, no draft, unpublished or archived record, no old sector address that redirects, and nothing about candidates, applications, ATS results, requirements, referrals or enquiries. `Content-Type: application/xml`, `Cache-Control: public, max-age=3600`. No sign-in.
+
 #### POST /api/requirements (Hire Talent)
 
 File field: `attachment` (optional). PDF, DOC or DOCX, up to 5 MB.
@@ -694,6 +698,63 @@ await fetch('/api/applications', {
   body: form,
 });
 ```
+
+### 6.5 The website assistant
+
+**POST /api/public/chat** answers one message from a website visitor ("ALLSEMI Assistant", the chat on the public site). It is rule-based and local: it calls no AI service, needs no API key and makes no outbound request. No sign-in; a session cookie, if one is sent, is not used. Same protections as the forms: the request must come from an allowed origin with `X-Requested-With`, the body is validated, and there are two per-address limits: 10 messages a minute and 60 an hour (429 `RATE_LIMITED`). Nothing is stored and the message is never logged. `Cache-Control: no-store`.
+
+Request:
+
+```json
+{
+  "message": "Do you have VLSI jobs?",
+  "context": { "jobIds": ["665f1c2e9b3a4d0012ab34aa"], "focusJobId": "" }
+}
+```
+
+- `message`: required, 1 to 1,000 characters after cleaning.
+- `history`: optional and ignored (accepted so older clients keep working): at most the last 10 turns (`user` or `assistant`, 1,500 characters each). Follow-ups are understood from `context`.
+- `context`: optional, from the previous answer: the jobs last shown, in order (`jobIds`, at most 10), and the job being talked about (`focusJobId`). Ids are only used to look jobs up again among the **published** ones; any other id is ignored.
+
+Answer (200):
+
+```json
+{
+  "success": true,
+  "data": {
+    "reply": "Here are the 4 published openings matching “vlsi”:",
+    "intent": "job_search",
+    "answerType": "official",
+    "mode": "rules",
+    "jobs": [{
+      "id": "665f1c2e9b3a4d0012ab34aa", "title": "Design Verification Engineer", "location": "Bangalore, IN",
+      "experienceLevel": "Mid-Senior", "employmentType": "Full-time", "category": "Semiconductor",
+      "summary": "UVM-based verification ...", "skills": ["SystemVerilog", "UVM"], "applicationEnabled": true,
+      "url": "/talent/jobs/design-verification-engineer", "applyUrl": "/talent/jobs/design-verification-engineer?apply=1"
+    }],
+    "actions": [{ "type": "link", "label": "Browse all openings", "href": "/talent" }],
+    "sources": [],
+    "context": { "jobIds": ["665f1c2e9b3a4d0012ab34aa"], "focusJobId": "" }
+  }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `reply` | Plain text (paragraphs and `- ` lists). The website shows it as text, never as HTML. |
+| `intent` | What the message was read as: `greeting`, `restricted`, `private_data`, `job_search`, `job_detail`, `apply`, `contact`, `company`, `general`. |
+| `answerType` | `official` (from ALLSEMIS data) or `limitation` (cannot be answered from what is available: no matching job, unpublished information, a refusal, or the fallback). |
+| `mode` | Always `rules`: the answer is put together by the server from the data. |
+| `jobs` | Job cards, chosen by the server from the published jobs. The same public fields as `GET /api/public/jobs`, shortened. `applyUrl` opens the job page with its application form (`?apply=1`); it is `null` when the job takes no applications. |
+| `actions` | Links: `view_job`, `apply` (with `jobId`) or `link`, always to pages of this website. |
+| `sources` | The official ALLSEMIS information the answer rests on (title and page). |
+| `context` | To send back with the next message. |
+
+What it reads: the published jobs (`status: published`, the fields of the public job API), the published services and expertise sectors, the active locations, the contact details in Settings, and the knowledge file `src/knowledge/allsemi-knowledge.md`. Nothing else: no candidate, application, ATS result, note, user or audit record is reachable from this route.
+
+Requests for private or internal information (candidates, scores, notes, the database, keys, its instructions; anyone's application status) are answered with a fixed refusal. A question the rules cannot answer reliably (general knowledge, unrelated topics) gets `intent: general`, `answerType: limitation` and the fixed reply "I can help with ALLSEMI jobs, services, locations and application information. Please ask one of these."
+
+Future scope: AI-worded answers. An earlier build could word answers with OpenAI (`mode: ai`, ledger operation `PUBLIC_CHAT`, `CHAT_AI_DAILY_LIMIT`); that is removed.
 
 ---
 
@@ -1717,7 +1778,7 @@ Returns 200 with `{ "comparison": { ... } }`. **GET /api/admin/jobs/:id/candidat
     "service": { "state": "AVAILABLE", "message": "The last AI request worked.", "quotaExceeded": false },
     "today": { "requests": 3, "succeeded": 3, "failed": 0, "inputTokens": 6000, "outputTokens": 1200, "estimatedSpendUsd": 0.0099, "unpricedRequests": 0, "from": "2026-10-06T00:00:00.000Z" },
     "month": { "requests": 3, "succeeded": 3, "failed": 0, "inputTokens": 6000, "outputTokens": 1200, "estimatedSpendUsd": 0.0099, "unpricedRequests": 0, "from": "2026-10-01T00:00:00.000Z", "to": "2026-11-01T00:00:00.000Z" },
-    "budget": { "monthlyUsd": 20, "percentUsed": 0, "remainingUsd": 19.9901, "level": "healthy", "levelLabel": "Healthy", "thresholds": { "notice": 50, "warning": 75, "critical": 90 } },
+    "alert": { "level": "normal", "levelLabel": "Normal", "reason": null, "message": null, "thresholdsSet": true, "thresholds": { "notice": 5, "warning": 10, "critical": 20 }, "measuredUsd": 0.0099, "period": { "label": "this calendar month (UTC)", "from": "2026-10-01T00:00:00.000Z", "to": "2026-11-01T00:00:00.000Z" }, "key": "2026-10:normal" },
     "pricing": { "known": true, "source": "LIST", "inputPerMillionUsd": 0.75, "outputPerMillionUsd": 4.5 },
     "lastRequest": { "id": "665f1c2e9b3a4d0012ab34d0", "at": "2026-10-06T09:58:00.000Z", "operation": "CANDIDATE_COMPARISON", "model": "gpt-5.4-mini-2026-03-17", "success": true, "errorCategory": null, "inputTokens": 2000, "outputTokens": 400, "estimatedCostUsd": 0.0033, "jobId": "665f1c2e9b3a4d0012ab34aa", "candidateId": "665f1c2e9b3a4d0012ab34cd", "applicationId": "665f1c2e9b3a4d0012ab34ce", "atsResultId": "665f1c2e9b3a4d0012ab34cf", "candidateCount": null, "actorName": "Sample Recruiter" }
   }
@@ -1731,10 +1792,13 @@ Returns 200 with `{ "comparison": { ... } }`. **GET /api/admin/jobs/:id/candidat
 | `model` | The value of `OPENAI_MODEL`, or `null`. |
 | `service.state` | `NOT_CONFIGURED` (the key or the model is not set), `QUOTA_EXCEEDED` (the latest quota or billing refusal has not been followed by a request that worked), `ATTENTION` (the last request failed for another reason), `AVAILABLE` (the last request worked) or `NOT_USED_YET`. It describes the last request this server sent. It is not a live check. |
 | `today`, `month` | Requests sent, how many worked and failed, the token counts OpenAI reported, the estimated spend, and `unpricedRequests`: requests that used tokens and could not be priced. |
-| `budget.monthlyUsd` | `AI_MONTHLY_BUDGET_USD`, or `null` when it is not set. |
-| `budget.percentUsed`, `budget.remainingUsd` | The estimated spend of the month against the budget. `null` without a budget. |
-| `budget.level` | `healthy`, `notice`, `warning` or `critical`: at or above `thresholds.notice`, `.warning` and `.critical` percent of the budget (50, 75 and 90 unless changed). `null` without a budget. Always `critical` while `service.state` is `QUOTA_EXCEEDED`. |
-| `budget.levelLabel` | `Healthy`, `Notice`, `Warning`, `Critical` or `No budget set`. |
+| `alert.level` | `normal`, `notice`, `warning` or `critical`: the highest AI usage alert threshold (`AI_USAGE_NOTICE_USD`, `AI_USAGE_WARNING_USD`, `AI_USAGE_CRITICAL_USD`) that `alert.measuredUsd` has reached. `normal` when none is set or none is reached. Always `critical` while `service.state` is `QUOTA_EXCEEDED`. Information only: no level ever limits or refuses an AI request. |
+| `alert.levelLabel` | `Normal`, `Notice`, `Warning` or `Critical`. |
+| `alert.reason` | `threshold`, `quota` (OpenAI refused a request for a quota or billing reason) or `null` at `normal`. |
+| `alert.message` | The sentence the admin shows, or `null` at `normal`, for example "AI usage warning: estimated AI usage is high. Check the OpenAI account and add credits if needed." |
+| `alert.thresholds` | The three thresholds in US dollars, each `null` when not set. `alert.thresholdsSet` is `false` when none is. |
+| `alert.measuredUsd`, `alert.period` | The estimated usage the level is measured on, and its period: the current calendar month, UTC. It is an estimate, not the OpenAI balance. |
+| `alert.key` | The period and the level, for example `2026-10:warning`. The same for as long as both stay the same, so the admin shows one alert per level and period, not one per request. |
 | `pricing` | The price per million tokens used for the configured model, and where it comes from: `CONFIGURED` (the two price variables) or `LIST` (the list price the code knows). `known: false` when there is none, and then the spend cannot be estimated. |
 | `lastRequest` | The newest ledger entry, or `null`. Ids, numbers and the name of the member of staff who asked. No content. |
 
@@ -2095,6 +2159,52 @@ Serves a private document that is held by a development store: the `local` drive
 
 ---
 
+### 7.15 Resume extraction, match explanation and ranking
+
+Rules only: no request goes to OpenAI or any other AI service. The resume is read on this server (`pdfjs-dist` for PDF, `mammoth` for DOCX; legacy `.doc` and scanned images are not read) and parsed by rules and a skill taxonomy (`src/services/resume/`).
+
+**The trust boundary.** Reading a resume makes a draft (`ResumeExtraction`) and never changes the candidate. A recruiter approves the fields they choose; only those are written to the candidate. Email is never applied from a resume: it identifies the candidate record.
+
+| Endpoint | Permission | What it does |
+| --- | --- | --- |
+| `POST /api/admin/applications/:id/resume-extraction` | `candidates:write` + `resumes:read` | Reads the resume of the application and stores a draft. 201 with the draft. Its own rate limit (30 per user per 10 minutes); a second request for an application being read is refused with 409 `EXTRACTION_IN_PROGRESS`. 400 when the application has no resume. |
+| `GET /api/admin/candidates/:id/resume-extractions` | `candidates:read` + `resumes:read` | The candidate's drafts, newest first (at most 50). |
+| `POST /api/admin/resume-extractions/:id/approve` | `candidates:write` + `resumes:read` | Writes the chosen fields to the candidate, then runs the rule-based ATS again (section 9.5). |
+| `POST /api/admin/resume-extractions/:id/discard` | `candidates:write` | Marks the draft `DISCARDED` and clears its text. The candidate is not changed. |
+| `GET /api/admin/ats-results/:id/explanation` | `ats:read` | The result laid out part by part, and its skill gaps. |
+| `GET /api/admin/jobs/:id/ranking` | `ats:read` + `candidates:read` | The candidates evaluated against the job, by score. |
+
+**A draft** has `status` `PENDING`, `EXTRACTED`, `FAILED` (with `failureReason`: `MALFORMED`, `UNSUPPORTED`, `PROTECTED`, `TOO_LARGE`, `TIMEOUT`, `UNAVAILABLE`), `NO_TEXT`, `APPROVED` or `DISCARDED`. It holds `draft` (the values read, in the shape of the candidate fields), `confidence` and `evidence` per field (`high`, `medium`, `low` or `null`; the resume lines each value came from), `details`, `warnings`, the reviewer, `appliedFields`, `editedFields` and, once approved, `atsReevaluation`. The extracted text (at most 30,000 characters) stays on the server: a response gives only `rawTextLength`, and never the resume's storage key. Drafts are deleted with their candidate.
+
+**Approving.** Body: `{ "fields": [...], "values": {...}, "append": [...], "note": "" }`.
+
+- `fields` (required, at least one): any of `name`, `phone`, `location`, `headline`, `skills`, `experienceYears`, `experience`, `education`, `certifications`, `projects`. Nothing else is written.
+- `values`: the recruiter's edits, by field. A chosen field without an edit takes the draft's value. Both pass the same validation; a draft value that fails it is refused with the field named, to be edited first. A value for a field that is not chosen is refused.
+- `append`: list fields to add to the candidate's list (without repeats) instead of replacing it.
+- Skills and project technologies are given their taxonomy names at approval.
+
+Answer: `{ extraction, candidate, ats }`. `ats.status` is `UPDATED`, `NONE` (no job to evaluate against), `PARTIAL` or `FAILED`, with `results` (per job: `previousTotalScore`, `totalScore`, `changed`, `reviewStale`), `failures` and a `message`. A failed re-run does not undo the approval: the answer is still 200 and says that the ATS needs to be run again.
+
+**Explanation.** `explanation` gives `totalScore`, `band`, the weight source, and `parts`: one per scored component (`skills`, `experience`, `preferredSkills`, `tools`, `domain`, `location`, `completeness`) with `status` (the engine's `pass`, `review`, `fail` or `info`, or `not_applicable`), `score`, `weight`, `counted`, `share` and `contribution` (its points in the total), and `detail`, the engine's own wording. Also `skills` (matched and missing, required, preferred and tools), `strengths` and `concerns` (counted parts that passed, or that the engine asks a person to check), `notes` (checks listed without a score), `summary` and `review` (with `stale`). Nothing is added that the stored result does not say.
+
+`skillGap` lists `missingRequired`, `missingPreferred` and `missingTools`. Each item is `NOT_IN_PROFILE`, or `MENTIONED_IN_RESUME` ("Mentioned in resume but not in approved profile") when the candidate's resume text names the skill by its exact name, with the line that names it. Then `additionalProfileSkills` (in the profile, not asked for by the job) and `additionalResumeSkills` (read from the resume, in neither). Skills are compared by exact name, as the ATS compares them: a similar skill is not the same skill. A mentioned skill is not added to the candidate. Resume mentions are given only to a role with `resumes:read`.
+
+**Ranking.** `ranking` rows are ordered by total score, highest first; then the required-skills score; then the candidate name (ignoring case); then the candidate id. Each row: `rank`, `resultId`, `candidate` (`id`, `name`, `email`, `headline`, `location`, `experienceYears`, `labels`), the candidate's latest `application` to the job, `totalScore`, `band`, skill counts, `review` (with `stale`), `reevaluatedAt`, `runAt`, `hasAiComparison`. `unranked` lists applications to the job that have no result yet.
+
+### 7.16 Official job sync
+
+Behaviour, the source field contract and the production checklist: `docs/JOB-SYNC.md`. No official source is connected yet.
+
+| Endpoint | Permission | What it does |
+| --- | --- | --- |
+| `GET /api/admin/job-sync` | `jobs:read` | `{ source, runs }`. `source` is `{ configured: false, reason }` or `{ configured: true, key, name, type, url, everyMinutes, missingThreshold, newStatus, triggerEndpoint }`. `runs`: the last 20 runs, newest first: `id`, `source`, `trigger` (`manual`, `schedule`, `command`, `endpoint`), `status` (`RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`), `counts` (`discovered`, `created`, `updated`, `unchanged`, `closed`, `reopened`, `missing`, `invalid`), `errors` (`sourceJobId`, `message`; at most 50), `notes`, `failure`, `startedAt`, `finishedAt`. |
+| `POST /api/admin/job-sync/run` | `jobs:write` | Runs one sync now and answers with the run, or `{ skipped: true, reason }` when no source is configured or a run is in progress. A source that cannot be read is a `FAILED` run (still 200) that changed nothing. |
+| `POST /api/internal/job-sync` | Bearer `JOB_SYNC_TOKEN` | The same, for an external scheduler. 404 while `JOB_SYNC_TOKEN` is not set; 401 without the right token. Answers with the counts only (`id`, `status`, `counts`, `failure`, `startedAt`, `finishedAt`). Needs no session and no CSRF token. |
+
+**Jobs** carry the source fields `source` (`manual`, or the source key), `sourceJobId`, `sourceUrl`, `sourceUpdatedAt`, `lastSyncedAt`, `syncStatus` (`''`, `ACTIVE`, `MISSING`, `CLOSED`), `missingCount` and `closedBySync` in the admin API; the public job API does not return them. `employmentType` and `experienceLevel` may be `''` for an imported job whose source did not state them. Changing an official field of an imported job (`title`, `summary`, `description`, `location`, `department`, `category`, `employmentType`, `experienceLevel`, `responsibilities`, `requiredSkills`, `preferredSkills`) through `PATCH /api/admin/jobs/:id` is refused with 409: it changes at the source. Status, featured, keywords, slug and applications stay editable.
+
+**Future scope (not implemented):** semantic (embedding-based) candidate-job matching and AI Job Intelligence. Their endpoints (`/api/admin/semantic-matches`, `/api/admin/candidates/:id/semantic-matches`, `/api/admin/jobs/:id/intelligence`) are removed, and the job ranking (section 7.15) has no semantic score or `?order=overall`. Records an earlier build stored for them are deleted with the candidate or job they belong to.
+
 ## 8. Upload behaviour
 
 ### 8.1 Multipart field names
@@ -2296,7 +2406,8 @@ Each entry in `checks` is `{ rule, result, detail, score, weight }`. `result` is
 ### 9.5 When it runs
 
 - Automatically when a public application names a job and no ATS result exists yet for that candidate and job. `runByName` is `System`. A later public submission for the same candidate and job does not run it again and does not point the existing result at the new application.
-- On demand through `POST /api/admin/ats/run`. `runByName` is the user's name. This is the only way an existing result is re-run.
+- On demand through `POST /api/admin/ats/run`. `runByName` is the user's name.
+- After a recruiter approves resume data for a candidate (`POST /api/admin/resume-extractions/:id/approve`, section 7.15), for every job the candidate has applied to or has a result for. `runByName` is the user's name. The result records `reevaluation` (when, the score before, whether it changed). When the result changed and a review had been saved, the review is kept and marked `review.stale` (with `review.staleSince`): it was a review of an earlier result. `review.scoreAtReview` is the score a review was saved against. Saving a new review clears the mark. A re-run that fails is reported and does not undo the approval.
 - By the development seed, for each sample application, only when it is run with `--with-demo-recruitment-data`. `runByName` is `Seed`. `npm run seed` without that option creates no job, no application and no ATS result.
 
 One result is kept per candidate and job. A new run replaces the scores and keeps the review and any stored AI comparison.
@@ -2357,7 +2468,7 @@ The AI comparison is an optional second opinion on one ATS result. A recruiter s
 **What is never sent**
 
 - The candidate's name, email, phone and profile link.
-- The resume file, its name, its storage key or anything read from it. No resume text extraction exists in this code, so the comparison is based on the profile the candidate typed and the cover note, not on the contents of the resume.
+- The resume file, its name, its storage key or anything read from it, including the text read by resume extraction (section 7.15). The comparison is based on the candidate profile and the cover note.
 - Notes, labels, the notice period, the expected compensation and the recruiter notes on the application.
 - The year of a degree, which says more about age than about the qualification.
 - The rule-based scores and checks, the review, and the ids of the candidate, the job and the application.
@@ -2503,13 +2614,22 @@ ATS, media and settings:
 | Action | Written when | Metadata |
 | --- | --- | --- |
 | `ats.evaluated` | An evaluation is run from the admin. (The automatic run with the first public application to a job writes no separate entry.) | `candidateId`, `jobId`, `totalScore` |
-| `ats.reviewed` | A review decision is saved. | `from`, `to`, `candidateId`, `jobId` |
+| `ats.reviewed` | A review decision is saved. | `from`, `to`, `candidateId`, `jobId`, `totalScore`, `replacedStaleReview` |
+| `ats.reevaluated` | The rules are run again after resume data was approved (one entry per result). | `candidateId`, `jobId`, `extractionId`, `previousTotalScore`, `totalScore`, `changed`, `reviewMarkedStale` |
+| `ats.reevaluation_failed` | That re-run failed for one or more jobs (entity: the candidate). The approval stands. | `extractionId`, `failedJobs` |
+| `candidate.resume_extracted` | A recruiter has a resume read into a draft (entity: the candidate). The profile is not changed. | `extractionId`, `applicationId`, `status`, `failureReason`, `fileType`, `characters`, `skillsFound`, `warnings` |
+| `candidate.resume_extraction_approved` | Chosen fields of a draft are written to the candidate. | `extractionId`, `applicationId`, `appliedFields`, `editedFields`, `changedFields`, `appendedFields` |
+| `candidate.resume_extraction_discarded` | A draft is discarded. | `extractionId`, `applicationId` |
 | `ats.ai_compared` | An AI comparison was validated and stored (`POST /api/admin/ats-results/:id/ai-comparison`). A failed or invalid comparison writes no entry. | `candidateId`, `jobId`, `model` (the model name stored with the comparison), `overallMatch` (the model's number) |
 | `ats.ai_candidates_compared` | An AI comparison of several candidates was validated and stored for a job. Written on the job. A failed or invalid comparison writes no entry. | `model`, `candidates` (how many), `resultIds` |
 | `ats.job_reevaluated` | The rules were run again for the existing results of a job. Written on the job. | `evaluated`, `total` |
 | `job.requirements_saved` | A job's requirement profile was added or updated. | `source`, `ownWeights` |
 | `job.requirements_removed` | A job's requirement profile was removed. | none |
 | `job.requirements_ai_drafted` | An AI draft of a requirement profile was returned to the form. Nothing was stored. | `model` |
+| `semantic.analyzed` | No longer written (semantic matching is future scope); may appear in an audit log from an earlier build. | `jobId`, `score`, `status` |
+| `jobs.intelligence_generated` | No longer written (AI Job Intelligence is future scope); may appear in an audit log from an earlier build. | `model`, `droppedItems` |
+| `jobs.synced` | A job sync run finished (entity type `jobSync`, the run). Written for every trigger; the actor is the user for "Sync now", otherwise `System`. | `source`, `trigger`, `status` and the counts (`discovered`, `created`, `updated`, `unchanged`, `closed`, `reopened`, `missing`, `invalid`) |
+| `jobs.sync_failed` | A job sync run could not read the source. Nothing was changed. | the same |
 | `media.uploaded` | An image is uploaded. | `format`, `bytes` |
 | `media.removed` | An uploaded image is removed through the media endpoint. | none |
 | `settings.contact_updated` | The public contact details are saved. | none |

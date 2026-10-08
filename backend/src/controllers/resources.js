@@ -1,4 +1,5 @@
 import { forgetEmails } from '../services/email/emailLog.js';
+import { removeLegacyDerivedData } from '../services/legacyDerivedData.js';
 import {
   Job, Candidate, Application, Requirement, Referral, Enquiry, Insight, Story, Expertise, Service, Location, ATSResult,
   insightOnLanding,
@@ -14,6 +15,7 @@ import { removeImage } from '../services/storage/publicMedia.js';
 import { imageInUse } from '../services/mediaUsage.js';
 import { badRequest, conflict } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
+import { SOURCE_FIELDS, isImported } from '../services/jobSync/syncService.js';
 
 /*
   The admin resources, each built from crudController with the rules
@@ -59,6 +61,15 @@ export const jobs = crudController({
   slugFrom: 'title',
   auditFields: ['title', 'slug', 'category', 'department', 'location', 'employmentType', 'experienceLevel', 'summary', 'description', 'responsibilities', 'requiredSkills', 'preferredSkills', 'keywords', 'featured', 'applicationEnabled'],
   async prepare(data, { req, existing }) {
+    // An imported job's official fields belong to its source: they are
+    // written by the job sync only. Staff keep what ALLSEMIS decides:
+    // status, featured, applications on or off, keywords, the slug.
+    if (isImported(existing)) {
+      const changed = SOURCE_FIELDS.filter((field) => field in data && JSON.stringify(data[field] ?? null) !== JSON.stringify(existing[field] ?? null));
+      if (changed.length) {
+        throw conflict(`This job is imported from the official job source, which is its source of truth. ${changed.join(', ')} can only change there; the next sync brings the change in.`);
+      }
+    }
     const next = { ...data, updatedBy: req.user.id };
     if (!existing) next.createdBy = req.user.id;
     // The publish date is set by the server the first time a job goes live.
@@ -73,6 +84,7 @@ export const jobs = crudController({
       throw conflict(`This job has ${applications} ${applications === 1 ? 'application' : 'applications'}. Archive it instead of deleting it.`);
     }
     await ATSResult.deleteMany({ jobId: doc._id });
+    await removeLegacyDerivedData({ jobIds: [doc._id] });
   },
 });
 

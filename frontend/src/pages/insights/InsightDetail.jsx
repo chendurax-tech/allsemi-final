@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSeo, organizationJsonLd, breadcrumbJsonLd, articleJsonLd } from '../../lib/seo.js';
 import { Link, useParams } from 'react-router-dom';
 import {
   useInView, useParallax,
@@ -51,26 +52,22 @@ export default function InsightDetail() {
   const { status, article, reload } = useInsight(slug);
   const { articles } = useInsights();
 
-  // Document title and meta description: the article's SEO fields when
-  // the CMS provides them, otherwise the original title format and the
-  // excerpt. The site-wide description is restored on leaving the page.
-  useEffect(() => {
-    if (!article) return undefined;
-    document.title = article.seoTitle || `ALLSEMIS | ${article.title}`;
-    let meta = document.querySelector('meta[name="description"]');
-    const created = !meta;
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.setAttribute('name', 'description');
-      document.head.appendChild(meta);
-    }
-    const previous = meta.getAttribute('content');
-    meta.setAttribute('content', article.seoDescription || article.excerpt);
-    return () => {
-      if (created) meta.remove();
-      else if (previous !== null) meta.setAttribute('content', previous);
-    };
-  }, [article]);
+  // The head: the article's SEO fields when the CMS provides them,
+  // otherwise its title and excerpt, with Article structured data.
+  useSeo(article ? {
+    title: article.seoTitle || `${article.title} | ALLSEMIS Insights`,
+    description: article.seoDescription || article.excerpt,
+    path: `/insights/${article.slug}`,
+    type: 'article',
+    image: article.image || undefined,
+    imageAlt: article.alt || undefined,
+    article: { publishedTime: article.date || null },
+    jsonLd: [
+      organizationJsonLd(),
+      breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Insights', path: '/insights' }, { name: article.title, path: `/insights/${article.slug}` }]),
+      articleJsonLd(article),
+    ],
+  } : null);
 
   if (status === 'missing') return <ArticleNotFound />;
   if (status !== 'ready') return <ArticlePending loading={status === 'loading'} onRetry={reload} />;
@@ -134,18 +131,7 @@ function ArticlePending({ loading, onRetry }) {
 // No published article has this address. Search engines are asked not
 // to index the page while this state is shown.
 function ArticleNotFound() {
-  useEffect(() => {
-    const previousTitle = document.title;
-    document.title = 'ALLSEMIS | Article not found';
-    const robots = document.createElement('meta');
-    robots.name = 'robots';
-    robots.content = 'noindex';
-    document.head.appendChild(robots);
-    return () => {
-      document.title = previousTitle;
-      robots.remove();
-    };
-  }, []);
+  useSeo({ title: 'ALLSEMIS | Article not found', description: 'This article is not available. It may have been moved or unpublished, or the address may be wrong.', robots: 'noindex' });
 
   return (
     <ArticleFrame>
@@ -174,7 +160,7 @@ function ArticleHero({ article }) {
       className="relative h-[70vh] min-h-[460px] max-h-[760px] flex flex-col justify-end overflow-hidden border-b border-line"
     >
       <div ref={heroLayerRef} className="absolute inset-0 transition-transform duration-300 ease-out">
-        {article.image && <img src={article.image} alt={article.alt} className="absolute inset-0 w-full h-full object-cover grayscale-[0.45] scale-105" />}
+        {article.image && <img fetchPriority="high" src={article.image} alt={article.alt} className="absolute inset-0 w-full h-full object-cover grayscale-[0.45] scale-105" />}
       </div>
       <div className="absolute inset-0 bg-accent-deep/20 mix-blend-color" />
       <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/60 to-bg/15" />

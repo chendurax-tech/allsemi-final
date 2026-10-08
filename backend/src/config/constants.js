@@ -155,7 +155,25 @@ export const CANDIDATE_COMPARISON_LIMITS = {
   one that needs an administrator: the OpenAI account has no credit
   left, has reached its spend limit or has no active billing.
 */
-export const AI_OPERATIONS = ['CANDIDATE_COMPARISON', 'JOB_REQUIREMENTS', 'CANDIDATE_RANKING'];
+// The last three are no longer made (the website assistant is rule-based;
+// semantic matching and AI Job Intelligence are future scope). They stay
+// so that ledger entries an earlier build wrote can still be read.
+export const AI_OPERATIONS = ['CANDIDATE_COMPARISON', 'JOB_REQUIREMENTS', 'CANDIDATE_RANKING', 'PUBLIC_CHAT', 'EMBEDDING', 'JOB_INTELLIGENCE'];
+/*
+  The public website chat (services/chat/, rule-based). Limits on what a
+  visitor may send and on what an answer shows, in characters and items.
+  The conversation itself is never stored on the server.
+*/
+export const CHAT_LIMITS = {
+  message: 1000,
+  historyItems: 10,
+  historyText: 1500,
+  contextJobs: 10,
+  jobsShown: 5,
+  knowledgeChunks: 4,
+};
+export const CHAT_INTENTS = ['greeting', 'restricted', 'private_data', 'job_search', 'job_detail', 'apply', 'contact', 'company', 'general'];
+
 export const AI_ERROR_CATEGORIES = ['quota', 'rate_limit', 'auth', 'model', 'bad_request', 'timeout', 'network', 'provider', 'invalid_response', 'refused'];
 export const AI_USAGE_LEVELS = ['healthy', 'notice', 'warning', 'critical'];
 
@@ -176,5 +194,68 @@ export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const DOCUMENT_TYPES = ['pdf', 'doc', 'docx'];
 export const IMAGE_TYPES = ['jpg', 'png', 'webp'];
+
+/*
+  Resume text extraction (services/resume/textExtractor.js). Runs only
+  when a recruiter asks for it, on a resume that is already stored.
+  Local parsing only: no AI service and no OCR. Legacy .doc files are
+  not read in this phase.
+    maxFileBytes        a stored file larger than this is not read
+    maxPages            PDF pages read; the rest are skipped
+    maxTextChars        the text kept (and stored) is cut to this
+    timeoutMs           the whole extraction gives up after this
+    maxDocxEntries      entries in a DOCX zip
+    maxDocxUnpackedBytes  the declared unpacked size of a DOCX
+    minTextChars        less readable text than this counts as no text
+*/
+export const RESUME_EXTRACTION_TYPES = ['pdf', 'docx'];
+export const RESUME_EXTRACTION_LIMITS = {
+  maxFileBytes: MAX_DOCUMENT_BYTES,
+  maxPages: 30,
+  maxTextChars: 30_000,
+  timeoutMs: 15_000,
+  maxDocxEntries: 1000,
+  maxDocxUnpackedBytes: 30 * 1024 * 1024,
+  minTextChars: 40,
+};
+// What an extraction ended as.
+//   EXTRACTED    text was read (it may have been cut: see `truncated`)
+//   NO_TEXT      the file has no readable text: a scanned image, or empty
+//   UNSUPPORTED  not a PDF or a DOCX (a legacy .doc, for example)
+//   MALFORMED    the file could not be parsed
+//   PROTECTED    a password-protected PDF
+//   TOO_LARGE    the file, or its unpacked content, is over the limits
+//   TIMEOUT      parsing took longer than timeoutMs
+//   UNAVAILABLE  the stored file could not be read
+export const RESUME_EXTRACTION_STATUSES = ['EXTRACTED', 'NO_TEXT', 'UNSUPPORTED', 'MALFORMED', 'PROTECTED', 'TOO_LARGE', 'TIMEOUT', 'UNAVAILABLE'];
+
+/*
+  A stored resume extraction draft (models/ResumeExtraction.js).
+    PENDING    the extraction has started
+    EXTRACTED  text was read and parsed: a draft is ready for review
+    FAILED     the resume could not be read (see failureReason)
+    NO_TEXT    the resume has no readable text (a scanned image)
+    APPROVED   a recruiter applied chosen fields to the candidate
+    DISCARDED  a recruiter dropped the draft; nothing was applied
+*/
+export const RESUME_DRAFT_STATUSES = ['PENDING', 'EXTRACTED', 'FAILED', 'NO_TEXT', 'APPROVED', 'DISCARDED'];
+
+// The candidate fields a recruiter may apply from a draft. The email is
+// not one of them: it identifies the candidate record and is never
+// changed from a resume.
+export const RESUME_APPROVAL_FIELDS = ['name', 'phone', 'location', 'headline', 'skills', 'experienceYears', 'experience', 'education', 'certifications', 'projects'];
+// The list fields, which can be added to the candidate's existing list
+// instead of replacing it.
+export const RESUME_APPROVAL_LIST_FIELDS = ['skills', 'experience', 'education', 'certifications', 'projects'];
+
+// Limits on the profile lists a candidate holds (models/Candidate.js),
+// shared by the model and the approval validator.
+export const CANDIDATE_PROFILE_LIMITS = {
+  skills: 60,
+  experience: { maxItems: 20, title: 160, employer: 160, period: 80, highlights: { maxItems: 8, maxLength: 300 } },
+  education: { maxItems: 10, degree: 160, institution: 160, year: 20 },
+  certifications: { maxItems: 20, maxLength: 200 },
+  projects: { maxItems: 15, name: 160, period: 80, role: 160, description: 1000, highlights: { maxItems: 8, maxLength: 300 }, technologies: 30 },
+};
 
 export const SESSION_COOKIE = 'allsemis_sid';

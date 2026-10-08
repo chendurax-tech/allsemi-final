@@ -18,7 +18,7 @@ import { cx } from './ui.jsx';
   keyboard focus, and the label could then not be switched again.
 */
 const ON = {
-  INTERVIEWED: 'border-[#5b9dff]/60 bg-[#5b9dff]/15 text-[#8ab8ff]',
+  INTERVIEWED: 'border-info/60 bg-info/15 text-info-text',
   REJECTED: 'border-red-400/60 bg-red-400/15 text-red-400',
   SELECTED: 'border-turquoise/60 bg-turquoise/15 text-turquoise',
 };

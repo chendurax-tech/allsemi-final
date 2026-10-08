@@ -50,7 +50,7 @@ const NotifyContext = createContext(null);
 const TONES = {
   success: { box: 'border-turquoise/50', mark: 'bg-turquoise', label: 'Success' },
   error: { box: 'border-red-400/60', mark: 'bg-red-400', label: 'Error' },
-  info: { box: 'border-[#5b9dff]/50', mark: 'bg-[#5b9dff]', label: 'Information' },
+  info: { box: 'border-info/50', mark: 'bg-info', label: 'Information' },
 };
 const AUTO_DISMISS_MS = 7000;
 // How long the dialog ignores its buttons after it opens (see above).

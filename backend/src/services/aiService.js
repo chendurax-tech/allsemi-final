@@ -22,6 +22,13 @@ import { recordAiUsage } from './aiUsageService.js';
     compareCandidates       "Compare candidates with AI" for one job
                             (POST /jobs/:id/candidate-comparison)
 
+  These are optional, existing admin integrations: they need
+  OPENAI_API_KEY and OPENAI_MODEL, and without them each answers "not
+  configured" while everything else works. Nothing on the public
+  website calls a model: the website assistant is rule-based
+  (services/chat/). Semantic (embedding) matching and AI Job
+  Intelligence are future scope and are not implemented.
+
   Nothing calls a model when a page loads, when a candidate applies,
   when the rule-based evaluation runs or when an application is
   shortlisted or labelled.
@@ -699,7 +706,7 @@ const tokenCount = (value) => (Number.isInteger(value) && value >= 0 ? value : n
   sent, so nothing is recorded), 503 AI_QUOTA_EXCEEDED, 502 AI_FAILED
   or 502 AI_INVALID_RESPONSE.
 */
-async function request({ operation, schemaName, schema, messages, parse, refs = {} }) {
+async function request({ operation, schemaName, schema, messages, parse, refs = {}, maxOutputTokens = null }) {
   assertAiConfigured();
   const configuredModel = env.openai.model;
   const body = {
@@ -710,6 +717,9 @@ async function request({ operation, schemaName, schema, messages, parse, refs = 
       json_schema: { name: schemaName, strict: true, schema },
     },
   };
+  // Only the public chat caps the length of the answer; the recruiter
+  // actions send exactly the fields above, as before.
+  if (maxOutputTokens) body.max_completion_tokens = maxOutputTokens;
 
   const started = Date.now();
   const usage = { ...refs, operation, model: configuredModel, success: false, errorCategory: 'provider', httpStatus: null, inputTokens: null, outputTokens: null };

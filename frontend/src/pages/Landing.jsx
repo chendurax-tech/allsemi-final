@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { useSeo, fixedPageSeo } from '../lib/seo.js';
 import Hero from '../components/Hero.jsx';
 import RecruitmentActions from '../components/RecruitmentActions.jsx';
 import Connecting from '../components/Connecting.jsx';
@@ -37,9 +38,7 @@ export default function Landing({ activeSector, setActiveSector, pulseKey }) {
   useReveal();
   useReactiveLetters();
 
-  useEffect(() => {
-    document.title = 'ALLSEMIS | Talent. Engineered.';
-  }, []);
+  useSeo(fixedPageSeo('/'));
 
   return (
     <>

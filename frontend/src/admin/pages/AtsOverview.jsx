@@ -9,6 +9,7 @@ import { ATS_REVIEW_STATES, label } from '../data/enums.js';
 import { formatDate } from '../lib/format.js';
 import { AtsScopeNotice } from '../components/AiComparison.jsx';
 import CandidateComparison from '../components/CandidateComparison.jsx';
+import JobRanking from '../components/JobRanking.jsx';
 
 /*
   AtsOverview - how a result is produced, every evaluation so far, and
@@ -87,7 +88,7 @@ export default function AtsOverview() {
           { key: 'skills', label: 'Required skills', render: (r) => <span className="text-text-dim tabular-nums whitespace-nowrap">{r.matchedSkills.length} of {r.requiredSkills.length} matched</span> },
           { key: 'flags', label: 'Checks to look at', render: (r) => {
             const flags = r.checks.filter((c) => c.result === 'review' || c.result === 'fail').length;
-            return <span className={`tabular-nums ${flags ? 'text-[#e8b65a]' : 'text-text-dim'}`}>{flags ? `${flags} to check` : 'None'}</span>;
+            return <span className={`tabular-nums ${flags ? 'text-warn' : 'text-text-dim'}`}>{flags ? `${flags} to check` : 'None'}</span>;
           } },
           { key: 'review', label: 'Recruiter review', render: (r) => <Badge>{label(r.review.state)}</Badge> },
           { key: 'run', label: 'Evaluated', render: (r) => <span className="whitespace-nowrap text-text-dim">{formatDate(r.runAt)}</span> },
@@ -112,8 +113,8 @@ export default function AtsOverview() {
         <StageTrace stages={stages} columns={ATS_STAGE_COLUMNS} />
         <div className="mt-8 grid gap-5 border-t border-line pt-5 md:grid-cols-3">
           <div>
-            <p className="text-sm font-semibold">The profile comes from the form</p>
-            <p className="mt-1 text-sm text-text-dim leading-relaxed">Skills, experience, domain and location are what the candidate entered when applying. The resume file is stored privately for a recruiter to read.</p>
+            <p className="text-sm font-semibold">The profile comes from the form, or the approved resume</p>
+            <p className="mt-1 text-sm text-text-dim leading-relaxed">Skills, experience, domain and location are what the candidate entered when applying. A recruiter can have the resume read into a draft (rules, no AI) and approve chosen fields into the profile; the ATS then runs again.</p>
           </div>
           <div>
             <p className="text-sm font-semibold">Rules give the score</p>
@@ -125,6 +126,11 @@ export default function AtsOverview() {
           </div>
         </div>
       </Panel>
+
+      {/* The candidates of one job, by rule-based score. */}
+      <div className="mt-6">
+        <JobRanking />
+      </div>
 
       <Panel
         className="mt-6"

@@ -82,15 +82,21 @@ export const review = asyncHandler(async (req, res) => {
   const result = await ATSResult.findById(assertObjectId(req.params.id));
   if (!result) throw notFound('That ATS result was not found.');
   const from = result.review?.state || 'PENDING';
+  const wasStale = Boolean(result.review?.stale);
+  // A new review is a review of the result as it is now: it is no
+  // longer stale, and the score it was given against is kept.
   result.review = {
     state: req.body.state,
     note: req.body.note,
     reviewerId: req.user.id,
     reviewerName: req.user.name,
     updatedAt: new Date(),
+    stale: false,
+    staleSince: null,
+    scoreAtReview: result.totalScore,
   };
   await result.save();
-  await record({ req, action: 'ats.reviewed', entityType: 'atsResult', entityId: result._id, summary: `Recruiter review: ${from} to ${req.body.state}`, metadata: { from, to: req.body.state, candidateId: String(result.candidateId), jobId: String(result.jobId) } });
+  await record({ req, action: 'ats.reviewed', entityType: 'atsResult', entityId: result._id, summary: `Recruiter review: ${from} to ${req.body.state}`, metadata: { from, to: req.body.state, candidateId: String(result.candidateId), jobId: String(result.jobId), totalScore: result.totalScore, replacedStaleReview: wasStale } });
   ok(res, result.toJSON());
 });
 

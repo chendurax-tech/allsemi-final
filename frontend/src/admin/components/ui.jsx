@@ -22,9 +22,9 @@ export const labelCls = 'block font-mono text-[0.65rem] uppercase tracking-[0.14
 
 const TONES = {
   teal: 'text-turquoise border-turquoise/40 bg-turquoise/10',
-  blue: 'text-[#8ab8ff] border-[#5b9dff]/45 bg-[#5b9dff]/10',
+  blue: 'text-info-text border-info/45 bg-info/10',
   lilac: 'text-accent border-accent/45 bg-accent/10',
-  amber: 'text-[#e8b65a] border-[#e8b65a]/45 bg-[#e8b65a]/10',
+  amber: 'text-warn border-warn/45 bg-warn/10',
   red: 'text-red-400 border-red-400/45 bg-red-400/10',
   dim: 'text-text-dim border-line-strong bg-transparent',
 };
@@ -112,7 +112,7 @@ export function Panel({ title, meta, action, children, className, pad = true }) 
   );
 }
 
-const STAT_BARS = { lilac: 'bg-accent', teal: 'bg-turquoise', blue: 'bg-[#5b9dff]', amber: 'bg-[#e8b65a]' };
+const STAT_BARS = { lilac: 'bg-accent', teal: 'bg-turquoise', blue: 'bg-info', amber: 'bg-warn' };
 
 export function StatCard({ label, value, hint, tone = 'lilac', to }) {
   const body = (
@@ -213,7 +213,7 @@ export function StageTrace({ stages, columns = 'grid-cols-2 sm:grid-cols-4 lg:gr
               className={cx(
                 'relative z-10 flex h-9 w-9 items-center justify-center rounded-full border bg-bg font-mono text-xs tabular-nums',
                 done && 'border-turquoise text-turquoise',
-                current && 'border-[#e8b65a] text-[#e8b65a]',
+                current && 'border-warn text-warn',
                 !done && !current && 'border-line-strong text-text-dim',
               )}
             >
@@ -240,7 +240,7 @@ export function ScoreRing({ value, caption }) {
             <stop offset="100%" stopColor="#2dd4bf" />
           </linearGradient>
         </defs>
-        <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(237,239,240,0.09)" strokeWidth="6" />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--color-line)" strokeWidth="6" />
         <circle cx="60" cy="60" r={r} fill="none" stroke="url(#adminScoreRing)" strokeWidth="6" strokeDasharray={`${(value / 100) * c} ${c}`} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">

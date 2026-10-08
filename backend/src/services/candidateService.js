@@ -1,4 +1,5 @@
-import { Candidate, Application, ATSResult, Referral, Job } from '../models/index.js';
+import { Candidate, Application, ATSResult, Referral, Job, ResumeExtraction } from '../models/index.js';
+import { removeLegacyDerivedData } from './legacyDerivedData.js';
 import { removePrivateFile } from './storage/privateFiles.js';
 import { forgetEmails } from './email/emailLog.js';
 import { logger } from '../utils/logger.js';
@@ -106,7 +107,8 @@ export async function createApplication({ candidate, job, message, resume, profi
 
 /*
   Deleting a candidate removes the profile, the applications, the ATS
-  results and every stored resume for that person. Referrals that were
+  results, the resume extraction drafts and every stored resume for
+  that person. Referrals that were
   converted into this candidate keep their own record but lose the
   link and the resume, which is that person's document too.
 */
@@ -131,6 +133,11 @@ export async function deleteCandidateCascade(candidate) {
   await forgetEmails('application', applications.map((application) => application._id));
   await Application.deleteMany({ candidateId: candidate._id });
   await ATSResult.deleteMany({ candidateId: candidate._id });
+  // The resume extraction drafts hold text read from this person's
+  // resume, so they go too.
+  await ResumeExtraction.deleteMany({ candidateId: candidate._id });
+  // Semantic analyses an earlier build stored quote the profile: they go too.
+  await removeLegacyDerivedData({ candidateIds: [candidate._id] });
   // An AI comparison of several candidates is about all of them
   // together: one that includes this candidate is removed with them.
   await Job.updateMany({ 'candidateComparison.candidates.candidateId': candidate._id }, { $set: { candidateComparison: null } }, { timestamps: false });

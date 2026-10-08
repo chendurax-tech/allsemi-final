@@ -465,7 +465,7 @@ function Editor({ job }) {
           <fieldset className="mt-6 min-w-0 border-t border-line pt-5" data-requirement-weights={ownWeights ? 'own' : 'default'}>
             <legend className="float-left mb-3 w-full font-display text-sm font-semibold tracking-tight">Weights of the rule-based score</legend>
             <label htmlFor="requirement-profile-own-weights" className={cx('clear-both flex items-center gap-3 border border-line-strong px-3 py-2 sm:max-w-sm', locked ? 'opacity-60' : 'cursor-pointer')}>
-              <input id="requirement-profile-own-weights" type="checkbox" checked={ownWeights} disabled={locked} onChange={(e) => toggleOwnWeights(e.target.checked)} className="h-4 w-4 accent-[#a78bfa]" />
+              <input id="requirement-profile-own-weights" type="checkbox" checked={ownWeights} disabled={locked} onChange={(e) => toggleOwnWeights(e.target.checked)} className="h-4 w-4 accent-accent" />
               <span className="text-sm">Use this job's own weights</span>
             </label>
             <p className="mt-2 text-xs leading-relaxed text-text-dim">
@@ -502,7 +502,7 @@ function Editor({ job }) {
 
       {canWrite && (
         <div className="mt-6 border-t border-line pt-5">
-          {draft && <p className="mb-3 text-xs leading-relaxed text-[#e8b65a]">The form holds an AI draft that is not saved yet.</p>}
+          {draft && <p className="mb-3 text-xs leading-relaxed text-warn">The form holds an AI draft that is not saved yet.</p>}
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="primary" onClick={save} disabled={working}>{busy === 'save' ? 'Saving' : 'Save requirement profile'}</Button>
             {profile && <Button variant="danger" onClick={removeProfile} disabled={working}>{busy === 'remove' ? 'Removing' : 'Remove profile'}</Button>}

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useSeo, fixedPageSeo } from '../../lib/seo.js';
 import { Link } from 'react-router-dom';
 import { sectorVisual } from './sectorVisuals.jsx';
 import { useSectors } from '../../lib/usePublicData.js';
@@ -30,9 +31,7 @@ export default function ExpertiseIndex() {
   const panelRef = useRef(null);
   const imgLayerRef = useRef(null);
 
-  useEffect(() => {
-    document.title = 'ALLSEMIS | Expertise';
-  }, []);
+  useSeo(fixedPageSeo('/expertise'));
 
   // Subtle cursor parallax on the desktop reveal panel - direct DOM
   // manipulation (not React state) to keep it cheap, desktop-only,

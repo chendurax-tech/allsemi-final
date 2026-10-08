@@ -2,7 +2,9 @@ import { Router } from 'express';
 import * as publicController from '../controllers/publicController.js';
 import * as forms from '../controllers/formsController.js';
 import { serveLocalFile } from '../controllers/filesController.js';
-import { formLimiter, downloadLimiter } from '../middleware/rateLimiters.js';
+import { formLimiter, downloadLimiter, chatBurstLimiter, chatHourLimiter } from '../middleware/rateLimiters.js';
+import * as chat from '../controllers/chatController.js';
+import { chatSchema } from '../validators/chat.js';
 import { singleDocument, checkDocument } from '../middleware/upload.js';
 import { honeypot } from '../middleware/honeypot.js';
 import { csrfProtection } from '../middleware/csrf.js';
@@ -27,6 +29,7 @@ router.get('/public/expertise', publicController.listExpertise);
 router.get('/public/services', publicController.listServices);
 router.get('/public/locations', publicController.listLocations);
 router.get('/public/site', publicController.getSite);
+router.get('/public/sitemap.xml', publicController.sitemap);
 
 // ---- submissions ----
 // Order matters: rate limit, then the origin check (a form on another
@@ -46,6 +49,12 @@ router.post('/requirements', ...submission('attachment', requirementFormSchema, 
 router.post('/applications', ...submission('resume', applicationFormSchema, forms.submitApplication));
 router.post('/enquiries', ...submission('attachment', enquiryFormSchema, forms.submitEnquiry));
 router.post('/referrals', ...submission('resume', referralFormSchema, forms.submitReferral));
+
+// ---- the website assistant ----
+// Public, rate limited, and checked like the forms: same-origin
+// request (CSRF), validated body. It reads published jobs and public
+// content only.
+router.post('/public/chat', chatBurstLimiter, chatHourLimiter, csrfProtection, validate(chatSchema), chat.reply);
 
 // ---- development/test file driver only (404 in production) ----
 router.get('/files/local/:token', downloadLimiter, serveLocalFile);

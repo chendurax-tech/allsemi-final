@@ -7,6 +7,8 @@ export { Requirement } from './Requirement.js';
 export { Referral } from './Referral.js';
 export { Enquiry } from './Enquiry.js';
 export { ATSResult } from './ATSResult.js';
+export { ResumeExtraction } from './ResumeExtraction.js';
+export { JobSyncRun } from './JobSyncRun.js';
 export { Insight, Story, Expertise, Service, Location, insightOnLanding, storyOnLanding } from './content.js';
 export { AuditLog } from './AuditLog.js';
 export { AiUsage } from './AiUsage.js';

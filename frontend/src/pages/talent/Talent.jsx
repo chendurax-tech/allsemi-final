@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useSeo, fixedPageSeo } from '../../lib/seo.js';
 import { Link } from 'react-router-dom';
 import {
   useInView, useParallax,
@@ -28,9 +29,7 @@ import { checkDocument } from '../../components/forms/validation.js';
 */
 
 export default function Talent() {
-  useEffect(() => {
-    document.title = 'ALLSEMIS | Talent';
-  }, []);
+  useSeo(fixedPageSeo('/talent'));
 
   return (
     <>
@@ -56,7 +55,7 @@ function TalentHero() {
       className="relative h-[88vh] min-h-[560px] max-h-[900px] flex flex-col justify-end overflow-hidden border-b border-line"
     >
       <div ref={heroLayerRef} className="absolute inset-0 transition-transform duration-300 ease-out">
-        <img
+        <img fetchPriority="high"
           src={TALENT_HERO.image}
           alt={TALENT_HERO.alt}
           className="absolute inset-0 w-full h-full object-cover grayscale-[0.55] scale-105"

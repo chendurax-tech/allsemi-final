@@ -234,8 +234,9 @@ export const RESOURCES = {
   },
 
   requirements: {
-    collection: 'requirements', title: 'Requirements', singular: 'requirement', eyebrow: 'Recruitment',
-    description: 'Hiring requirements sent through the Hire Talent form or entered here: who is hiring, the role, what it needs and how urgent it is.',
+    collection: 'requirements', title: 'Hiring Requirements', singular: 'hiring requirement', eyebrow: 'Recruitment',
+    description: 'Hiring requests from companies, sent through the Hire Talent form or entered here: who is hiring, the role, what it needs and how urgent it is.',
+    deleteMessage: 'This will permanently delete this hiring request from the company, with its attachment and its email history. Jobs, candidates, applications and other records are not affected. This cannot be undone.',
     basePath: '/admin/requirements', editor: 'drawer', canCreate: true, canDelete: true, titleKey: 'role',
     panel: RequirementEmails,
     permissions: { read: 'requirements:read', write: 'requirements:write', remove: 'requirements:delete' },
