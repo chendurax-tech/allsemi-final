@@ -28,7 +28,7 @@ keywords: about, company, who are you, what is allsemi, allsemis, what do you do
 
 ALLSEMIS is a specialist staffing partner for semiconductor, VLSI and advanced engineering talent. Its line is "Talent. Engineered."
 
-ALLSEMIS connects the engineers behind modern silicon, from architecture to tape-out, with the semiconductor, automotive, aerospace and industrial teams building what is next. It works across eight engineering domains, each covered by people who understand the discipline, and describes its approach as going beyond traditional recruiting by understanding the technology, not just the job title.
+ALLSEMIS connects the engineers behind modern silicon, from architecture to tape-out, with the semiconductor, automotive, aerospace and industrial teams building what is next. It works across nine engineering domains, each covered by people who understand the discipline, and describes its approach as going beyond traditional recruiting by understanding the technology, not just the job title.
 
 ## why-allsemis | Why ALLSEMIS
 url: /

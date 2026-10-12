@@ -16,7 +16,8 @@
     "migrate:recruitment": "node scripts/migrate-recruitment.js",
     "clean:showcase": "node scripts/clean-showcase.js",
     "sync:jobs": "node scripts/sync-jobs.js",
-    "test": "node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js tests/session.test.js tests/health.test.js tests/requirements.test.js tests/ai-usage.test.js tests/emails.test.js tests/resume-extraction.test.js tests/resume-parser.test.js tests/resume-drafts.test.js tests/match-explanation.test.js tests/ats-reevaluation.test.js tests/chat.test.js tests/job-sync.test.js tests/hiring-requirements.test.js tests/sitemap.test.js",
+    "add-sector": "node scripts/add-sector.js",
+    "test": "node --test --test-concurrency=1 tests/unit.test.js tests/auth.test.js tests/forms.test.js tests/admin.test.js tests/providers.test.js tests/showcase.test.js tests/session.test.js tests/health.test.js tests/requirements.test.js tests/ai-usage.test.js tests/emails.test.js tests/resume-extraction.test.js tests/resume-parser.test.js tests/resume-drafts.test.js tests/match-explanation.test.js tests/ats-reevaluation.test.js tests/chat.test.js tests/job-sync.test.js tests/hiring-requirements.test.js tests/sitemap.test.js tests/sector-addition.test.js",
     "check": "node scripts/check-syntax.js"
   },
   "dependencies": {

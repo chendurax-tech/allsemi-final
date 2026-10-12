@@ -65,7 +65,7 @@ export const PAGE_SEO = {
   },
   '/expertise': {
     title: 'Engineering Recruitment by Sector | ALLSEMIS Expertise',
-    description: 'The sectors ALLSEMIS recruits engineers for: semiconductor and chip engineering, embedded systems, mobility and communications, AI infrastructure and more.',
+    description: 'The sectors ALLSEMIS recruits engineers for: semiconductor and chip engineering, embedded systems, mobility, wireless and telecom, AI infrastructure and more.',
     trail: [HOME, EXPERTISE],
   },
   '/expertise/semiconductor-chip-engineering': {
@@ -107,6 +107,11 @@ export const PAGE_SEO = {
     title: 'Banking & FinTech Engineering Recruitment | ALLSEMIS',
     description: 'Banking, finance and fintech recruitment: payments infrastructure, core and digital banking, risk and compliance technology and API platform engineers.',
     trail: [HOME, EXPERTISE, { name: 'Banking, Finance & FinTech', path: '/expertise/banking-finance-fintech' }],
+  },
+  '/expertise/wireless-telecom': {
+    title: 'Wireless & Telecom Engineering Recruitment | ALLSEMIS',
+    description: 'Wireless and telecom recruitment: RF and radio access, 4G and 5G networks, core and transport, network planning and optimisation, and telecom software engineers.',
+    trail: [HOME, EXPERTISE, { name: 'Wireless & Telecom', path: '/expertise/wireless-telecom' }],
   },
   '/insights': {
     title: 'Semiconductor & Engineering Hiring Insights | ALLSEMIS',

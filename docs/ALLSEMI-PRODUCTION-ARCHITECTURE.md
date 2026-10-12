@@ -586,6 +586,7 @@ Key points (the step by step is in `backend/README.md`):
 - **Shutdown**: the server stops accepting connections and closes the database connection on `SIGTERM`.
 - **First user**: `npm run create-admin`. The development seed never runs in production, and it refuses a database that is not on the machine it runs on unless the database name is confirmed with `--database=<name>`.
 - **An existing database**: if it holds applications or candidates saved by an earlier version, run `npm run migrate:recruitment` (dry run), then `npm run migrate:recruitment -- --apply` (section 2).
+- **A sector added to the website content**: the Wireless & Telecom sector (`/expertise/wireless-telecom`) is in `seed/data/content.json`, which only a new database reads. An existing database gets it with `npm run add-sector -- wireless-telecom` (dry run), then `npm run add-sector -- wireless-telecom --apply`. Only that sector is inserted; no other sector is changed.
 
 ### Public website: loading and search
 

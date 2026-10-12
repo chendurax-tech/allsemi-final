@@ -170,7 +170,7 @@ function DomainNetwork() {
     <section ref={(el) => { ref.current = el; }} className="border-b border-line py-20 md:py-28">
       <div className={`max-w-7xl mx-auto px-5 md:px-10 mb-10 md:mb-12 transition-opacity duration-700 motion-reduce:transition-none ${inView ? 'opacity-100' : 'opacity-0'}`}>
         <MeasurementLabel className="block mb-4">Domain Network</MeasurementLabel>
-        <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight">Eight engineering domains.</h2>
+        <h2 className="font-display font-semibold text-3xl md:text-4xl tracking-tight">Nine engineering domains.</h2>
       </div>
 
       {/* The same ExpertiseBands system used on the landing page and

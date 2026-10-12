@@ -74,6 +74,10 @@
       "destination": "/seo/expertise/banking-finance-fintech.html"
     },
     {
+      "source": "/expertise/wireless-telecom",
+      "destination": "/seo/expertise/wireless-telecom.html"
+    },
+    {
       "source": "/insights",
       "destination": "/seo/insights.html"
     },

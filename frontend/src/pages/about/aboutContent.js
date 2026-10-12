@@ -23,7 +23,7 @@ export const POSITIONING = {
 
 export const CONNECTS_NODES = [
   { id: 'talent', label: 'Talent', detail: 'Specialist engineers, from individual contributor to senior technical leadership.' },
-  { id: 'expertise', label: 'Expertise', detail: 'Eight engineering domains, each covered by people who understand the discipline.' },
+  { id: 'expertise', label: 'Expertise', detail: 'Nine engineering domains, each covered by people who understand the discipline.' },
   { id: 'technology', label: 'Technology', detail: 'The systems being built today, across silicon and the products it powers.' },
   { id: 'employers', label: 'Employers', detail: 'Teams that need the right engineer, quickly, without the noise.' },
 ];

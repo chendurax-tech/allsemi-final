@@ -1921,6 +1921,99 @@
       ],
       "relatedInsight": "engineering-talent-behind-modern-payments",
       "status": "published"
+    },
+    {
+      "key": "wireless-telecom",
+      "num": "09",
+      "name": "Wireless & Telecom",
+      "shortName": "Telecom",
+      "slug": "wireless-telecom",
+      "desc": "Radio access, core networks and the telecom software that carry voice and data across 4G and 5G.",
+      "image": {
+        "url": "https://images.pexels.com/photos/36178997/pexels-photo-36178997.jpeg?auto=compress&cs=tinysrgb&h=900&w=1400",
+        "publicId": "",
+        "width": null,
+        "height": null,
+        "format": "",
+        "alt": "Cell tower with radio antennas against a blue sky"
+      },
+      "introduction": "The engineers who design, deploy and optimise wireless networks, from RF and radio access to the core, transport and telecom software behind them.",
+      "overview": "Wireless and telecom engineering spans the whole path a signal takes: the radio interface, the radio access network that carries it, the transport and core networks behind it, and the software that runs and monitors all of it. The move from 4G to 5G, and the growth of virtualised and cloud-native network functions, has changed what operators and equipment vendors look for. RF and protocol knowledge is still the foundation, but it increasingly has to come with software, automation and cloud skills. Network planning and optimisation roles depend on hands-on experience with live networks and the tools used to measure them. Searches in this sector usually need a specific layer of the network and a specific generation of the technology, not wireless experience in general.",
+      "domains": [
+        "Wireless Network Engineering",
+        "RF Engineering",
+        "Radio Access Networks (RAN)",
+        "4G LTE & 5G NR",
+        "Core Networks",
+        "Transport & Backhaul",
+        "Network Planning & Optimisation",
+        "Network Performance",
+        "Telecom Software",
+        "Embedded & Protocol Software"
+      ],
+      "roles": [
+        "RF Engineer",
+        "RAN Engineer",
+        "5G Systems Engineer",
+        "Network Planning Engineer",
+        "RF Optimisation Engineer",
+        "Core Network Engineer",
+        "Telecom Software Engineer",
+        "Protocol Stack Engineer",
+        "Network Test & Validation Engineer"
+      ],
+      "hiringChallenges": [
+        "Generation-Specific Experience: 5G NR, LTE and earlier networks differ enough that experience in one does not transfer directly to another.",
+        "Layer Depth: RF, radio access, transport and core are separate specialisms, and engineers who can work across layers are rare.",
+        "Software Shift: Virtualised and cloud-native network functions need telecom engineers who also bring software and automation skills.",
+        "Live-Network Exposure: Planning and optimisation roles depend on experience with live networks, drive testing and measurement tools, which is hard to gain outside an operator or equipment vendor."
+      ],
+      "processFlow": [
+        "Radio",
+        "Access",
+        "Transport",
+        "Core",
+        "Optimisation"
+      ],
+      "representativeSearches": [
+        {
+          "ref": "SEARCH / 901",
+          "title": "5G Radio Access",
+          "requirement": "Radio access network integration and optimisation for a 5G deployment",
+          "signals": [
+            "5G NR",
+            "RAN",
+            "3GPP",
+            "KPI Analysis",
+            "Drive Testing"
+          ]
+        },
+        {
+          "ref": "SEARCH / 902",
+          "title": "Network Planning",
+          "requirement": "RF planning and capacity optimisation across a multi-technology network",
+          "signals": [
+            "RF Planning",
+            "LTE / 5G",
+            "Coverage & Capacity",
+            "Network Performance"
+          ]
+        },
+        {
+          "ref": "SEARCH / 903",
+          "title": "Telecom Software",
+          "requirement": "Protocol and network software for virtualised telecom functions",
+          "signals": [
+            "C / C++",
+            "Protocol Stacks",
+            "Linux",
+            "Cloud-Native",
+            "Automation"
+          ]
+        }
+      ],
+      "relatedInsight": "hiring-for-aerospace-systems",
+      "status": "published"
     }
   ],
   "services": [

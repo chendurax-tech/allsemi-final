@@ -5,7 +5,7 @@ import React from 'react';
   that sector's own technical vocabulary rather than a shared generic
   icon. Same visual system throughout (thin single-weight strokes,
   violet accent, soft halo glow, no fills beyond low-opacity accents)
-  so all 8 read as one family, while the actual composition differs
+  so all nine read as one family, while the actual composition differs
   meaningfully sector to sector - not a reused shape recolored.
 */
 
@@ -233,6 +233,60 @@ export function BankingVisual() {
   );
 }
 
+/* 09 - Wireless & Telecom: a cellular network - hexagonal cells, three
+   cell sites radiating coverage, backhaul to the core */
+function WirelessVisual() {
+  const R = 30;  // hexagon radius
+  const hex = (cx, cy) => Array.from({ length: 6 }, (_, i) => {
+    const a = (Math.PI / 3) * i + Math.PI / 6;
+    return `${(cx + Math.cos(a) * R).toFixed(1)},${(cy + Math.sin(a) * R).toFixed(1)}`;
+  }).join(' ');
+  const w = Math.sqrt(3) * R;
+  const cells = [];
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 7; col++) {
+      cells.push([96 + col * w + (row % 2) * (w / 2), 74 + row * R * 1.5]);
+    }
+  }
+  const sites = [[148, 119], [252, 74], [304, 164]];
+  const core = [400, 250];
+  // Three sector arcs per site, 120 degrees apart, as on a real cell site.
+  const sector = (x, y, r, a) => {
+    const a0 = a - 0.5;
+    const a1 = a + 0.5;
+    return `M ${(x + Math.cos(a0) * r).toFixed(1)} ${(y + Math.sin(a0) * r).toFixed(1)} A ${r} ${r} 0 0 1 ${(x + Math.cos(a1) * r).toFixed(1)} ${(y + Math.sin(a1) * r).toFixed(1)}`;
+  };
+  return (
+    <svg {...wrap}>
+      <defs>{HALO('h9')}</defs>
+      <rect width="480" height="320" fill="url(#h9)" />
+      {cells.map(([x, y]) => (
+        <polygon key={`${x}-${y}`} points={hex(x, y)} fill="none" stroke="#a78bfa" strokeOpacity="0.16" strokeWidth="1" />
+      ))}
+      {/* backhaul from each site to the core */}
+      {sites.map(([x, y]) => (
+        <path key={`b${x}`} d={`M ${x} ${y} L ${x} ${core[1]} L ${core[0]} ${core[1]}`} fill="none" stroke="#a78bfa" strokeOpacity="0.28" strokeWidth="1" strokeDasharray="2 5" />
+      ))}
+      {sites.map(([x, y]) => (
+        <g key={`s${x}`}>
+          {[0, 2.094, 4.189].map((a) => [16, 26].map((rad, i) => (
+            <path key={`${a}-${rad}`} d={sector(x, y, rad, a - Math.PI / 2)} fill="none" stroke="#c084fc" strokeOpacity={0.55 - i * 0.2} strokeWidth="1.25" />
+          )))}
+          <circle cx={x} cy={y} r="4" fill="#0d0b14" stroke="#c084fc" strokeOpacity="0.6" strokeWidth="1.25" />
+          <circle cx={x} cy={y} r="1.6" fill="#a78bfa" />
+        </g>
+      ))}
+      {/* the core */}
+      <rect x={core[0] - 22} y={core[1] - 16} width="44" height="32" fill="#0d0b14" stroke="#c084fc" strokeOpacity="0.55" strokeWidth="1.25" />
+      <g stroke="#a78bfa" strokeOpacity="0.4" strokeWidth="1">
+        <line x1={core[0] - 12} y1={core[1] - 6} x2={core[0] + 12} y2={core[1] - 6} />
+        <line x1={core[0] - 12} y1={core[1]} x2={core[0] + 12} y2={core[1]} />
+        <line x1={core[0] - 12} y1={core[1] + 6} x2={core[0] + 12} y2={core[1] + 6} />
+      </g>
+    </svg>
+  );
+}
+
 export const SECTOR_VISUALS = {
   semiconductor: SemiconductorVisual,
   embedded: EmbeddedVisual,
@@ -242,6 +296,7 @@ export const SECTOR_VISUALS = {
   'consumer-retail': RetailVisual,
   'business-finance': BusinessVisual,
   'banking-fintech': BankingVisual,
+  'wireless-telecom': WirelessVisual,
 };
 
 // The motif for a sector, by the sector's fixed id, or null. The

@@ -23,7 +23,7 @@ import {
 let ctx;
 let credentials;
 const EMPTY = { Job: 0, Candidate: 0, Application: 0, Requirement: 0, Referral: 0, Enquiry: 0, ATSResult: 0 };
-const CONTENT = { Insight: 14, Story: 3, Expertise: 8, Service: 3, Location: 3, SiteSettings: 1 };
+const CONTENT = { Insight: 14, Story: 3, Expertise: 9, Service: 3, Location: 3, SiteSettings: 1 };
 const pick = (counts, names) => Object.fromEntries(names.map((name) => [name, counts[name]]));
 const removedIn = (plan, name) => plan.collections[name].remove.length;
 const keptIn = (plan, name) => plan.collections[name].keep.length;
@@ -63,7 +63,7 @@ test('the seed creates users and website content, and no job or recruitment reco
   assert.deepEqual(await get('/api/public/jobs'), []);
   assert.equal((await get('/api/public/insights')).length, 13);
   assert.equal((await get('/api/public/stories')).length, 3);
-  assert.equal((await get('/api/public/expertise')).length, 8);
+  assert.equal((await get('/api/public/expertise')).length, 9);
   assert.equal((await get('/api/public/services')).length, 3);
   assert.equal((await get('/api/public/locations')).length, 3);
   assert.ok((await get('/api/public/site')).contact.email);

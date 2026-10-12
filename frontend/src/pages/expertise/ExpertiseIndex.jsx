@@ -72,7 +72,7 @@ export default function ExpertiseIndex() {
             EXPERTISE
           </span>
           <h1 className="font-display font-bold text-4xl md:text-6xl tracking-tight leading-tight mb-6 max-w-2xl">
-            Eight sectors. One standard.
+            Nine sectors. One standard.
           </h1>
           <p className="max-w-xl text-base md:text-lg text-text-dim leading-relaxed">
             The specialist domains ALLSEMIS recruits across, from semiconductor
